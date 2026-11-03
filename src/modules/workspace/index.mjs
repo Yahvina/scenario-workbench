@@ -1,3 +1,4 @@
+import {savedWorkPanel} from './saved-work-panel.mjs';
 import {statusLabel} from '../solver/presentation.mjs';
 import { el } from '../../core/ui.mjs';
 import {readRunSummary,readRunArchive,subscribeRunSummary} from '../solver/index.mjs';
@@ -15,8 +16,8 @@ function createRunSave(context){
 export function mountSaving(container,context){
  const {runSave,renderRunSave}=createRunSave(context);
  container.append(el("h2",{},"保存与导出"),el("p",{},"保存项目输入与当前查看的检算归档；完整可读报告将在后续工作包提供。"),el("button",{class:"button",onclick:context.exportProject},"下载项目备份"),el("button",{class:"button",onclick:()=>context.navigate("workspace")},"前往项目页恢复备份"),runSave);
- const offStore=context.store.subscribe(renderRunSave),offRun=subscribeRunSummary(renderRunSave);renderRunSave();
- return ()=>{offStore();offRun();};
+ const offLibrary=savedWorkPanel(container,context);const offStore=context.store.subscribe(renderRunSave),offRun=subscribeRunSummary(renderRunSave);renderRunSave();
+ return ()=>{offStore();offRun();offLibrary();};
 }
 
 export function mount(container, context) {
@@ -83,8 +84,8 @@ export function mount(container, context) {
     el('p', { class: 'muted' }, '本浏览器自动保存已提交的内容；下载备份便于跨设备保留。'),
     el('div', { class: 'actions' }, el('button', { class: 'button secondary', onclick: context.exportProject }, '下载项目备份'), el('button', { class: 'button secondary', onclick: context.captureSnapshot }, '记录未检验快照')),
     el('div', { class: 'field', style: 'margin-top:16px' }, el('label', { for: 'project-import' }, '从JSON备份恢复'), backup),runSave);
-  const offStore=context.store.subscribe(renderRunSave),offRun=subscribeRunSummary(renderRunSave);renderRunSave();
+  const offLibrary=savedWorkPanel(container,context);const offStore=context.store.subscribe(renderRunSave),offRun=subscribeRunSummary(renderRunSave);renderRunSave();
   const unload = event => { if (dirty) { event.preventDefault(); event.returnValue = ''; } };
   window.addEventListener('beforeunload', unload);
-  return { dispose: () => {window.removeEventListener('beforeunload', unload);offStore();offRun();}, canLeave: () => !dirty || confirm('有未保存的范围修改。离开并放弃这些修改吗？') };
+  return { dispose: () => {window.removeEventListener('beforeunload', unload);offStore();offRun();offLibrary();}, canLeave: () => !dirty || confirm('有未保存的范围修改。离开并放弃这些修改吗？') };
 }

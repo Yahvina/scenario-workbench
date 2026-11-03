@@ -1,3 +1,4 @@
+import {definitionPanel} from './definition-panel.mjs';
 import { el } from '../../core/ui.mjs';
 import { resolveSelection, visibleRows, descendantChoices } from './selection.mjs';
 import { joinJJJFramework } from './framework.mjs';
@@ -40,7 +41,7 @@ export function mount(container, context) {
       el('button', { class: 'button secondary', onclick: () => { expanded.clear(); render(); } }, '收起全部'),
       el('details', { class: 'elements-rules' }, el('summary', {}, '选择规则'), el('p', {}, '可在任意层停止，也可混合深度。父子分类可同时保留，变量按ID去重。无映射分类保留为待配置，不自动纳入后代；搜索与展开不改变选择。'))),
     message, el('div', { class: 'elements-columns' }, el('section', { class: 'elements-browser', 'aria-label': '分类浏览' }, treeInfo, tree), summary));
-  root.querySelector('.elements-tools').append(el('button',{class:'button secondary',onclick:()=>context.navigate('timeline')},'可选：设置时间路径'));container.append(root);
+  root.querySelector('.elements-tools').append(el('button',{class:'button secondary',onclick:()=>context.navigate('timeline')},'可选：设置时间路径'));container.append(root);const editor=definitionPanel(root,context);root.insertBefore(editor.element,catalog);
 
   function openDraftTree(){
     expanded.clear();context.store.read().data.taxonomy.filter(node=>!node.parentIds.length).forEach(node=>expanded.add(node.id));expanded.add('jjj-group-0-section-0');render();
@@ -137,7 +138,7 @@ export function mount(container, context) {
         const choices=descendantChoices(p,id);
         item.append(el('p',{},'这里只保留关注范围，不作为聚合变量计算。'),el('button',{class:'button secondary','aria-label':'定位下级因素 '+node.label,onclick:()=>{query='';search.value='';const all=visibleRows(p.data.taxonomy,new Set(p.data.taxonomy.map(n=>n.id))),path=all.find(r=>r.node.id===id);if(path)JSON.parse(path.key).forEach(n=>expanded.add(n));expanded.add(id);choices.descendantIds.forEach(n=>expanded.add(n));render();const target=choices.nodeIds[0]||id;const input=[...tree.querySelectorAll('[data-node]')].find(e=>e.dataset.node===target);input?.focus();input?.scrollIntoView({block:'nearest'});}},'展开并定位具体因素'));
         if(choices.nodeIds.length)item.append(el('p',{},'可选择的下级已有变量：'+choices.descriptorIds.map(d=>p.data.descriptors.find(x=>x.id===d).label).join('、')+'。状态名称存在不代表阈值/依据已核验。'),el('button',{class:'button','aria-label':'选择下级已有变量 '+node.label,onclick:()=>commit([...p.selection.nodeIds,...choices.nodeIds])},'选择下级已有变量（不是聚合）'));
-        else item.append(el('p',{},'下级尚无同时具备变量映射和状态定义的因素，当前不能参与计算。本页尚无定义编辑器；可移除此关注，或到项目页恢复包含合法定义的备份。'),el('button',{class:'button secondary',onclick:()=>context.navigate('workspace')},'返回项目页恢复定义备份'));
+        else item.append(el('p',{},'下级尚无同时具备变量映射和状态定义的因素，当前不能参与计算。可使用本页定义编辑入口建立因素并绑定分类，或恢复包含合法定义的备份。'),el('button',{class:'button secondary',onclick:()=>context.navigate('workspace')},'返回项目页恢复定义备份'));
       }
       summary.append(item);
     }
@@ -163,5 +164,5 @@ export function mount(container, context) {
   search.addEventListener('input', () => { query = search.value; render(); });
   const unsubscribe = context.store.subscribe(render);
   render();
-  return () => { disposed = true; unsubscribe(); root.remove(); };
+  return {canLeave:editor.canLeave,dispose(){disposed=true;unsubscribe();editor.dispose();root.remove();}};
 }

@@ -38,3 +38,5 @@
 .elements-module strong { font-size:15px; }
 .elements-module button:focus-visible, .elements-module input:focus-visible, .elements-module summary:focus-visible { outline:2px solid var(--action); outline-offset:2px; }
 @media(max-width:760px) { .elements-module .elements-columns { grid-template-columns:minmax(0,1fr); } .elements-module .elements-summary{border-left:0;border-top:1px solid var(--line);padding:18px 0 0;max-height:none}.elements-module .elements-catalog-groups{grid-template-columns:1fr}.elements-module .elements-tree{max-height:480px} }
+
+.elements-module .definition-editor{border-bottom:1px solid var(--line);padding:12px 0}.definition-editor label{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;overflow-wrap:anywhere}.definition-editor input:not([type=checkbox]),.definition-editor select{width:100%;min-width:0;box-sizing:border-box;padding:8px;border:1px solid var(--line);background:var(--panel);color:var(--tx);font:inherit}.definition-editor fieldset{min-width:0;border:1px solid var(--line);margin:12px 0;padding:12px}.definition-editor button{margin:6px 8px 6px 0}.definition-editor pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}

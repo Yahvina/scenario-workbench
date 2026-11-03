@@ -36,9 +36,10 @@
     "status": "implemented",
     "spec": "docs/modules/elements.md",
     "verification": {
-      "functional": "controller-accepted",
+      "functional": "selection-and-definition-editor-controller-accepted",
       "visual": "pending-color-confirmation",
-      "evidence": "docs/reviews/e1-integration.md"
+      "evidence": "docs/reviews/p3-controller-acceptance.md",
+      "limits": "Create/edit/add states; no delete, aggregation, full taxonomy management or automatic path-state mapping"
     }
   },
   {

@@ -1,0 +1,27 @@
+.relationships-module { min-width:0; }
+.relationships-module .relationships-tabs button[aria-pressed=true] { background:var(--selection-bg);font-weight:600;border-color:var(--pri-b); }
+.relationships-module h3 { font-size:16px; }
+.relationships-module .relationships-tabs,.relationships-module .relationships-controls,.relationships-module .relationships-save { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin:16px 0; }
+.relationships-module label { display:flex; flex-direction:column; gap:6px; margin:8px 0; min-width:0; }
+.relationships-module input,.relationships-module select,.relationships-module textarea { box-sizing:border-box; max-width:100%; min-width:0; }
+.relationships-module textarea { width:100%; font:inherit; background:var(--panel); color:var(--tx); border:1px solid var(--line); border-radius:var(--r); padding:8px; }
+.relationships-module .relationships-scroll { overflow:auto; margin:12px 0; }
+.relationships-module .relationships-table { width:100%; border-collapse:collapse; min-width:420px; }
+.relationships-module .relationships-table th,.relationships-module .relationships-table td { border:1px solid var(--line); padding:10px; text-align:center; min-width:90px; }
+.relationships-module .relationships-table th { background:var(--panel); font-weight:400; }
+.relationships-module .relationships-table caption { text-align:left; padding:8px 0; }
+.relationships-module .relationships-table input { width:95px; }
+.relationships-module .relationships-missing { background:var(--panel); outline:1px dashed var(--tx3); outline-offset:-4px; color:var(--tx); }
+.relationships-module .relationships-score { color:var(--tx); }
+.relationships-module .relationships-na { color:var(--tx3); background:var(--info-bg); }
+.relationships-module .relationships-save { justify-content:flex-end; }
+.relationships-module .relationships-reference { flex-direction:row; align-items:start; overflow-wrap:anywhere; }
+.relationships-module input[type=checkbox] { width:auto; flex:none; }
+.relationships-module pre { white-space:pre-wrap; overflow-wrap:anywhere; font-size:12px; }
+.relationships-module article,.relationships-module .relationships-diagnostics { border-top:1px solid var(--line2); padding:12px 0; overflow-wrap:anywhere; }
+.relationships-module small { display:block; font-size:12px; }
+.relationships-module .relationships-status { min-height:1.5em; overflow-wrap:anywhere; }
+@media(max-width:760px) { .relationships-module .relationships-controls { align-items:stretch; } .relationships-module .relationships-controls label { width:100%; } }
+.relationships-module .relationships-matrix td[data-score="-3"],.relationships-module .relationships-matrix td[data-score="3"] { color:var(--panel); }
+.relationships-module input:not([type=checkbox]),.relationships-module select { padding:8px; border:1px solid var(--line); border-radius:var(--r); background:var(--panel); color:var(--tx); font:inherit; }
+.relationships-module h3 { overflow-wrap:anywhere; }

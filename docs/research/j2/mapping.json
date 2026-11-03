@@ -1,0 +1,877 @@
+{
+  "schemaVersion": 1,
+  "ruleVersion": "stankov-2021-table1-v1.0.0",
+  "purpose": "Research-only literal transcription; not a production interface or universal curve formula",
+  "source": {
+    "citation": "Stankov et al. MethodsX 8 (2021) 101492",
+    "doi": "10.1016/j.mex.2021.101492",
+    "localPdf": "docs/evidence/stankov_2021.pdf",
+    "sha256": "a178579c1b619742f2917d5e99d8249a506463b45f3e0dbd1615c24d755d3c0a",
+    "license": "CC BY 4.0; author attribution retained",
+    "pdfPageCount": 9
+  },
+  "orientation": {
+    "rows": "source influence / x-axis factor",
+    "columns": "target influence / y-axis factor",
+    "sourceStateOrder": [
+      "high",
+      "low"
+    ],
+    "targetStateOrder": [
+      "high",
+      "low"
+    ],
+    "originalLabels": [
+      "H",
+      "L"
+    ],
+    "reverseDirectionInferred": false
+  },
+  "scale": {
+    "originalValues": [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ],
+    "projectAllowedValues": [
+      -3,
+      -2,
+      -1,
+      0,
+      1,
+      2,
+      3
+    ],
+    "policy": "identity-no-rescale",
+    "semanticEquivalenceToOtherProjectScalesEstablished": false
+  },
+  "panels": [
+    {
+      "id": "A",
+      "label": "线性正向",
+      "description": "linear increasing",
+      "source": {
+        "pdfPage": 5,
+        "figure": "Fig.2"
+      },
+      "axisX": "source factor level, not calendar year",
+      "axisY": "target factor level",
+      "numericAxisCalibration": false
+    },
+    {
+      "id": "B",
+      "label": "线性负向",
+      "description": "linear decreasing",
+      "source": {
+        "pdfPage": 5,
+        "figure": "Fig.2"
+      },
+      "axisX": "source factor level, not calendar year",
+      "axisY": "target factor level",
+      "numericAxisCalibration": false
+    },
+    {
+      "id": "C",
+      "label": "低端平坦、高端增加",
+      "description": "flat then increasing",
+      "source": {
+        "pdfPage": 5,
+        "figure": "Fig.2"
+      },
+      "axisX": "source factor level, not calendar year",
+      "axisY": "target factor level",
+      "numericAxisCalibration": false
+    },
+    {
+      "id": "D",
+      "label": "低端增加、高端平坦",
+      "description": "increasing then flat",
+      "source": {
+        "pdfPage": 5,
+        "figure": "Fig.2"
+      },
+      "axisX": "source factor level, not calendar year",
+      "axisY": "target factor level",
+      "numericAxisCalibration": false
+    },
+    {
+      "id": "E",
+      "label": "增加且高端较陡",
+      "description": "increasing, steeper high-x",
+      "source": {
+        "pdfPage": 5,
+        "figure": "Fig.2"
+      },
+      "axisX": "source factor level, not calendar year",
+      "axisY": "target factor level",
+      "numericAxisCalibration": false
+    },
+    {
+      "id": "F",
+      "label": "增加且高端较缓",
+      "description": "increasing, flatter high-x",
+      "source": {
+        "pdfPage": 5,
+        "figure": "Fig.2"
+      },
+      "axisX": "source factor level, not calendar year",
+      "axisY": "target factor level",
+      "numericAxisCalibration": false
+    },
+    {
+      "id": "G",
+      "label": "低端平坦、高端下降",
+      "description": "flat then decreasing",
+      "source": {
+        "pdfPage": 5,
+        "figure": "Fig.2"
+      },
+      "axisX": "source factor level, not calendar year",
+      "axisY": "target factor level",
+      "numericAxisCalibration": false
+    },
+    {
+      "id": "H",
+      "label": "低端下降、高端平坦",
+      "description": "decreasing then flat",
+      "source": {
+        "pdfPage": 5,
+        "figure": "Fig.2"
+      },
+      "axisX": "source factor level, not calendar year",
+      "axisY": "target factor level",
+      "numericAxisCalibration": false
+    },
+    {
+      "id": "I",
+      "label": "下降且高端较陡",
+      "description": "decreasing, steeper high-x",
+      "source": {
+        "pdfPage": 5,
+        "figure": "Fig.2"
+      },
+      "axisX": "source factor level, not calendar year",
+      "axisY": "target factor level",
+      "numericAxisCalibration": false
+    },
+    {
+      "id": "J",
+      "label": "下降且高端较缓",
+      "description": "decreasing, flatter high-x",
+      "source": {
+        "pdfPage": 5,
+        "figure": "Fig.2"
+      },
+      "axisX": "source factor level, not calendar year",
+      "axisY": "target factor level",
+      "numericAxisCalibration": false
+    },
+    {
+      "id": "K",
+      "label": "U形",
+      "description": "U-shaped",
+      "source": {
+        "pdfPage": 5,
+        "figure": "Fig.2"
+      },
+      "axisX": "source factor level, not calendar year",
+      "axisY": "target factor level",
+      "numericAxisCalibration": false
+    },
+    {
+      "id": "L",
+      "label": "倒U形",
+      "description": "inverted U-shaped",
+      "source": {
+        "pdfPage": 5,
+        "figure": "Fig.2"
+      },
+      "axisX": "source factor level, not calendar year",
+      "axisY": "target factor level",
+      "numericAxisCalibration": false
+    }
+  ],
+  "templates": [
+    {
+      "id": "A(1)",
+      "panel": "A",
+      "lineChoices": [
+        1
+      ],
+      "matrix": [
+        [
+          1,
+          -1
+        ],
+        [
+          -1,
+          1
+        ]
+      ],
+      "source": {
+        "pdfPage": 7,
+        "table": "Table 1",
+        "tableRow": 1,
+        "screenshot": "source/page-7.png"
+      },
+      "transcription": "visually verified from source table",
+      "encodingEnabled": true,
+      "warnings": []
+    },
+    {
+      "id": "A(2)",
+      "panel": "A",
+      "lineChoices": [
+        2
+      ],
+      "matrix": [
+        [
+          2,
+          -2
+        ],
+        [
+          -2,
+          2
+        ]
+      ],
+      "source": {
+        "pdfPage": 7,
+        "table": "Table 1",
+        "tableRow": 2,
+        "screenshot": "source/page-7.png"
+      },
+      "transcription": "visually verified from source table",
+      "encodingEnabled": true,
+      "warnings": [
+        "FIG3_A_STRENGTH_TEXT_CONFLICT"
+      ]
+    },
+    {
+      "id": "B(1)",
+      "panel": "B",
+      "lineChoices": [
+        1
+      ],
+      "matrix": [
+        [
+          -1,
+          1
+        ],
+        [
+          1,
+          -1
+        ]
+      ],
+      "source": {
+        "pdfPage": 7,
+        "table": "Table 1",
+        "tableRow": 3,
+        "screenshot": "source/page-7.png"
+      },
+      "transcription": "visually verified from source table",
+      "encodingEnabled": true,
+      "warnings": []
+    },
+    {
+      "id": "B(2)",
+      "panel": "B",
+      "lineChoices": [
+        2
+      ],
+      "matrix": [
+        [
+          -2,
+          2
+        ],
+        [
+          2,
+          -2
+        ]
+      ],
+      "source": {
+        "pdfPage": 7,
+        "table": "Table 1",
+        "tableRow": 4,
+        "screenshot": "source/page-7.png"
+      },
+      "transcription": "visually verified from source table",
+      "encodingEnabled": true,
+      "warnings": []
+    },
+    {
+      "id": "C(1)",
+      "panel": "C",
+      "lineChoices": [
+        1
+      ],
+      "matrix": [
+        [
+          1,
+          -1
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "source": {
+        "pdfPage": 7,
+        "table": "Table 1",
+        "tableRow": 5,
+        "screenshot": "source/page-7.png"
+      },
+      "transcription": "visually verified from source table",
+      "encodingEnabled": true,
+      "warnings": []
+    },
+    {
+      "id": "C(2)",
+      "panel": "C",
+      "lineChoices": [
+        2
+      ],
+      "matrix": [
+        [
+          2,
+          -2
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "source": {
+        "pdfPage": 7,
+        "table": "Table 1",
+        "tableRow": 6,
+        "screenshot": "source/page-7.png"
+      },
+      "transcription": "visually verified from source table",
+      "encodingEnabled": true,
+      "warnings": []
+    },
+    {
+      "id": "D(1)",
+      "panel": "D",
+      "lineChoices": [
+        1
+      ],
+      "matrix": [
+        [
+          0,
+          0
+        ],
+        [
+          -1,
+          1
+        ]
+      ],
+      "source": {
+        "pdfPage": 7,
+        "table": "Table 1",
+        "tableRow": 7,
+        "screenshot": "source/page-7.png"
+      },
+      "transcription": "visually verified from source table",
+      "encodingEnabled": true,
+      "warnings": []
+    },
+    {
+      "id": "D(2)",
+      "panel": "D",
+      "lineChoices": [
+        2
+      ],
+      "matrix": [
+        [
+          0,
+          0
+        ],
+        [
+          -2,
+          2
+        ]
+      ],
+      "source": {
+        "pdfPage": 7,
+        "table": "Table 1",
+        "tableRow": 8,
+        "screenshot": "source/page-7.png"
+      },
+      "transcription": "visually verified from source table",
+      "encodingEnabled": true,
+      "warnings": []
+    },
+    {
+      "id": "E(2)",
+      "panel": "E",
+      "lineChoices": [
+        2
+      ],
+      "matrix": [
+        [
+          2,
+          -2
+        ],
+        [
+          -1,
+          1
+        ]
+      ],
+      "source": {
+        "pdfPage": 7,
+        "table": "Table 1",
+        "tableRow": 9,
+        "screenshot": "source/page-7.png"
+      },
+      "transcription": "visually verified from source table",
+      "encodingEnabled": true,
+      "warnings": []
+    },
+    {
+      "id": "F(1)",
+      "panel": "F",
+      "lineChoices": [
+        1
+      ],
+      "matrix": [
+        [
+          1,
+          -1
+        ],
+        [
+          -2,
+          2
+        ]
+      ],
+      "source": {
+        "pdfPage": 7,
+        "table": "Table 1",
+        "tableRow": 10,
+        "screenshot": "source/page-7.png"
+      },
+      "transcription": "visually verified from source table",
+      "encodingEnabled": true,
+      "warnings": []
+    },
+    {
+      "id": "G(1)",
+      "panel": "G",
+      "lineChoices": [
+        1
+      ],
+      "matrix": [
+        [
+          -1,
+          1
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "source": {
+        "pdfPage": 7,
+        "table": "Table 1",
+        "tableRow": 11,
+        "screenshot": "source/page-7.png"
+      },
+      "transcription": "visually verified from source table",
+      "encodingEnabled": true,
+      "warnings": []
+    },
+    {
+      "id": "G(2)",
+      "panel": "G",
+      "lineChoices": [
+        2
+      ],
+      "matrix": [
+        [
+          -2,
+          2
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "source": {
+        "pdfPage": 7,
+        "table": "Table 1",
+        "tableRow": 12,
+        "screenshot": "source/page-7.png"
+      },
+      "transcription": "visually verified from source table",
+      "encodingEnabled": true,
+      "warnings": []
+    },
+    {
+      "id": "H(1)",
+      "panel": "H",
+      "lineChoices": [
+        1
+      ],
+      "matrix": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          -1
+        ]
+      ],
+      "source": {
+        "pdfPage": 7,
+        "table": "Table 1",
+        "tableRow": 13,
+        "screenshot": "source/page-7.png"
+      },
+      "transcription": "visually verified from source table",
+      "encodingEnabled": true,
+      "warnings": []
+    },
+    {
+      "id": "H(2)",
+      "panel": "H",
+      "lineChoices": [
+        2
+      ],
+      "matrix": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          -2
+        ]
+      ],
+      "source": {
+        "pdfPage": 7,
+        "table": "Table 1",
+        "tableRow": 14,
+        "screenshot": "source/page-7.png"
+      },
+      "transcription": "visually verified from source table",
+      "encodingEnabled": true,
+      "warnings": []
+    },
+    {
+      "id": "I(2)",
+      "panel": "I",
+      "lineChoices": [
+        2
+      ],
+      "matrix": [
+        [
+          -2,
+          2
+        ],
+        [
+          1,
+          -1
+        ]
+      ],
+      "source": {
+        "pdfPage": 7,
+        "table": "Table 1",
+        "tableRow": 15,
+        "screenshot": "source/page-7.png"
+      },
+      "transcription": "visually verified from source table",
+      "encodingEnabled": true,
+      "warnings": []
+    },
+    {
+      "id": "J(1)",
+      "panel": "J",
+      "lineChoices": [
+        1
+      ],
+      "matrix": [
+        [
+          -1,
+          1
+        ],
+        [
+          2,
+          -2
+        ]
+      ],
+      "source": {
+        "pdfPage": 7,
+        "table": "Table 1",
+        "tableRow": 16,
+        "screenshot": "source/page-7.png"
+      },
+      "transcription": "visually verified from source table",
+      "encodingEnabled": true,
+      "warnings": []
+    },
+    {
+      "id": "K(1,3)",
+      "panel": "K",
+      "lineChoices": [
+        1,
+        3
+      ],
+      "matrix": [
+        [
+          1,
+          -1
+        ],
+        [
+          1,
+          -1
+        ]
+      ],
+      "source": {
+        "pdfPage": 7,
+        "table": "Table 1",
+        "tableRow": 17,
+        "screenshot": "source/page-7.png"
+      },
+      "transcription": "visually verified from source table",
+      "encodingEnabled": true,
+      "warnings": []
+    },
+    {
+      "id": "K(1,4)",
+      "panel": "K",
+      "lineChoices": [
+        1,
+        4
+      ],
+      "matrix": [
+        [
+          2,
+          -2
+        ],
+        [
+          1,
+          -1
+        ]
+      ],
+      "source": {
+        "pdfPage": 7,
+        "table": "Table 1",
+        "tableRow": 18,
+        "screenshot": "source/page-7.png"
+      },
+      "transcription": "visually verified from source table",
+      "encodingEnabled": true,
+      "warnings": []
+    },
+    {
+      "id": "K(2,3)",
+      "panel": "K",
+      "lineChoices": [
+        2,
+        3
+      ],
+      "matrix": [
+        [
+          1,
+          -1
+        ],
+        [
+          2,
+          -2
+        ]
+      ],
+      "source": {
+        "pdfPage": 7,
+        "table": "Table 1",
+        "tableRow": 19,
+        "screenshot": "source/page-7.png"
+      },
+      "transcription": "visually verified from source table",
+      "encodingEnabled": true,
+      "warnings": []
+    },
+    {
+      "id": "K(2,4)",
+      "panel": "K",
+      "lineChoices": [
+        2,
+        4
+      ],
+      "matrix": [
+        [
+          2,
+          -2
+        ],
+        [
+          2,
+          -2
+        ]
+      ],
+      "source": {
+        "pdfPage": 7,
+        "table": "Table 1",
+        "tableRow": 20,
+        "screenshot": "source/page-7.png"
+      },
+      "transcription": "visually verified from source table",
+      "encodingEnabled": true,
+      "warnings": []
+    },
+    {
+      "id": "L(1,3)",
+      "panel": "L",
+      "lineChoices": [
+        1,
+        3
+      ],
+      "matrix": [
+        [
+          -1,
+          1
+        ],
+        [
+          -2,
+          1
+        ]
+      ],
+      "source": {
+        "pdfPage": 7,
+        "table": "Table 1",
+        "tableRow": 21,
+        "screenshot": "source/page-7.png"
+      },
+      "transcription": "visually verified from source table",
+      "encodingEnabled": false,
+      "warnings": [
+        "TABLE1_L13_SOURCE_ANOMALY"
+      ]
+    },
+    {
+      "id": "L(1,4)",
+      "panel": "L",
+      "lineChoices": [
+        1,
+        4
+      ],
+      "matrix": [
+        [
+          -2,
+          2
+        ],
+        [
+          -1,
+          1
+        ]
+      ],
+      "source": {
+        "pdfPage": 7,
+        "table": "Table 1",
+        "tableRow": 22,
+        "screenshot": "source/page-7.png"
+      },
+      "transcription": "visually verified from source table",
+      "encodingEnabled": true,
+      "warnings": []
+    },
+    {
+      "id": "L(2,3)",
+      "panel": "L",
+      "lineChoices": [
+        2,
+        3
+      ],
+      "matrix": [
+        [
+          -1,
+          1
+        ],
+        [
+          -2,
+          2
+        ]
+      ],
+      "source": {
+        "pdfPage": 7,
+        "table": "Table 1",
+        "tableRow": 23,
+        "screenshot": "source/page-7.png"
+      },
+      "transcription": "visually verified from source table",
+      "encodingEnabled": true,
+      "warnings": []
+    },
+    {
+      "id": "L(2,4)",
+      "panel": "L",
+      "lineChoices": [
+        2,
+        4
+      ],
+      "matrix": [
+        [
+          -2,
+          2
+        ],
+        [
+          -2,
+          2
+        ]
+      ],
+      "source": {
+        "pdfPage": 7,
+        "table": "Table 1",
+        "tableRow": 24,
+        "screenshot": "source/page-7.png"
+      },
+      "transcription": "visually verified from source table",
+      "encodingEnabled": true,
+      "warnings": []
+    }
+  ],
+  "noDirect": {
+    "id": "NO-DIRECT",
+    "matrix": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ]
+    ],
+    "source": {
+      "pdfPage": 4,
+      "figure": "Fig.1",
+      "paragraph": "core question no direct relationship"
+    },
+    "requiresExplicitNoDirectAnswer": true
+  },
+  "issues": [
+    {
+      "id": "FIG3_A_STRENGTH_TEXT_CONFLICT",
+      "source": {
+        "pdfPage": 6,
+        "figure": "Fig.3",
+        "example": "A(2)"
+      },
+      "observation": "High-source prose says weakly; selected dotted line(2), Fig.3 numbers and Table1 A(2) use magnitude2. Numeric transcription enabled with warning, not treated as a corrected prose version.",
+      "screenshot": "source/fig3-A-detail.png",
+      "authorClarificationObtained": false
+    },
+    {
+      "id": "TABLE1_L13_SOURCE_ANOMALY",
+      "source": {
+        "pdfPage": 7,
+        "table": "Table1",
+        "row": "L(1,3)"
+      },
+      "observation": "Printed low-source row is [-2,+1], unlike the opposite equal-magnitude pairs in the other listed rows. Preserve these printed values, do not silently repair. Operational lookup for this code is blocked pending clarification.",
+      "screenshot": "source/table1-L-detail-300dpi.png",
+      "authorClarificationObtained": false
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+.timeline-module { min-width:0; }
+.timeline-module .timeline-layout { display:grid; grid-template-columns:minmax(130px,1fr) minmax(0,3fr); gap:16px; align-items:start; }
+.timeline-module .timeline-variables { display:flex; flex-direction:column; gap:8px; min-width:0; }
+.timeline-module .timeline-variable { text-align:left; white-space:normal; overflow-wrap:anywhere; font-size:15px; }
+.timeline-module .timeline-variable[aria-pressed=true] { background:var(--selection-bg); font-weight:600; }
+.timeline-module .timeline-editor { min-width:0; overflow-wrap:anywhere; }
+.timeline-module h3 { font-size:16px; }
+.timeline-module .timeline-settings { display:flex; flex-wrap:wrap; gap:12px; margin:12px 0; }
+.timeline-module label { display:flex; flex-direction:column; gap:6px; min-width:0; }
+.timeline-module input,.timeline-module select { max-width:100%; min-width:0; box-sizing:border-box; }
+.timeline-module .timeline-chart { width:100%; height:auto; display:block; overflow:visible; }
+.timeline-module .timeline-chart text { font:12px -apple-system,BlinkMacSystemFont,"Microsoft YaHei",sans-serif; fill:var(--tx2); }
+.timeline-module .timeline-point { cursor:ns-resize; touch-action:none; }
+.timeline-module .timeline-table { border-collapse:collapse; width:100%; margin:12px 0; }
+.timeline-module th,.timeline-module td { border-bottom:1px solid var(--line2); padding:8px 4px; text-align:left; }
+.timeline-module td input { width:100%; }
+.timeline-module .timeline-save { display:flex; justify-content:flex-end; gap:12px; margin:20px 0; }
+.timeline-module .timeline-sources { border-top:1px solid var(--line2); padding-top:12px; }
+.timeline-module pre { white-space:pre-wrap; overflow-wrap:anywhere; font-size:12px; }
+.timeline-module .timeline-message { min-height:1.5em; }
+@media(max-width:760px) {
+  .timeline-module .timeline-layout { grid-template-columns:minmax(0,1fr); }
+  .timeline-module .timeline-table,.timeline-module tbody,.timeline-module tr,.timeline-module td { display:block; }
+  .timeline-module thead { display:none; }
+  .timeline-module td[data-label]::before { content:attr(data-label); display:block; font-size:12px; margin-bottom:4px; }
+  .timeline-module tr { margin-bottom:12px; border:1px solid var(--line2); padding:8px; }
+}
+.timeline-module .timeline-chart-frame { overflow-x:auto; }
+@media(max-width:760px) { .timeline-module .timeline-chart { min-width:640px; } }
+
+.timeline-module input,.timeline-module select{min-height:36px;padding:6px 9px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);color:var(--tx)}

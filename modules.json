@@ -1,0 +1,213 @@
+[
+  {
+    "id": "workspace",
+    "title": "项目与双视角",
+    "requires": [],
+    "perspectives": [
+      "public",
+      "expert"
+    ],
+    "status": "implemented",
+    "spec": "docs/modules/workspace.md"
+  },
+  {
+    "id": "policy",
+    "title": "政策与多级选择",
+    "requires": [
+      "workspace"
+    ],
+    "perspectives": [
+      "public",
+      "expert"
+    ],
+    "status": "planned",
+    "spec": "docs/modules/policy.md"
+  },
+  {
+    "id": "elements",
+    "title": "描述符与状态",
+    "requires": [
+      "workspace"
+    ],
+    "perspectives": [
+      "public",
+      "expert"
+    ],
+    "status": "implemented",
+    "spec": "docs/modules/elements.md",
+    "verification": {
+      "functional": "controller-accepted",
+      "visual": "pending-color-confirmation",
+      "evidence": "docs/reviews/e1-integration.md"
+    }
+  },
+  {
+    "id": "timeline",
+    "title": "政策实施路径",
+    "requires": [
+      "elements"
+    ],
+    "perspectives": [
+      "public",
+      "expert"
+    ],
+    "status": "implemented",
+    "spec": "docs/modules/timeline.md",
+    "verification": {
+      "functional": "controller-accepted",
+      "limits": "Chrome headless desktop pointer; special fixtures primarily source",
+      "evidence": "docs/reviews/t1-integration.md"
+    }
+  },
+  {
+    "id": "ai-draft",
+    "title": "AI草案",
+    "requires": [
+      "policy",
+      "elements"
+    ],
+    "perspectives": [
+      "public",
+      "expert"
+    ],
+    "status": "planned",
+    "spec": "docs/modules/ai-draft.md"
+  },
+  {
+    "id": "relationships",
+    "title": "专家关系判断",
+    "requires": [
+      "elements"
+    ],
+    "perspectives": [
+      "public",
+      "expert"
+    ],
+    "status": "implemented",
+    "spec": "docs/modules/relationships.md",
+    "verification": {
+      "functional": "direct-scoring-matrix-and-restricted-binary-templates",
+      "review": "docs/reviews/curve-integration-recheck.md",
+      "limits": "23 binary templates only; L13 disabled; A2 warning; no in-place curve edit; no CIB solver"
+    }
+  },
+  {
+    "id": "importance",
+    "title": "AHP重要性",
+    "requires": [
+      "elements"
+    ],
+    "perspectives": [
+      "public",
+      "expert"
+    ],
+    "status": "planned",
+    "spec": "docs/modules/importance.md"
+  },
+  {
+    "id": "review",
+    "title": "专家复核与聚合",
+    "requires": [
+      "relationships"
+    ],
+    "perspectives": [
+      "public",
+      "expert"
+    ],
+    "status": "planned",
+    "spec": "docs/modules/review.md"
+  },
+  {
+    "id": "solver",
+    "title": "CIB计算",
+    "requires": [
+      "elements",
+      "relationships"
+    ],
+    "perspectives": [
+      "public",
+      "expert"
+    ],
+    "status": "planned",
+    "spec": "docs/modules/solver.md"
+  },
+  {
+    "id": "explanation",
+    "title": "白箱解释",
+    "requires": [
+      "solver"
+    ],
+    "perspectives": [
+      "public",
+      "expert"
+    ],
+    "status": "planned",
+    "spec": "docs/modules/explanation.md"
+  },
+  {
+    "id": "analysis",
+    "title": "比较与可视化",
+    "requires": [
+      "solver"
+    ],
+    "perspectives": [
+      "public",
+      "expert"
+    ],
+    "status": "planned",
+    "spec": "docs/modules/analysis.md"
+  },
+  {
+    "id": "optimization",
+    "title": "方案调整与优化",
+    "requires": [
+      "solver"
+    ],
+    "perspectives": [
+      "public",
+      "expert"
+    ],
+    "status": "planned",
+    "spec": "docs/modules/optimization.md"
+  },
+  {
+    "id": "knowledge",
+    "title": "知识库",
+    "requires": [
+      "workspace"
+    ],
+    "perspectives": [
+      "public",
+      "expert"
+    ],
+    "status": "planned",
+    "spec": "docs/modules/knowledge.md"
+  },
+  {
+    "id": "exports",
+    "title": "报告与模型接口",
+    "requires": [
+      "solver",
+      "explanation"
+    ],
+    "perspectives": [
+      "public",
+      "expert"
+    ],
+    "status": "planned",
+    "spec": "docs/modules/exports.md"
+  },
+  {
+    "id": "collaboration",
+    "title": "在线协作与部署",
+    "requires": [
+      "workspace"
+    ],
+    "perspectives": [
+      "public",
+      "expert"
+    ],
+    "status": "planned",
+    "spec": "docs/modules/collaboration.md"
+  }
+]

@@ -1,0 +1,44 @@
+.sample-layout{display:grid;grid-template-columns:190px minmax(0,1fr);min-height:calc(100vh - 65px)}
+.sample-main{padding:28px 30px;min-width:0;max-width:1600px;margin:auto;width:100%}
+.sample-heading{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:20px}
+.sample-grid{display:grid;grid-template-columns:minmax(340px,.85fr) minmax(420px,1.15fr);gap:22px;align-items:start}
+.sample-grid>.surface{padding:20px}
+.sample-layout .sidebar{background:var(--panel)}
+.sample-layout .nav-item{text-decoration:none}
+.sample-flow{display:flex;list-style:none;padding:0;margin:0 0 20px;gap:22px;color:var(--tx3);font-size:12px}
+.sample-flow li[aria-current=step]{color:var(--tx);font-weight:600;text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:1px}
+.sample-main .elements-module .elements-columns{grid-template-columns:1fr;gap:16px}
+.sample-main .elements-module .elements-summary{border-left:0;border-top:1px solid var(--line);padding:14px 0 0;max-height:220px}
+.sample-main .elements-module .elements-tree{max-height:250px}
+.sample-main .elements-catalog .elements-dataset{margin-bottom:8px;font-size:12px}
+.sample-main .elements-catalog .elements-inline{display:none}
+.sample-main .elements-module .elements-tools{gap:6px}
+.sample-main .elements-module .elements-rules{margin-left:0}
+.sample-main .elements-module .elements-intro{font-size:12px}
+.sample-variable{margin-top:16px;display:flex;align-items:center;gap:8px}
+.sample-variable select{padding:7px 10px;border:1px solid var(--line);background:var(--panel);border-radius:var(--r);min-width:0;max-width:100%}
+.sample-graph{width:100%;height:auto;margin-top:18px}
+.sample-graph text{font-family:inherit;font-size:12px;fill:var(--tx3)}
+.sample-graph .axis{stroke:var(--line);stroke-width:1}
+.sample-graph .curve{stroke:var(--variable-color);stroke-width:2.5;fill:none}
+.sample-graph .point{stroke:var(--variable-color);stroke-width:2;fill:var(--panel)}
+.sample-point-table{width:100%;border-collapse:collapse;margin:16px 0}
+.sample-point-table th,.sample-point-table td{padding:8px;text-align:left;border-bottom:1px solid var(--line2)}
+.sample-point-table th{font-size:12px;font-weight:400;color:var(--tx3)}
+.sample-point-table input{width:100%;min-width:0;height:34px;padding:6px 8px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);color:var(--tx)}
+.sample-point-table .error-text{display:block;max-width:20ch;margin-top:5px}
+.sample-point-table input[aria-invalid=true]{border-color:var(--danger);background:var(--rd-s)}
+.sample-bottom{margin-top:22px;border-top:1px solid var(--line2);padding-top:18px}
+.sample-states{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-top:12px}
+.sample-states>div{display:flex;flex-direction:column;gap:5px;align-items:flex-start;font-size:12px;color:var(--tx3)}
+.sample-states .state-selected{background:var(--selection-bg);border-color:var(--focus);font-weight:600}
+.sample-states .state-hover{background:var(--bg);border-color:var(--pri-b)}
+.sample-states .state-error{border-color:var(--danger);color:var(--danger)}
+.sample-actions{justify-content:flex-end;border-top:1px solid var(--line2);padding-top:18px;margin-top:18px}
+.sample-state-status{font-size:12px;color:var(--tx3);margin-right:auto;max-width:45ch}
+.sample-state-status.error-text{color:var(--danger)}
+.sample-notice{font-size:12px;padding:10px 12px;background:var(--info-bg);color:var(--tx2);margin-top:14px}
+.sample-matrix-caption{font-size:12px;color:var(--tx3);margin-top:10px}
+@media(max-width:1150px){.sample-grid{grid-template-columns:1fr}.sample-main .elements-module .elements-columns{grid-template-columns:1fr 1fr}.sample-main .elements-module .elements-summary{border-top:0;border-left:1px solid var(--line);padding:0 0 0 16px;max-height:380px}.sample-main .elements-module .elements-tree{max-height:380px}}
+@media(max-width:650px){.sample-layout{display:block}.sample-main{padding:20px 14px}.sample-heading{flex-wrap:wrap}.sample-flow{gap:14px;flex-wrap:wrap}.sample-main .elements-module .elements-columns{grid-template-columns:1fr}.sample-main .elements-module .elements-summary{border-left:0;border-top:1px solid var(--line);padding:14px 0 0}.sample-point-table td,.sample-point-table th{padding:7px 3px}.sample-grid{gap:16px}.sample-variable{flex-wrap:wrap}.sample-actions{justify-content:flex-start}.sample-state-status{flex-basis:100%}}
+@media(max-width:650px){.sample-graph text{font-size:24px}}

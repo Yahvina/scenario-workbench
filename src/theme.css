@@ -1,0 +1,26 @@
+/* Provisional slate-blue preview. Exact values await user review; see DESIGN.md. */
+:root{
+  /* 冷灰科研纸（v1.8 起）：画布 95 / 卡片 100 / 井 90，卡片浮在画布之上。
+     原来是暖米纸、三阶只差 3.8 个明度点，屏幕上分不出层次。 */
+  --bg:#EBEFF2; --panel:#FFFFFF; --panel2:#D9DFE3;
+  --line:#C5CBD0; --line2:#DDE2E6;
+  --tx:#080E13; --tx2:#242A2F; --tx3:#4E5358;
+  --pri:#4B657B; --pri-d:#334B60; --pri-s:#E7EDF3; --pri-b:#B9C9D5;
+  --ok:#4B657B; --ok-s:#E7EDF3; --ok-b:#B9C9D5;
+  --wn:#6D5940; --wn-s:#F3EEE6; --wn-b:#CFC4B1;
+  --rd:#972F27; --rd-s:#F9EBE9; --rd-b:#E9BAB5;
+  /* CIB 双极色阶：蓝（抑制）— 纸灰（无）— 赭（促进），两侧同明度，只差色相 */
+  --s-3:#405F7E; --s-2:#7890A8; --s-1:#B0BFCD;
+  --s0:#E1E5E8;
+  --s1:#C9C0D7; --s2:#9887AF; --s3:#69547F;
+  --r:3px; --r2:5px;
+  --sh:0 1px 2px rgba(8,14,19,.06);
+  --sh2:0 2px 6px rgba(8,14,19,.08);
+  --sh3:0 10px 30px rgba(8,14,19,.14);
+  --ease:cubic-bezier(.2,.7,.3,1);
+  --warm:var(--wn);
+  /* 深色框架：全站唯一的重色，用在顶栏与结果摘要。没有它，整页只有一堆等重的浅色。 */
+  --dark:#26323C; --dark-2:#34424D; --dark-ink:#E6ECF2; --dark-ink2:#93A0AC;
+}
+
+:root{--action:var(--pri);--action-hover:var(--pri-d);--selection-bg:var(--pri-s);--selection-text:var(--pri-d);--info-bg:var(--bg);--info-text:var(--tx2);--warning:var(--wn);--warning-bg:var(--wn-s);--danger:var(--rd);--chart-1:#506D87;--chart-2:#817293;--chart-3:#657887;}

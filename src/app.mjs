@@ -33,7 +33,7 @@ perspectiveSelect.addEventListener('change', () => {
   if (!canLeave()) { perspectiveSelect.value = before.view.perspective; return; }
   const value = perspectiveSelect.value;
   const publicModules = navigationFor('public').flatMap(group => group.items).map(item => item.module);
-  const fallback = value === 'public' && !publicModules.includes(before.view.module) && before.view.module !== 'methods';
+  const fallback = value === 'public' && !publicModules.includes(before.view.module) && !['methods','timeline'].includes(before.view.module);
   store.setView({ perspective: value, ...(fallback ? { module: 'solver', objectId: null } : value === 'public' && before.view.module === 'relationships' ? { objectId: null } : {}) });
   renderRoute();
   if (fallback) notify('已切换到简洁界面；详细关系建模仍保留在专家工作台。');
@@ -99,6 +99,7 @@ function renderContext() {
     nav.replaceChildren(...navigationFor(signature).map(group => el('section', { class: 'nav-group' }, el('h2', { class: 'nav-group-title' }, group.title),
       ...group.items.map(item => el('button', { class: 'nav-item', 'data-route': item.module, 'data-object-id': item.objectId || '', onclick: () => navigate(item.module, item.objectId) }, item.title, item.ready ? null : el('span', { class: 'nav-note' }, '待实现'))))));
   }
+  if(signature==='expert'&&!nav.querySelector('[data-planned]')){const more=el('details',{'data-planned':''},el('summary',{},'更多工具与开发计划'));nav.querySelectorAll('.nav-item').forEach(b=>{if(b.querySelector('.nav-note'))more.append(b);});nav.append(more);}
   sidebar.querySelectorAll('[data-route]').forEach(button => {
     if (button.dataset.route === p.view.module && (button.dataset.objectId || '') === (p.view.objectId || '')) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current');
   });
@@ -116,7 +117,7 @@ function renderContext() {
     if (p.view.perspective === 'expert') details.append(el('pre', {}, JSON.stringify(snapshot, null, 2)));
     trace.append(details);
   }
-  contextPanel.replaceChildren(el('section', { class: 'side-section' }, el('h2', {}, '当前项目'), facts), trace);
+  const extra=el('details',{},el('summary',{},'来源、版本与基础快照'),trace,el('p',{},'项目ID：'+p.id+'；科学修订 '+p.revision));contextPanel.replaceChildren(el('section', { class: 'side-section' }, el('h2', {}, '当前项目'), facts),extra);
 }
 function mountMethods(container) {
   container.append(el('h2', {}, '从输入到结论，每一步都保留依据'), el('p', { class: 'subtitle' }, '精确枚举给定矩阵的状态配置，并保留每项得分、输入和方法版本。'),

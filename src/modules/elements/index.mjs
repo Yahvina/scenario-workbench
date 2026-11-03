@@ -40,7 +40,7 @@ export function mount(container, context) {
       el('button', { class: 'button secondary', onclick: () => { expanded.clear(); render(); } }, '收起全部'),
       el('details', { class: 'elements-rules' }, el('summary', {}, '选择规则'), el('p', {}, '可在任意层停止，也可混合深度。父子分类可同时保留，变量按ID去重。无映射分类保留为待配置，不自动纳入后代；搜索与展开不改变选择。'))),
     message, el('div', { class: 'elements-columns' }, el('section', { class: 'elements-browser', 'aria-label': '分类浏览' }, treeInfo, tree), summary));
-  container.append(root);
+  root.querySelector('.elements-tools').append(el('button',{class:'button secondary',onclick:()=>context.navigate('timeline')},'可选：设置时间路径'));container.append(root);
 
   function openDraftTree(){
     expanded.clear();context.store.read().data.taxonomy.filter(node=>!node.parentIds.length).forEach(node=>expanded.add(node.id));expanded.add('jjj-group-0-section-0');render();

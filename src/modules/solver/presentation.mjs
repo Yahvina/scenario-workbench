@@ -1,0 +1,3 @@
+export function statusLabel(status){return {completed:'检算完成',blocked:'输入阻断，尚未计算',failed:'检算未完成',running:'检算中'}[status]||'尚未运行';}
+export function configurationLabel(snapshot,configuration){return Object.entries(configuration).map(([id,state])=>(snapshot.data.descriptors.find(d=>d.id===id)?.label||'未命名因素')+'：'+(snapshot.data.states.find(s=>s.id===state)?.label||'未命名状态')).join('；');}
+export function diagnosticGroups(diagnostics){const groups=new Map();for(const d of diagnostics){const key=d.code;if(!groups.has(key))groups.set(key,{code:key,message:d.message,classification:d.classification,count:0,items:[]});const g=groups.get(key);g.count++;g.items.push(d);}return [...groups.values()];}

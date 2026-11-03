@@ -86,7 +86,7 @@ export function mount(container, context) {
     body.append(el('div',{class:'relationships-controls'},el('label',{},'来源变量',source),el('span',{},'→'),el('label',{},'目标变量',target),button('交换方向',()=>switchPair(targetId,sourceId))),
       el('h3',{},el('span',{class:'variable-mark',style:'--variable-color:'+variableColor(sourceId)}),variableLabel(p,sourceId)+' → '+variableLabel(p,targetId)));
     const records=p.data.judgments.filter(j=>j.sourceDescriptorId===sourceId&&j.targetDescriptorId===targetId);
-    const chooser=el('select',{'aria-label':'编辑判断记录',onchange:e=>{if(!canLeave()){e.target.value=recordId||'';return;}recordId=e.target.value||null;load();remember();render();}},el('option',{value:''},'新建独立判断草案'),...records.map(j=>el('option',{value:j.id},j.id+' · v'+j.version+' · '+(j.scope?.regionId||'地区未知')+' · '+(Array.isArray(j.validYears)&&j.validYears.length?j.validYears.join('/'):'年份未知/格式待核'))));
+    const chooser=el('select',{'aria-label':'编辑判断记录',onchange:e=>{if(!canLeave()){e.target.value=recordId||'';return;}recordId=e.target.value||null;load();remember();render();}},el('option',{value:''},'新建独立判断草案'),...records.map(j=>el('option',{value:j.id},(p.view.perspective==='expert'?j.id:'判断 '+(records.indexOf(j)+1))+' · v'+j.version+' · '+(j.scope?.regionId||'地区未知')+' · '+(Array.isArray(j.validYears)&&j.validYears.length?j.validYears.join('/'):'年份未知/格式待核'))));
     chooser.value=recordId||'';
     body.append(el('label',{},'编辑判断记录（独立方向，不自动复制分数）',chooser));
     body.append(button('受限二档图形编码',()=>{if(!canLeave())return;curveDirty=true;body.replaceChildren();curvePanel(body,context,sourceId,targetId,()=>{curveDirty=true;},()=>{curveDirty=false;render();},savedId=>{recordId=savedId;curveDirty=false;load();render();status.textContent=context.persistenceState().ok?'编码草案已保存；人工确认不代表专家审核。':'已在当前页面提交，但浏览器保存失败，请下载备份。';});}));
@@ -137,7 +137,7 @@ export function mount(container, context) {
       const selected=candidates.filter(j=>picked.includes(j.id));
       const select=el('select',{'aria-label':'选用 '+variableLabel(p,a)+' → '+variableLabel(p,b),onchange:e=>{
         picked=picked.filter(id=>!candidates.some(j=>j.id===id));if(e.target.value)picked.push(e.target.value);remember();render();
-      }},el('option',{value:''},'未选用；保留缺口/冲突'),...candidates.map(j=>el('option',{value:j.id},j.id+' · '+(j.scope?.regionId||'范围未知')+' · '+(Array.isArray(j.validYears)&&j.validYears.length?j.validYears.join('/'):'年份未知/格式待核')+' · v'+j.version)));
+      }},el('option',{value:''},'未选用；保留缺口/冲突'),...candidates.map(j=>el('option',{value:j.id},(p.view.perspective==='expert'?j.id:'判断 '+(candidates.indexOf(j)+1))+' · '+(j.scope?.regionId||'范围未知')+' · '+(Array.isArray(j.validYears)&&j.validYears.length?j.validYears.join('/'):'年份未知/格式待核')+' · v'+j.version)));
       select.value=selected.length===1?selected[0].id:'';choices.append(el('label',{},variableLabel(p,a)+' → '+variableLabel(p,b),select));
     }
     body.append(choices);

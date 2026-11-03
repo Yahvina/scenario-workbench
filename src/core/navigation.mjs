@@ -2,7 +2,7 @@ const item = (module, title, ready = false, objectId = null) => ({ module, title
 
 export function navigationFor(perspective) {
   if (perspective === 'public') return [
-    { title: '我的情景', items: [item('workspace', '项目与研究范围', true), item('elements', '描述符与状态', true), item('timeline', '政策实施路径', true), item('relationships', '影响关系', true), item('solver', '检验与解释', true), item('exports', '保存与导出', true)] }
+    { title: '我的情景', items: [item('workspace', '项目与范围', true), item('elements', '因素与方案', true), item('relationships', '关系与假设', true), item('solver', '检验与结果', true), item('exports', '保存与导出', true)] }
   ];
   return [
     { title: '项目与资料', items: [item('workspace', '项目与研究范围', true), item('policy', '政策库与来源')] },

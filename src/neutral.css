@@ -31,3 +31,6 @@ input[aria-invalid=true]{border-color:var(--danger);background:var(--rd-s)}
 .matrix-negative{background:var(--s-3);color:var(--panel)}.matrix-positive{background:var(--s3);color:var(--panel)}.matrix-zero{background:var(--s0);color:var(--tx)}
 .matrix-missing{background:var(--panel);outline:1px dashed var(--tx3);outline-offset:-4px;color:var(--tx3)}
 @media(prefers-reduced-motion:reduce){.button:active{transform:none}}
+
+/* P2 compact context, shared by both perspectives. */
+.content-grid{grid-template-columns:minmax(0,1fr)!important}.context-panel{grid-row:1;padding:12px!important}.context-panel .facts{display:flex;flex-wrap:wrap;gap:8px 24px}.context-panel .side-section{margin:0}.context-panel h2{font-size:16px}.context-panel details{margin-top:6px}.context-panel details .trace{margin:8px 0}.content-grid>#module-content{min-width:0}.sidebar details summary{padding:12px;cursor:pointer}.solver-module [data-experience-summary]{padding:12px;border:1px solid var(--line);margin:8px 0}.solver-module details{margin:8px 0}.solver-module h3,.solver-module label{overflow-wrap:anywhere}

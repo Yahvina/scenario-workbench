@@ -8,7 +8,7 @@ import { mount as mountWorkspace } from './modules/workspace/index.mjs';
 import { mount as mountElements } from './modules/elements/index.mjs';
 import { mount as mountTimeline } from './modules/timeline/index.mjs';
 import { mount as mountRelationships } from './modules/relationships/index.mjs';
-import { mount as mountSolver } from './modules/solver/index.mjs';
+import { mount as mountSolver, readRunSummary, subscribeRunSummary } from './modules/solver/index.mjs';
 
 const STORAGE_KEY = 'scenario-workbench.project.v1';
 const root = document.querySelector('#app');
@@ -46,12 +46,13 @@ const sidebar = el('aside', { class: 'sidebar' }, el('p', { class: 'nav-label' }
 const main = el('main', { id: 'main', class: 'workspace', tabindex: '-1' });
 const headingTitle = el('h1');
 const headingSubtitle = el('p', { class: 'subtitle' });
-const heading = el('div', { class: 'page-heading' }, el('div', {}, headingTitle, headingSubtitle), el('span', { class: 'badge' }, '尚未运行CIB'));
+const runBadge = el('span', { class: 'badge', 'data-cib-status': '' }, '尚未运行CIB');
+const heading = el('div', { class: 'page-heading' }, el('div', {}, headingTitle, headingSubtitle), runBadge);
 const content = el('section', { class: 'surface', id: 'module-content' });
 const contextPanel = el('aside', { class: 'surface context-panel', 'aria-label': '项目范围与来源' });
 const globalMessage = el('p', { class: 'message', role: 'status', 'aria-live': 'polite', id: 'global-status' });
 const storageMessage = el('p', { class: 'storage-status', role: 'alert', hidden: true });
-main.append(heading, storageMessage, el('div', { class: 'content-grid' }, content, contextPanel), globalMessage, el('p', { class: 'footer' }, '描述符、时间路径、直接评分及受限二档图形编码已接入；三档不自动外推，CIB求解仍待实现。'));
+main.append(heading, storageMessage, el('div', { class: 'content-grid' }, content, contextPanel), globalMessage, el('p', { class: 'footer' }, '描述符、时间路径、直接评分及受限二档图形编码已接入；精确CIB检验及逐项解释已接入，最多100000组合；三档编码不自动外推，结果刷新不恢复。'));
 root.append(header, el('div', { class: 'layout' }, sidebar, main));
 function notify(text) { globalMessage.textContent = text; }
 function persist(project) {
@@ -79,9 +80,19 @@ function saveFile(name, value) {
   anchor.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+function runStatusText(summary) {
+  if (!summary) return '尚未运行CIB';
+  const prefix = summary.stale ? '旧检算已过期 · ' : '';
+  if (summary.status === 'running') return prefix + '检算中 · 已检查 ' + summary.checked;
+  if (summary.status === 'completed') return prefix + '检算完成 · ' + summary.count + ' 个自洽配置';
+  if (summary.status === 'blocked') return prefix + '检算阻断 · 未开始';
+  return prefix + '检算未完成 · 成立数未定';
+}
 function renderContext() {
   const p = store.read();
   perspectiveSelect.value = p.view.perspective;
+  const runSummary = readRunSummary(store), runText = runStatusText(runSummary);
+  runBadge.textContent = runText;
   const signature = p.view.perspective;
   if (nav.dataset.perspective !== signature) {
     nav.dataset.perspective = signature;
@@ -97,7 +108,7 @@ function renderContext() {
   const fixtureCount = records.filter(record => record.provenance.origin === 'fixture' || record.kind === 'fixture').length;
   const sourceText = !records.length ? '还没有载入政策、分类或关系依据。' : fixtureCount === records.length ? '当前全部数据为软件机制示例，不代表真实政策。' : fixtureCount ? '当前包含机制示例及其他来源记录，请分别核对；证据尚未验证。' : '当前包含用户或导入记录；出处可追踪，但证据尚未验证。';
   const trace = el('section', { class: 'side-section' }, el('h2', {}, '这份方案来自哪里'), el('p', { class: 'muted' }, sourceText),
-    el('ol', { class: 'trace' }, el('li', {}, '研究范围：当前项目中的设定'), el('li', {}, '已有数据：' + p.data.descriptors.length + ' 个变量，' + p.data.paths.length + ' 条路径'), el('li', {}, p.data.judgments.length ? '影响判断：' + p.data.judgments.length + ' 条，完整性和适用性尚未检查' : '影响判断：尚未提供'), el('li', {}, 'CIB检验：尚未运行')));
+    el('ol', { class: 'trace' }, el('li', {}, '研究范围：当前项目中的设定'), el('li', {}, '已有数据：' + p.data.descriptors.length + ' 个变量，' + p.data.paths.length + ' 条路径'), el('li', {}, p.data.judgments.length ? '影响判断：' + p.data.judgments.length + ' 条；检验范围以选用记录及冻结归档为准' : '影响判断：尚未提供'), el('li', { 'data-cib-trace': '' }, 'CIB检验：' + runText)));
   if (p.view.perspective === 'expert') trace.append(el('p', { class: 'muted' }, '契约 ' + CONTRACT_VERSION + ' · 科学修订 ' + p.revision), el('p', { class: 'muted' }, '项目ID：' + p.id));
   if (snapshot) {
     const current = store.isCurrent(snapshot);
@@ -108,11 +119,11 @@ function renderContext() {
   contextPanel.replaceChildren(el('section', { class: 'side-section' }, el('h2', {}, '当前项目'), facts), trace);
 }
 function mountMethods(container) {
-  container.append(el('h2', {}, '从输入到结论，每一步都保留依据'), el('p', { class: 'subtitle' }, '这里说明方法边界；当前外壳没有运行求解器。'),
+  container.append(el('h2', {}, '从输入到结论，每一步都保留依据'), el('p', { class: 'subtitle' }, '精确枚举给定矩阵的状态配置，并保留每项得分、输入和方法版本。'),
     el('table', { class: 'method-table' }, el('thead', {}, el('tr', {}, el('th', { scope: 'col' }, '环节'), el('th', { scope: 'col' }, '需要明确的内容'), el('th', { scope: 'col' }, '当前状态'))),
-      el('tbody', {}, ...[['项目范围', '地区、日历年份、输入版本', '可使用'], ['描述符选择', '所选分类与实际计算变量的直接映射；缺映射保留待配置', '可使用'], ['时间路径', '原始锚点、用户假设与插值', '可使用'], ['状态对影响', '直接评分、受限二档模板编码及按年份准备矩阵；来源与修订可查', '可使用'], ['CIB检验', '逐变量比较所选状态与所有候选状态的影响总和', '待接入']].map(row => el('tr', {}, ...row.map(cell => el('td', {}, cell)))))),
+      el('tbody', {}, ...[['项目范围', '地区、日历年份、输入版本', '可使用'], ['描述符选择', '所选分类与实际计算变量的直接映射；缺映射保留待配置', '可使用'], ['时间路径', '原始锚点、用户假设与插值', '可使用'], ['状态对影响', '直接评分、受限二档模板编码及按年份准备矩阵；来源与修订可查', '可使用'], ['CIB检验', '逐变量比较所有候选状态；精确枚举上限100000，锁定不免除比较', '可使用']].map(row => el('tr', {}, ...row.map(cell => el('td', {}, cell)))))),
     el('div', { class: 'formula' }, 'Iⱼ(l | s) = Σᵢ≠ⱼ Cᵢⱼ(sᵢ, l)；一致性条件：对每个 j，Iⱼ(sⱼ | s) ≥ Iⱼ(l | s)，对所有候选 l 成立。'),
-    el('p', {}, '公式说明的是给定影响矩阵下的内部一致性，不是现实发生概率。逐年截面检验也不自动构成动态预测。'), el('p', { class: 'notice' }, '未来可保留和导出未检验或有冲突的方案，状态会随文件一起记录。'));
+    el('p', {}, '公式说明的是给定影响矩阵下的内部一致性，不是现实发生概率。逐年截面检验也不自动构成动态预测。'), el('p', { class: 'notice' }, '可保留不自洽配置并查看原因；JSON归档区分完成、阻断及取消。结果仅保留在本会话，长期保存请下载。'));
 }
 function renderRoute() {
   if (typeof mounted === 'function') mounted(); else mounted?.dispose?.();
@@ -130,7 +141,7 @@ function renderRoute() {
       renderRoute(); notify('机制示例已载入；当前数据不代表真实政策。');
     },
     exportProject: () => saveFile('scenario-project-unverified.json', store.read()),
-    captureSnapshot: () => { snapshot = store.snapshot(); renderContext(); notify('已记录本页基础快照，尚未运行CIB。'); }
+    captureSnapshot: () => { snapshot = store.snapshot(); renderContext(); notify('已记录基础输入快照；这份快照本身不包含CIB结果。'); }
   };
   if (routes[route]) mounted = routes[route](content, context);
   else if (route === 'methods') { mountMethods(content); mounted = null; }
@@ -138,5 +149,6 @@ function renderRoute() {
   renderContext();
 }
 store.subscribe(p => { persist(p); renderContext(); });
+subscribeRunSummary(renderContext);
 renderRoute();
 if (recoveryMessage) notify(recoveryMessage);

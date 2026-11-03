@@ -88,7 +88,7 @@
     "verification": {
       "functional": "direct-scoring-matrix-and-restricted-binary-templates",
       "review": "docs/reviews/curve-integration-recheck.md",
-      "limits": "23 binary templates only; L13 disabled; A2 warning; no in-place curve edit; no CIB solver"
+      "limits": "23 binary templates only; L13 disabled; A2 warning; no in-place curve edit"
     }
   },
   {
@@ -128,8 +128,13 @@
       "public",
       "expert"
     ],
-    "status": "planned",
-    "spec": "docs/modules/solver.md"
+    "status": "implemented",
+    "spec": "docs/modules/solver.md",
+    "verification": {
+      "functional": "exact-enumeration-and-frozen-explanations",
+      "review": "docs/reviews/solver-fixes-recheck.md",
+      "limits": "100000 combinations maximum; session results reset on refresh; no sampling, probability or dynamic prediction"
+    }
   },
   {
     "id": "explanation",

@@ -1,5 +1,14 @@
 const unique = values => [...new Set(values)];
 
+export function descendantChoices(project,nodeId){
+ const visited=new Set(),nodeIds=[],descriptorIds=[];
+ function visit(id){if(visited.has(id))return;visited.add(id);const node=project.data.taxonomy.find(n=>n.id===id);if(!node)return;
+  if(id!==nodeId&&node.descriptorIds.length&&node.descriptorIds.every(did=>{const d=project.data.descriptors.find(d=>d.id===did);return d?.stateIds.length&&d.stateIds.every(sid=>project.data.states.some(s=>s.id===sid&&s.descriptorId===did));})){nodeIds.push(id);descriptorIds.push(...node.descriptorIds);}
+  node.childIds.forEach(visit);
+ }
+ visit(nodeId);return {nodeIds,descriptorIds:unique(descriptorIds),descendantIds:[...visited].filter(id=>id!==nodeId)};
+}
+
 export function resolveSelection(project, nodeIds) {
   const nodes = new Map(project.data.taxonomy.map(node => [node.id, node]));
   const selected = unique(nodeIds).filter(id => nodes.has(id));

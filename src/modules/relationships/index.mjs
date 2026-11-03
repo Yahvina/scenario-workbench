@@ -3,6 +3,7 @@ import {curvePanel} from './curve-panel.mjs';
 import { el } from '../../core/ui.mjs';
 import { variableColor } from '../../core/object-colors.mjs';
 import { statesFor, draftFor, buildJudgmentChange, buildMatrix } from './logic.mjs';
+import {prepareMatrixHandoff,sendMatrixHandoff} from './handoff.mjs';
 
 export function mount(container, context) {
   const p0=context.store.read(), key='relationships-ui-v1:'+p0.id;
@@ -122,7 +123,7 @@ export function mount(container, context) {
     }
     if(!p.data.evidence.length)refs.append(el('p',{},'暂无已有依据，保存时会新增用户假设修改记录。'));
     body.append(refs,el('div',{class:'relationships-save'},button('取消草稿',cancel),button('保存判断草稿',save,true)),evidenceView(p,original),
-      el('p',{class:'warning-text'},'图形化关系：编码方法待核，八类曲线到完整状态矩阵的自动编码属于后续J2，本页不提供伪造公式。'));
+      el('p',{class:'warning-text'},'图形化关系已提供受限二档模板：仅完整、有序H/L且明确直接关系；L(1,3)停用、A(2)保留原文冲突警告。三档及任意连续曲线不自动外推，方法论文不能代替实际关系依据。'));
     if(p.view.perspective==='expert')body.append(el('p',{class:'muted'},'源ID：'+sourceId+'；目标ID：'+targetId+'；判断ID：'+(original?.id||'未保存')+'；版本：'+(original?.version||'未保存')));
   }
   function renderMatrix(p) {
@@ -160,6 +161,10 @@ export function mount(container, context) {
       if(p.view.perspective==='expert')body.append(el('details',{},el('summary',{},'MatrixSnapshot（输入准备，非求解结果）'),el('pre',{},JSON.stringify(snapshot,null,2))));
     }
     body.append(diagnosis,el('p',{class:'warning-text'},'矩阵尚未经过CIB检验；填满不等于适用性和方向/强度依据均已验证。'));
+    let reason='';try{prepareMatrixHandoff(p,{year:year===''?null:Number(year),selectedJudgmentIds:picked});}catch(error){reason=error.message;}
+    const send=button('确认并用于检算',()=>{try{sendMatrixHandoff(context.store.read(),{year:year===''?null:Number(year),selectedJudgmentIds:picked});context.navigate('solver');}catch(error){status.textContent='未发送候选：'+error.message;}});
+    send.disabled=!!reason;body.append(el('p',{},'仅发送当前年份、记录版本和完整矩阵作为会话候选。求解页仍须明确采用并确认假设；发送不触发计算，刷新不恢复候选。'),send);
+    if(reason)body.append(el('p',{class:'warning-text'},'候选尚不能发送：'+reason));
   }
   function beforeUnload(event){if(dirty()){event.preventDefault();event.returnValue='';}}
   window.addEventListener('beforeunload',beforeUnload);

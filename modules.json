@@ -190,7 +190,7 @@
   },
   {
     "id": "exports",
-    "title": "报告与模型接口",
+    "title": "保存与导出",
     "requires": [
       "solver",
       "explanation"
@@ -199,8 +199,12 @@
       "public",
       "expert"
     ],
-    "status": "planned",
-    "spec": "docs/modules/exports.md"
+    "status": "implemented",
+    "spec": "docs/modules/exports.md",
+    "verification": {
+      "functional": "project-backup-and-current-session-run-archive-only",
+      "limits": "No human-readable report, Word/Excel, model adapter or long-term run restoration"
+    }
   },
   {
     "id": "collaboration",

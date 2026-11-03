@@ -4,7 +4,7 @@ import { CONTRACT_VERSION } from './core/contracts.mjs';
 import { navigationFor, navigationItem } from './core/navigation.mjs';
 import { el } from './core/ui.mjs';
 import { createDemoProject } from './fixtures/demo.mjs';
-import { mount as mountWorkspace } from './modules/workspace/index.mjs';
+import { mount as mountWorkspace, mountSaving } from './modules/workspace/index.mjs';
 import { mount as mountElements } from './modules/elements/index.mjs';
 import { mount as mountTimeline } from './modules/timeline/index.mjs';
 import { mount as mountRelationships } from './modules/relationships/index.mjs';
@@ -24,7 +24,7 @@ try {
 }
 const actions = createActions(store);
 const steps = [['workspace', '项目与研究范围'], ['elements', '描述符与状态'], ['timeline', '政策实施路径'], ['relationships', '关系与依据'], ['solver', '检验与解释']];
-const routes = { workspace: mountWorkspace, elements: mountElements, timeline: mountTimeline, relationships: mountRelationships, solver: mountSolver };
+const routes = { workspace: mountWorkspace, elements: mountElements, timeline: mountTimeline, relationships: mountRelationships, solver: mountSolver, exports: mountSaving };
 const header = el('header', { class: 'topbar' }, el('div', {}, el('span', { class: 'brand' }, '情景研判平台'), el('span', { class: 'version' }, '新版工作台 v0.2')));
 const perspectiveSelect = el('select', { id: 'perspective-select' }, el('option', { value: 'public' }, '普通用户 · 简洁界面'), el('option', { value: 'expert' }, '专家用户 · 完整工作台'));
 const viewSwitch = el('div', { class: 'view-dropdown' }, el('label', { for: 'perspective-select' }, '界面视角'), perspectiveSelect);

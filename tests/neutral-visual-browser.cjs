@@ -85,7 +85,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
       const appPage = await appContext.newPage();
       await appPage.goto(mode === 'source' ? (process.env.APP_URL || 'http://127.0.0.1:4173') : pathToFileURL(path.join(root, 'dist/scenario-workbench.html')).href);
       await appPage.locator('[data-route="elements"]').click();
-      await appPage.getByRole('button', { name: '使用已有京津冀框架（24项）' }).click();
+      await appPage.getByRole('button', { name: '向当前项目加入京津冀框架' }).click();
       await appPage.getByRole('button', { name: '展开 能源供给', exact: true }).click();
       await appPage.getByLabel('可再生价格干预强度', { exact: true }).check();
       const appMark = await appPage.locator('.elements-summary .variable-mark').first().evaluate(node => getComputedStyle(node).backgroundColor);

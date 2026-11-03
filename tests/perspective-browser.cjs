@@ -20,7 +20,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
       assert.equal(await page.getByLabel('项目名称', { exact: true }).inputValue(), '未保存的名字');
       page.once('dialog', dialog => dialog.accept());
       await page.locator('[data-route="elements"]').click();
-      await page.getByRole('button', { name: '使用已有京津冀框架（24项）' }).click();
+      await page.getByRole('button', { name: '向当前项目加入京津冀框架' }).click();
       await page.getByLabel('经济增长速度', { exact: true }).check();
       const state = () => page.evaluate(() => { const p = JSON.parse(localStorage.getItem('scenario-workbench.project.v1')); return { data: p.data, selection: p.selection, revision: p.revision }; });
       const before = await state();

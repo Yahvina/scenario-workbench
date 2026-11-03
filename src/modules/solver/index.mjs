@@ -1,9 +1,11 @@
 import {el} from '../../core/ui.mjs';
 import {prepareRun,createEnumeration,explain,engineVersion} from './engine.mjs';
+import {readMatrixHandoff,verifyMatrixHandoff} from '../relationships/handoff.mjs';
 const sessions=new Map();
 const summaryListeners=new Set();
 export function subscribeRunSummary(listener){summaryListeners.add(listener);return ()=>summaryListeners.delete(listener);}
 function summaryChanged(){summaryListeners.forEach(listener=>listener());}
+export function readRunArchive(store){const session=sessions.get(store.read().id);return session&&!session.running&&session.archives.length?structuredClone(session.archives.at(-1)):null;}
 export function readRunSummary(store){
  const p=store.read(),session=sessions.get(p.id),archive=session?.archives.at(-1);
  if(!archive)return null;
@@ -13,10 +15,11 @@ export function readRunSummary(store){
 }
 export function mount(container,context){
  const id=context.store.read().id;let session=sessions.get(id);if(!session){session={year:'',selected:[],assumptions:false,unknown:false,archives:[]};sessions.set(id,session);}
- const root=el('section',{class:'solver-module'});container.append(root);let job=null,timer=null,disposed=false,progress=null;
+ const root=el('section',{class:'solver-module'});container.append(root);let job=null,timer=null,disposed=false,progress=null,handoffMessage='';
  const button=(text,onclick)=>el('button',{class:'button',onclick},text);
  function currentSnapshot(p){return {schemaVersion:p.schemaVersion,contractVersion:p.contractVersion,projectId:p.id,revision:p.revision,scope:structuredClone(p.scope),data:structuredClone(p.data),selection:structuredClone(p.selection)};}
  function render(){if(disposed)return;const p=context.store.read();root.replaceChildren(el('h2',{},'精确CIB检验与逐项解释'),el('p',{},'只检验给定矩阵下内部一致性，不表示发生概率、减排效果或动态预测。刷新不恢复本会话结果，请下载JSON归档。'));
+  renderHandoff(p);
   const year=el('select',{'aria-label':'检算年份',disabled:!!job,onchange:e=>{session.year=e.target.value;render();}},el('option',{value:''},'请明确选择年份'),...p.scope.years.map(y=>el('option',{value:y},y)));year.value=session.year;root.append(el('label',{},'检算年份',year));
   const controls=el('details',{open:true},el('summary',{},'逐方向明确选用记录（不继承其他模块选择）'));
   const descriptorName=id=>p.data.descriptors.find(d=>d.id===id)?.label||id;
@@ -32,6 +35,17 @@ export function mount(container,context){
   const start=button('冻结输入并精确检算',()=>startRun(p,pre));start.disabled=!!job;root.append(start);
   if(job)root.append(button('取消检算',()=>{job.cancel();}),el('p',{'data-solver-progress':''},'枚举中：已检查 '+(progress?.result.checked||0)+'；局部发现 '+(progress?.found||0)+'，尚未完成，不报告全空间成立数。'),el('p',{},'离开本模块或切换视角会取消正在进行的检算；已完成的结果和冻结输入保留在本会话。'));
   const last=session.archives.at(-1);if(last)renderArchive(last);summaryChanged();
+ }
+ function renderHandoff(p){
+  const candidate=readMatrixHandoff(p.id),section=el('section',{'data-flow-candidate':''},el('h3',{},'从关系矩阵接续'));
+  if(!candidate){section.append(el('p',{},'本会话没有矩阵候选，可在下方手动选择，或返回关系页准备矩阵。刷新后候选丢失。'));root.append(section);return;}
+  const checked=verifyMatrixHandoff(p,candidate);
+  section.append(el('p',{},'候选年份 '+candidate.year+'，地区 '+candidate.projectInputSnapshot.scope.regionId+'；完整矩阵 '+candidate.matrix.coverage.judged+'/'+candidate.matrix.coverage.required+'；选用 '+candidate.selectionOfJudgments.map(j=>j.id+' v'+j.version).join('、')),el('p',{},checked.ok?'当前输入重新构造与候选一致；采用仅填入年份和记录，不触发计算。假设确认须在下方单独完成。':'候选拒绝：'+checked.message));
+  const adopt=button('采用此矩阵候选',()=>{
+   if(job)return;const current=verifyMatrixHandoff(context.store.read(),candidate);if(!current.ok){handoffMessage='未采用：'+current.message;render();return;}
+   if((session.year!==''||session.selected.length||session.assumptions||session.unknown)&&!confirm('采用候选会替换本页年份和记录选用，并清除假设确认。已有检算归档保留，不触发计算。继续采用吗？'))return;
+   session.year=String(candidate.year);session.selected=candidate.selectionOfJudgments.map(j=>j.id);session.assumptions=false;session.unknown=false;handoffMessage='已采用候选年份与记录；尚未计算，请重新明确确认所需假设后检算。';render();
+  });adopt.disabled=!!job||!checked.ok;section.append(adopt,button('返回关系页重新准备',()=>context.navigate('relationships')),el('p',{role:'status'},handoffMessage),el('p',{},'候选仅在当前会话保留，不写项目备份或sessionStorage；已有结果仍保留原冻结输入。'));root.append(section);
  }
  function startRun(p,pre){
   const envelope={archiveVersion:1,RunInput:pre.input?structuredClone(pre.input):null,RunResult:null,projectInputSnapshot:currentSnapshot(p),preflightDiagnostics:structuredClone(pre.diagnostics),assumptionAcknowledgements:{currentAssumptions:session.assumptions,unknownStateScope:session.unknown},selectionOfJudgments:session.selected.map(id=>{const j=p.data.judgments.find(j=>j.id===id);return {id,version:j?.version??null,evidenceRefs:structuredClone(j?.evidenceRefs||[])};})};

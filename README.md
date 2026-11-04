@@ -2,7 +2,11 @@
 
 用交叉影响平衡（CIB）方法组织政策情景，查看因素之间的影响，并检验情景是否自洽。
 
-## 打开工作台
+## 在线打开工作台
+
+**[点击直接打开情景工作台](https://yahvina.github.io/scenario-workbench/)**
+
+## 离线使用
 
 **[下载离线工作台](https://github.com/Yahvina/scenario-workbench/raw/refs/heads/main/docs/index.html)**
 

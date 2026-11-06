@@ -10,7 +10,7 @@ const {fixture}=require('./solver-browser-fixtures.cjs');
  const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,args:['--no-sandbox','--disable-gpu']});
  try{for(const [mode,url] of [['source',process.env.APP_URL||'http://127.0.0.1:4188'],['offline',pathToFileURL(path.join(root,'dist/scenario-workbench.html')).href]]){
   async function open(p){const c=await browser.newContext({viewport:{width:1440,height:1080}}),page=await c.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.addInitScript(p=>localStorage.setItem('scenario-workbench.project.v1',JSON.stringify(p)),p);await page.goto(url);return {c,page,errors};}
-  async function choices(page,p){await settings(page);await page.getByLabel('检算年份',{exact:true}).selectOption('2030');for(const j of p.data.judgments)await page.getByLabel('检算选用 '+j.sourceDescriptorId+' → '+j.targetDescriptorId,{exact:true}).selectOption(j.id);await page.getByLabel('按当前草案、依据不足及量表假设检算',{exact:true}).check();}
+// 假设口径已默认接受（界面不再有该勾选框）。
   async function check(page,pattern){await page.waitForFunction(pattern=>new RegExp(pattern).test(document.querySelector('[data-cib-status]').textContent),pattern.source);assert.match((await page.locator('[data-cib-trace]').textContent()).replace(/^CIB检验：/,''),pattern);}
   const p=fixture(),a=await open(p),page=a.page;
   await check(page,/尚未运行CIB/);assert.doesNotMatch(await page.locator('nav [data-route=solver]').innerText(),/待实现/);

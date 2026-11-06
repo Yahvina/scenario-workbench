@@ -9,7 +9,7 @@ const {fixture}=require('./solver-browser-fixtures.cjs'),home=require('./home-co
  const results=[];
  try{for(const [mode,url]of[['source',process.env.APP_URL||'http://127.0.0.1:4179'],['offline',pathToFileURL(path.join(root,'dist/scenario-workbench.html')).href]]){
   async function open(p){const ctx=await browser.newContext({viewport:{width:1440,height:1080}});await ctx.addInitScript(p=>{if(!localStorage.getItem('scenario-workbench.project.v1'))localStorage.setItem('scenario-workbench.project.v1',JSON.stringify(p));},p);const page=await ctx.newPage(),errors=[],external=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(/^https?:/.test(r.url())&&!r.url().startsWith('http://127.0.0.1:'))external.push(r.url());});await page.goto(url);return {ctx,page,errors,external};}
-  async function selectAll(page,p){await page.getByLabel('检算年份',{exact:true}).selectOption('2030');for(const j of p.data.judgments)await page.getByLabel('检算选用 '+j.sourceDescriptorId+' → '+j.targetDescriptorId,{exact:true}).selectOption(j.id);await page.getByLabel('按当前草案、依据不足及量表假设检算',{exact:true}).check();}
+// 假设口径已默认接受（界面不再有该勾选框）。
   async function start(page){await page.getByRole('button',{name:'冻结输入并精确检算',exact:true}).click();}
   async function completed(page,n){await page.waitForFunction(n=>document.querySelector('[data-solver-result]')?.textContent.includes('检算完成 ·')&&document.querySelector('[data-solver-result]').textContent.includes('成立数 '+n+' ·'),n);}
   async function finish(c){assert.deepEqual(c.errors,[]);assert.deepEqual(c.external,[]);await c.ctx.close();}
@@ -17,8 +17,8 @@ const {fixture}=require('./solver-browser-fixtures.cjs'),home=require('./home-co
   await page.getByLabel('检算年份',{exact:true}).focus();await page.keyboard.press('ArrowDown');await page.keyboard.press('Tab');assert.equal(await page.getByLabel('检算年份',{exact:true}).inputValue(),'2030');
   for(const j of p.data.judgments)await page.getByLabel('检算选用 '+j.sourceDescriptorId+' → '+j.targetDescriptorId,{exact:true}).selectOption(j.id);
   await start(page);assert.match(await page.locator('[data-solver-result]').innerText(),/阻断.*未定/);
-  await settings(page);await page.getByRole('button',{name:'清空本页选用与确认',exact:true}).click();for(const j of p.data.judgments){assert.equal(await page.getByLabel('检算选用 '+j.sourceDescriptorId+' → '+j.targetDescriptorId,{exact:true}).inputValue(),'');await page.getByLabel('检算选用 '+j.sourceDescriptorId+' → '+j.targetDescriptorId,{exact:true}).selectOption(j.id);}
-  await page.getByLabel('按当前草案、依据不足及量表假设检算',{exact:true}).focus();await page.keyboard.press('Space');assert.equal(await page.getByLabel('按当前草案、依据不足及量表假设检算',{exact:true}).isChecked(),true);
+  await settings(page);await page.getByRole('button',{name:'清空本页选用',exact:true}).click();for(const j of p.data.judgments){assert.equal(await page.getByLabel('检算选用 '+j.sourceDescriptorId+' → '+j.targetDescriptorId,{exact:true}).inputValue(),'');await page.getByLabel('检算选用 '+j.sourceDescriptorId+' → '+j.targetDescriptorId,{exact:true}).selectOption(j.id);}
+    // 假设口径已默认接受，界面不再有对应勾选框。
   await start(page);await completed(page,2);await page.getByRole('button',{name:'解释成立配置 2',exact:true}).click();assert.equal(await page.getByLabel('检查配置 A',{exact:true}).inputValue(),'A1');
   await page.getByLabel('检查配置 A',{exact:true}).selectOption('A0');assert.match(await page.locator('[data-solver-inspection]').innerText(),/冲突：A、B/);await page.getByText('逐项得分、来源与稳定标识',{exact:true}).click();assert.equal(await page.locator('.solver-module h3').filter({hasText:'差距 2'}).count(),2);assert.match(await page.locator('.solver-module').innerText(),/\[A->B\]/);
   assert.doesNotMatch(await page.locator('.solver-module').innerText(),/^null$/m);

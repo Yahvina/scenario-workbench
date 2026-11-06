@@ -62,7 +62,7 @@ const assert=require('node:assert/strict');
  await resultPage.getByText('核对各方向使用哪条评分（已选 0 条）',{exact:true}).click();
  await resultPage.getByLabel('检算选用 A → B',{exact:true}).selectOption('A->B');
  await resultPage.getByLabel('检算选用 B → A',{exact:true}).selectOption('B->A');
- await resultPage.getByLabel('按当前草案、依据不足及量表假设检算',{exact:true}).check();
+// 假设口径已默认接受（界面不再有该勾选框）。
  await resultPage.getByRole('button',{name:'开始检验',exact:true}).click();
  await resultPage.locator('[data-solver-result]').filter({hasText:'成立数 2'}).waitFor();
  await resultPage.getByText('为什么得到这个结果：逐项计算与来源',{exact:true}).click();

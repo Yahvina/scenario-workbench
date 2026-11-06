@@ -93,7 +93,7 @@ const APP=pathToFileURL(path.resolve(__dirname,'../dist/scenario-workbench.html'
     await page.waitForTimeout(400);
     const stats=await page.locator('.rev-stats b').allTextContents();
     assert.equal(stats[0].replace(/\s/g,''),'2/2','两个方向已完成');
-    await page.locator('button',{hasText:'使用这些评分，继续检验'}).first().click();
+    await page.locator('button',{hasText:/继续：检验方案|使用这些评分，继续检验/}).first().click();
     await page.waitForTimeout(700);
   });
   await step('京津冀：检验页读出 2030 真实方案并给出结论',async()=>{
@@ -105,10 +105,7 @@ const APP=pathToFileURL(path.resolve(__dirname,'../dist/scenario-workbench.html'
     const text=rows.join(' ');
     assert.match(text,/经济增长速度/);assert.match(text,/碳价水平与碳市场覆盖/);
     // 旧平台状态没有逐条声明适用年，必须由用户显式确认这两类假设，平台不会替他默认。
-    for(const label of ['按当前草案、依据不足及量表假设检算','未声明的状态年份或地区作为当前截面假设']){
-      const box=page.locator('input[aria-label="'+label+'"]').first();
-      if(await box.count()&&!(await box.isChecked()))await box.check();
-    }
+    // 假设口径已默认接受，界面不再要求勾选；此处不再有对应控件。
     await page.waitForTimeout(300);
     const run=page.locator('[data-plan-check-run]');
     assert.ok(await run.count(),'方案检验按钮可用（矩阵无阻断）');

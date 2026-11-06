@@ -69,13 +69,12 @@ const APP=pathToFileURL(path.resolve(__dirname,'../dist/scenario-workbench.html'
     assert.match(await page.locator('.rel-pairbar').innerText(),/示例变量B/,'第二个缺口是反方向');
     await fillPair([3,-3,-3,3]);
     await tab('检查评分完整性');
-    const stats=await page.locator('.rev-stats b').allTextContents();
-    assert.equal(stats[0].replace(/\s/g,''),'2/2','两个方向已完成');
-    assert.equal(stats[1],'0','不再缺格');
-    // 判完但还没采用：必须由用户点一次“使用这些评分”，并看到采用范围。
-    assert.match(await page.locator('.rev-adopt').innerText(),/采用后直接进入检验/,'判完但未采用时给出一次采用动作');
-    assert.match(await page.locator('.rev-adopt-scope').innerText(),/示例地区（非真实政策）/,'显示采用范围');
-    await page.locator('button',{hasText:'使用这些评分，继续检验'}).first().click();
+    // 保存即采用：两个方向填完就是用户的明确决定，页面直接给出齐全状态，
+    // 不再要求到这一页重复点一次「采用」。
+    assert.match(await page.locator('[data-rev-done]').innerText(),/评分已齐：2 个方向、8 格/,'两方向填完即为齐全');
+    const cont=page.locator('button',{hasText:'继续：检验方案'}).first();
+    assert.ok(!(await cont.isDisabled()),'齐全后主按钮可用');
+    await cont.click();
     await page.waitForTimeout(700);
     assert.ok(await page.locator('.solver-module').count(),'采用后直接进入检验，不再逐方向重选');
   });
@@ -86,9 +85,7 @@ const APP=pathToFileURL(path.resolve(__dirname,'../dist/scenario-workbench.html'
     if(await adopt.count())await adopt.first().click();
     await page.waitForTimeout(400);
     await page.locator('.solver-settings>summary').click();await page.waitForTimeout(300);
-    for(const label of ['按当前草案、依据不足及量表假设检算','未声明的状态年份或地区作为当前截面假设']){
-      const box=page.locator('input[aria-label="'+label+'"]').first();if(await box.count())await box.check();
-    }
+    // 假设口径已默认接受，界面不再要求勾选；此处不再有对应控件。
     await page.waitForTimeout(300);
     const rows=await page.locator('.plan-check-row .st').allTextContents();
     assert.match(rows.join(' '),/示例高档/);assert.match(rows.join(' '),/示例低档/);
@@ -166,11 +163,7 @@ const APP=pathToFileURL(path.resolve(__dirname,'../dist/scenario-workbench.html'
     const fillUnique=page.locator('button',{hasText:'使用这些方向唯一的评分'});
     if(await fillUnique.count()){await fillUnique.first().click();await page.waitForTimeout(400);}
     await ensureSettings();
-    for(const label of ['按当前草案、依据不足及量表假设检算','未声明的状态年份或地区作为当前截面假设']){
-      const box=page.locator('input[aria-label="'+label+'"]').first();
-      if(await box.count() && !(await box.isChecked()))await box.evaluate(node=>node.click());
-      await page.waitForTimeout(200);
-    }
+    // 假设口径已默认接受，界面不再要求勾选；此处不再有对应控件。
     await page.waitForTimeout(250);
     const startBtn=page.locator('section.solver-fullspace button',{hasText:'开始检验'}).first();
     assert.ok(await startBtn.isEnabled(),'零解场景的输入应可计算');

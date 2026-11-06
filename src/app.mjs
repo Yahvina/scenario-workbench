@@ -225,7 +225,7 @@ function renderRoute() {
       const result = actions.replaceProject(demo);
       if (!result.ok) { notify(result.error.message); return false; }
       // 示例自带采用记录：走与关系页“使用这份评分，继续检验”同一条交接通道，
-      // 落在检验页时记录已明确选用；假设确认仍留给用户亲手勾选。
+      // 落在检验页时记录已明确选用；假设口径按页面默认接受记录。
       sendMatrixHandoff(demo, { year: 2030, selectedJudgmentIds: demo.data.judgments.map(j => j.id), adopted: true });
       renderRoute(); notify('完整流程示例已载入（机制演示）：因素、2030/2035 年度状态与两个方向 18 格评分已就绪；确认一次检验假设后点「开始检验」。不代表真实政策。');
       return true;

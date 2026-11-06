@@ -1431,7 +1431,7 @@ function renderRoute() {
       const result = actions.replaceProject(demo);
       if (!result.ok) { notify(result.error.message); return false; }
       // 示例自带采用记录：走与关系页“使用这份评分，继续检验”同一条交接通道，
-      // 落在检验页时记录已明确选用；假设确认仍留给用户亲手勾选。
+      // 落在检验页时记录已明确选用；假设口径按页面默认接受记录。
       sendMatrixHandoff(demo, { year: 2030, selectedJudgmentIds: demo.data.judgments.map(j => j.id), adopted: true });
       renderRoute(); notify('完整流程示例已载入（机制演示）：因素、2030/2035 年度状态与两个方向 18 格评分已就绪；确认一次检验假设后点「开始检验」。不代表真实政策。');
       return true;
@@ -3979,7 +3979,9 @@ function mount(container,context){
  if(!session){
   // 默认打开“已经有完整按年方案”的最近一年；都缺才退回第一个年份，不替用户选状态。
   const ready=(first.scope.years||[]).find(y=>{const plan=planAtYear(first,y);return plan.complete;});
-  session={year:String(ready??first.scope.years[0]??''),selected:[],assumptions:false,unknown:false,archives:[],scenarioLimit:12};sessions.set(id,session);}
+  // 点「开始检验」就是用户接受当前口径，不再单独要求勾选假设。
+  // 两个字段继续随归档保存，报告与历史重放的口径不变。
+  session={year:String(ready??first.scope.years[0]??''),selected:[],assumptions:true,unknown:true,archives:[],scenarioLimit:12};sessions.set(id,session);}
  // 关系页点过“使用这些评分，继续检验”的，就是明确采用：把记录带进来，不再逐方向问一次。
  if(seed?.adopted&&seed.selectionOfJudgments?.length){
   const seedIds=seed.selectionOfJudgments.map(j=>j.id).sort().join(',');
@@ -4228,7 +4230,7 @@ function mount(container,context){
   const p=context.store.read();root.replaceChildren();
   const year=el('select',{'aria-label':'检算年份',disabled:!!job,onchange:e=>{session.year=e.target.value;render();}},el('option',{value:''},'请先选年份'),...p.scope.years.map(y=>el('option',{value:y},y)));year.value=session.year;
   const yearRow=el('div',{class:'solver-yearbar'},el('span',{class:'cap'},'检验年份'),year,el('span',{class:'hint'},'换年份只换当前截面，不改项目范围'));
-  root.append(el('div',{class:'solver-head'},el('p',{},'先看这一年的方案是否自洽，再决定要不要枚举全部组合。')),yearRow);
+  root.append(el('div',{class:'solver-head'},el('p',{},'先看这一年有哪些自洽情景，再看你自己的方案落在哪里。')),yearRow);
 
   const last=session.archives.at(-1);
   root.append(summaryCard(p,last));
@@ -4238,11 +4240,11 @@ function mount(container,context){
   const pre=prepareRun(p,{year:session.year===''?null:Number(session.year),selectedJudgmentIds:session.selected,assumptionAcknowledgements:{currentAssumptions:session.assumptions,unknownStateScope:session.unknown}});
   const planEl=planCheckSection({project:p,prepared:pre,session,context,lastArchive:last,onRender:render});
   planEl.classList.add('solver-task');
-  planEl.insertBefore(el('div',{class:'solver-task-hd'},el('span',{class:'no'},'1'),el('h3',{},'检验我的方案'),el('span',{class:'note'},'只算这一年你选的状态，不改变枚举范围')),planEl.firstChild);
+  planEl.insertBefore(el('div',{class:'solver-task-hd'},el('span',{class:'no'},'2'),el('h3',{},'检验我的方案'),el('span',{class:'note'},'只算这一年你选的状态，不改变枚举范围')),planEl.firstChild);
 
   // 2 · 寻找所有自洽组合
   const fullSpace=el('section',{class:'solver-fullspace solver-task'},
-    el('div',{class:'solver-task-hd'},el('span',{class:'no'},'2'),el('h3',{},'寻找所有自洽组合'),el('span',{class:'note'},'按这一年允许的全部组合枚举，不锁定我的方案')));
+    el('div',{class:'solver-task-hd'},el('span',{class:'no'},'1'),el('h3',{},'找出所有自洽情景'),el('span',{class:'note'},'枚举这一年允许的全部组合，不锁定我的方案')));
   const fatal=pre.diagnostics.filter(d=>d.classification==='block');
   const spaceText=el('p',{'data-solver-space':''},'组合空间：'+(pre.space?pre.space.constrained+' 种（无约束 '+pre.space.unconstrained+'），上限 '+pre.space.limit:'尚不能确定'));
   fullSpace.append(spaceText);
@@ -4260,9 +4262,6 @@ function mount(container,context){
     }
     shown.push({message:d.message});
    }
-   const inlineCheck=(label,value,onchange)=>{const input=el('input',{type:'checkbox','aria-label':label,disabled:!!job,onchange:e=>{onchange(e.target.checked);render();}});input.checked=value;return el('label',{class:'solver-check'},input,label);};
-   const codes=new Set(fatal.map(d=>d.code));
-   const needCurrent=codes.has('ASSUMPTIONS_REQUIRED'),needUnknown=codes.has('STATE_ASSUMPTIONS_REQUIRED');
    const others=shown.filter(item=>!/请先选择至少 2 个研究因素/.test(item.message));
    fullSpace.append(el('p',{class:'solver-cannot'},'还不能检验：有 '+fatal.length+' 项需要处理'+(mergedFactors?'；其中因素数量问题已合并为一条':'')),
     el('ul',{class:'solver-cannot-list'},...[...new Set(shown.map(d=>d.message))].slice(0,6).map(text=>el('li',{},text))));
@@ -4270,10 +4269,6 @@ function mount(container,context){
       mergedFactors?button('去选择因素',()=>context.navigate('elements')):null,
       others.length?button('去关系页核对评分',()=>context.navigate('relationships')):null,
       button('去因素页核对状态',()=>context.navigate('elements'))));
-   if(needCurrent||needUnknown)fullSpace.append(el('div',{class:'solver-assume-inline'},
-      el('p',{class:'v5-hint'},'下面这些假设必须由你本人确认；平台不会替你勾选，勾选只表示你同意按这个口径算。'),
-      needCurrent?inlineCheck('按当前草案、依据不足及量表假设检算',session.assumptions,v=>{session.assumptions=v;}):null,
-      needUnknown?inlineCheck('未声明的状态年份或地区作为当前截面假设',session.unknown,v=>{session.unknown=v;}):null));
    fullSpace.append(el('div',{class:'solver-cannot-actions'},
       button('展开全部输入诊断',()=>{const d=fullSpace.querySelector('.solver-diagnostics');if(d)d.open=true;d?.scrollIntoView({block:'center'});})),
     el('p',{class:'v5-hint'},'这些是计算前置条件，不是结果；处理完再点“开始检验”。'));
@@ -4285,13 +4280,14 @@ function mount(container,context){
   if(job)fullSpace.append(button('取消检算',()=>{job.cancel();}),
     el('p',{'data-solver-progress':''},'已检查 '+(progress?.result.checked||0)+(pre.space?' / '+pre.space.constrained:'')+' 种组合，正在计算……未完成前不给自洽总数。'));
   fullSpace.append(start,diagDetails);
-  // 结果优先：先给自洽组合，再给我的方案，最后才是重新检验与计算详情。
+  // 顺序：自洽情景在前，我的方案在后；最后才是重新检验与计算详情。
   const scenarios=last?scenariosCard(p,last):null;
   if(last){
+    root.append(fullSpace);
     if(scenarios)root.append(scenarios);
-    root.append(planEl,fullSpace);
+    root.append(planEl);
   }else{
-    root.append(planEl,fullSpace);
+    root.append(fullSpace,planEl);
   }
 
   // 折叠：完整输入、逐项贡献与公式
@@ -4300,8 +4296,8 @@ function mount(container,context){
   // 本次检验结果 vs 历史检验记录
   root.append(sessionResultCard(p,last));
 
-  // 高级：年份、评分选用、假设确认
-  const settings=el('details',{class:'solver-settings','data-solver-settings':'',open:session.settingsOpen??false,ontoggle:e=>{if(e.target.isConnected)session.settingsOpen=e.target.open;}},el('summary',{},'高级：逐方向选用评分与假设确认'));
+  // 高级：年份与逐方向评分选用
+  const settings=el('details',{class:'solver-settings','data-solver-settings':'',open:session.settingsOpen??false,ontoggle:e=>{if(e.target.isConnected)session.settingsOpen=e.target.open;}},el('summary',{},'高级：逐方向选用评分'));
   const controls=el('div',{class:'solver-records'},el('h4',{},'各方向使用哪条评分（已选 '+session.selected.length+' 条）'));
   for(const a of p.selection.descriptorIds)for(const b of p.selection.descriptorIds){if(a===b)continue;
    const records=p.data.judgments.filter(j=>j.sourceDescriptorId===a&&j.targetDescriptorId===b);
@@ -4311,11 +4307,9 @@ function mount(container,context){
   const yearNum=session.year===''?null:Number(session.year),uniq=[];
   if(yearNum!==null)for(const a of p.selection.descriptorIds)for(const b of p.selection.descriptorIds){if(a===b)continue;const list=p.data.judgments.filter(j=>j.sourceDescriptorId===a&&j.targetDescriptorId===b&&j.scope?.regionId===p.scope.regionId&&Array.isArray(j.validYears)&&j.validYears.includes(yearNum));if(list.length===1&&!session.selected.includes(list[0].id))uniq.push(list[0].id);}
   if(uniq.length)controls.append(el('div',{class:'solver-fill-unique'},button('使用这些方向唯一的评分（'+uniq.length+'）',()=>{session.selected=[...new Set([...session.selected,...uniq])];render();})));
-  const check=(label,value,onchange)=>{const input=el('input',{type:'checkbox','aria-label':label,disabled:!!job,onchange:e=>{onchange(e.target.checked);render();}});input.checked=value;return el('label',{class:'solver-check'},input,label);};
-  const clear=button('清空本页选用与确认',()=>{session.selected=[];session.assumptions=false;session.unknown=false;render();});clear.disabled=!!job;
+  const clear=button('清空本页选用',()=>{session.selected=[];render();});clear.disabled=!!job;
   settings.append(el('p',{class:'v5-hint'},'这里的选用只影响本次计算；关系页的矩阵仍以那边明确采用的记录为准。'),
    controls,
-   el('div',{class:'solver-assumptions'},check('按当前草案、依据不足及量表假设检算',session.assumptions,v=>{session.assumptions=v;}),check('未声明的状态年份或地区作为当前截面假设',session.unknown,v=>{session.unknown=v;})),
    el('div',{class:'solver-settings-actions'},clear,button('核对项目范围',()=>context.navigate('workspace')),button('核对因素与状态',()=>context.navigate('elements')),button('核对关系与矩阵',()=>context.navigate('relationships'))));
   root.append(settings);
   summaryChanged();
@@ -4338,8 +4332,8 @@ function mount(container,context){
   section.append(el('p',{},'关系页已发送 '+candidate.year+' 年、'+candidate.selectionOfJudgments.length+' 条记录（完整矩阵 '+candidate.matrix.coverage.judged+'/'+candidate.matrix.coverage.required+'）。'+(checked.ok?'':'候选已失效：'+checked.message)));
   const adopt=button('采用这份评分',()=>{
    if(job)return;const current=verifyMatrixHandoff(context.store.read(),candidate);if(!current.ok){handoffMessage='未采用：'+current.message;render();return;}
-   if((session.year!==''||session.selected.length||session.assumptions||session.unknown)&&!confirm('采用候选会替换本页年份和记录选用，并清除假设确认。已有结果保留，不触发计算。继续采用吗？'))return;
-   session.year=String(candidate.year);session.selected=candidate.selectionOfJudgments.map(j=>j.id);session.assumptions=false;session.unknown=false;handoffMessage='已采用；尚未计算。';render();
+   if((session.year!==''||session.selected.length)&&!confirm('采用候选会替换本页年份和记录选用。已有结果保留，不触发计算。继续采用吗？'))return;
+   session.year=String(candidate.year);session.selected=candidate.selectionOfJudgments.map(j=>j.id);handoffMessage='已采用；尚未计算。';render();
   });adopt.disabled=!!job||!checked.ok;
   section.append(adopt,button('返回关系页',()=>context.navigate('relationships')));
   if(handoffMessage)section.append(el('p',{class:'v5-hint'},handoffMessage));

@@ -120,10 +120,7 @@ const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Applic
   });
 
   await step('检验页：假设亲手确认后能算出真实结果', async () => {
-    for (const label of ['按当前草案、依据不足及量表假设检算', '未声明的状态年份或地区作为当前截面假设']) {
-      const box = page.locator('input[aria-label="' + label + '"]').first();
-      if (await box.count() && !(await box.isChecked())) { await box.click(); await page.waitForTimeout(300); }
-    }
+    // 假设口径已默认接受，界面不再要求勾选；此处不再有对应控件。
     await page.locator('[data-plan-check-run]').click();
     await page.waitForTimeout(600);
     assert.match(await text('.plan-check'), /自洽|压过/);

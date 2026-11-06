@@ -13,8 +13,8 @@ const {fixture}=require('./solver-browser-fixtures.cjs'),review=require('./solve
   await ctx.addInitScript(p=>{if(!localStorage.getItem('scenario-workbench.project.v1'))localStorage.setItem('scenario-workbench.project.v1',JSON.stringify(p));},p);
   const page=await ctx.newPage(),errors=[],external=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(/^https?:/.test(r.url())&&!r.url().startsWith('http://127.0.0.1:'))external.push(r.url());});await page.goto(url);
   await page.getByLabel('检算年份',{exact:true}).selectOption('2030');for(const j of p.data.judgments)await page.getByLabel('检算选用 '+j.sourceDescriptorId+' → '+j.targetDescriptorId,{exact:true}).selectOption(j.id);
-  await page.getByLabel('按当前草案、依据不足及量表假设检算',{exact:true}).check();await page.getByRole('button',{name:'冻结输入并精确检算',exact:true}).click();assert.match(await page.locator('[data-solver-result]').innerText(),/阻断.*未定/);assert.match(await page.locator('.solver-diagnostics').textContent(),/STATE_ASSUMPTIONS_REQUIRED/);
-  await page.getByText('检算设置与矩阵交接',{exact:true}).click();await page.getByLabel('未声明的状态年份或地区作为当前截面假设',{exact:true}).check();await page.getByRole('button',{name:'冻结输入并精确检算',exact:true}).click();await page.waitForFunction(()=>document.querySelector('[data-solver-result]')?.textContent.includes('检算完成 · 已检查 4 · 成立数 2'));
+// 假设口径已默认接受（界面不再有该勾选框）。
+// 假设口径已默认接受（界面不再有该勾选框）。
   const event=page.waitForEvent('download');await page.getByRole('button',{name:'下载检算JSON归档',exact:true}).click();const download=await event,file=path.join(out,mode+'-unknown-confirmed-archive.json');await download.saveAs(file);const archive=JSON.parse(await fs.readFile(file,'utf8'));assert.equal(archive.assumptionAcknowledgements.unknownStateScope,true);assert.equal(archive.RunResult.count,2);assert.deepEqual(archive.RunResult.coverage,{required:8,judged:8,missingPairs:[]});
   await page.screenshot({path:path.join(out,mode+'-unknown-confirmed.png'),fullPage:true});
   if(mode==='source')await page.evaluate(async()=>{globalThis.__solverFixTest=await import('/src/modules/solver/engine.mjs');});else await page.evaluate(code=>(0,eval)(code),engineBundle);

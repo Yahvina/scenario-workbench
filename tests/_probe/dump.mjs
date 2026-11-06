@@ -1,0 +1,11 @@
+import pw from 'file:///C:/Users/guiqu/.workbuddy/binaries/node/workspace/node_modules/playwright-core/index.js';
+const { chromium } = pw;
+const b = await chromium.launch({ executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: true, args: ['--no-sandbox','--disable-gpu'] });
+const p = await (await b.newContext({viewport:{width:1440,height:1000}})).newPage();
+const errs=[];p.on('pageerror',e=>errs.push(e.message));
+await p.goto('file:///C:/Users/guiqu/WorkBuddy/2026-09-16-21-47-56/output/public-task-flow/dist/scenario-workbench.html');
+await p.waitForTimeout(800);
+console.log('TEXT:/n'+(await p.locator('body').innerText()).slice(0,2500));
+console.log('BUTTONS:', await p.locator('button').allInnerTexts());
+console.log('ERRS:',errs);
+await b.close();

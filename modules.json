@@ -93,6 +93,22 @@
     }
   },
   {
+    "id": "chain",
+    "title": "白箱链：全过程可追溯",
+    "requires": [
+      "workspace",
+      "elements",
+      "relationships",
+      "solver"
+    ],
+    "perspectives": [
+      "public",
+      "expert"
+    ],
+    "status": "implemented",
+    "spec": "docs/modules/chain.md"
+  },
+  {
     "id": "importance",
     "title": "AHP重要性",
     "requires": [

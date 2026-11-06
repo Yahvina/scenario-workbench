@@ -40,3 +40,67 @@
 @media(max-width:760px) { .elements-module .elements-columns { grid-template-columns:minmax(0,1fr); } .elements-module .elements-summary{border-left:0;border-top:1px solid var(--line);padding:18px 0 0;max-height:none}.elements-module .elements-catalog-groups{grid-template-columns:1fr}.elements-module .elements-tree{max-height:480px} }
 
 .elements-module .definition-editor{border-bottom:1px solid var(--line);padding:12px 0}.definition-editor label{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;overflow-wrap:anywhere}.definition-editor input:not([type=checkbox]),.definition-editor select{width:100%;min-width:0;box-sizing:border-box;padding:8px;border:1px solid var(--line);background:var(--panel);color:var(--tx);font:inherit}.definition-editor fieldset{min-width:0;border:1px solid var(--line);margin:12px 0;padding:12px}.definition-editor button{margin:6px 8px 6px 0}.definition-editor pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}
+
+/* 目录小样：只作用于目录区与候选因素详情，未改动任何既有色值、字号或令牌。 */
+.elements-module .elements-pilot{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:14px 0;margin:0 0 18px}
+.elements-module .elements-pilot h3{font-size:15px;margin:0 0 6px}
+.elements-module .elements-pilot-clauses{list-style:none;padding:0;margin:10px 0}
+.elements-module .elements-pilot-clauses li{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline;padding:7px 0;border-top:1px solid var(--line2);overflow-wrap:anywhere}
+.elements-module .elements-pilot-excerpt{min-width:0}
+.elements-module .elements-pilot-note{font-size:12px;flex-basis:100%}
+.elements-module .elements-pilot-gap{font-size:12px;border-left:2px solid var(--line);padding-left:10px}
+.elements-module .elements-clauses{margin:10px 0 6px}
+.elements-module .elements-clauses ul{list-style:none;padding:0;margin:6px 0}
+.elements-module .elements-clauses li{padding:5px 0;border-top:1px solid var(--line2);overflow-wrap:anywhere}
+.elements-module .elements-clause-note{display:block;font-size:12px}
+.elements-module .elements-status-gap{border-left:2px solid var(--line);padding-left:10px;margin:6px 0}
+@media(max-width:760px){.elements-module .elements-pilot-clauses li{flex-direction:column}}
+.elements-module .framework-box{margin:16px 0 0;border:1px solid var(--line2);border-radius:var(--r2);background:var(--panel);padding:0 14px}
+.elements-module .framework-box>summary{font-size:13px;font-weight:600;color:var(--tx2);cursor:pointer;padding:10px 0}
+.elements-module .framework-box[open]>summary{border-bottom:1px solid var(--line2);margin-bottom:10px}
+.elements-module .framework-box .fw-card{margin:0 0 10px}
+.elements-module .state-note{font-size:12px;color:var(--wn);border-left:3px solid var(--wn-b);background:var(--wn-s);padding:5px 9px;margin:0 0 8px}
+.elements-module .tree-empty{border:1px dashed var(--line);border-radius:var(--r2);padding:14px 16px;background:var(--panel)}
+.elements-module .tree-empty p{margin:0 0 8px;font-size:13px;color:var(--tx2);max-width:52ch}
+
+.elements-module .elements-level{white-space:nowrap;font-size:12px;color:var(--tx3);flex:none}
+.elements-module .framework-box .zone-bar{margin:0 0 10px}
+/* 首屏：已选数量 + 紧凑搜索行；不再逐行打层级标签 */
+.elements-module .elements-topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 10px}
+.elements-module .elements-picked{font-size:13px;font-weight:600;color:var(--tx2);white-space:nowrap}
+.elements-module .elements-searchrow{display:flex;align-items:center;gap:6px;flex:1 1 420px;min-width:0}
+.elements-module .elements-searchrow input[type=search]{flex:1 1 200px;min-width:0;height:32px;padding:4px 8px}
+.elements-module .elements-searchrow .button{padding:4px 8px;min-height:30px;font-size:12px}
+.elements-module .elements-searchrow .elements-starter{margin-left:auto}
+.elements-module .elements-tree-info{margin:0 0 6px}
+/* 年度状态：先选后看图 */
+.elements-module .state-year-options{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 8px}
+.elements-module .state-year-options label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tx3)}
+.elements-module .state-year-options select{min-height:30px;padding:3px 6px}
+.elements-module .state-empty{font-size:12px;color:var(--tx3);border:1px dashed var(--line);border-radius:var(--r2);padding:10px 12px;margin:0}
+.elements-module .state-chart-note>summary{font-size:12px;color:var(--pri);cursor:pointer}
+/* 地区条：常驻两三个词 + 折叠资料 */
+.elements-module .region-strip{align-items:center}
+.elements-module .region-strip .region-picked{font-weight:600;color:var(--tx2)}
+.elements-module .region-material{display:inline-block}
+.elements-module .region-material>summary{font-size:12px;color:var(--pri);cursor:pointer;padding:2px 0}
+.elements-module .region-material p{margin:4px 0;font-size:12px;color:var(--tx2);max-width:72ch}
+.elements-module .elements-rules{margin:0 0 10px}
+.elements-module .elements-rules>summary{font-size:12px;color:var(--pri);cursor:pointer;padding:2px 0}
+.elements-module .elements-rules p{margin:4px 0;font-size:12px;color:var(--tx3);max-width:72ch}
+/* 旧项目兼容与迁移：默认折叠，不与 46 项目录抢首屏 */
+.elements-module .fw-legacy{border-top:1px solid var(--line2);margin-top:6px;padding-top:4px}
+.elements-module .fw-legacy>summary{font-size:13px;color:var(--tx2);cursor:pointer;padding:6px 0}
+.elements-module .save-summary .warn-line{color:var(--wn)}
+/* 描述符详情：路径 / 定义 / 相关政策 / 细分缺口 */
+.elements-module .descriptor-detail{border:1px solid var(--line2);border-radius:var(--r2);background:var(--panel);padding:10px 12px;margin:0 0 10px}
+.elements-module .descriptor-detail h3{margin:0 0 6px;font-size:16px}
+.elements-module .descriptor-detail p{margin:4px 0;font-size:13px;color:var(--tx2)}
+.elements-module .descriptor-detail .dd-cap{display:inline-block;min-width:4.5em;color:var(--tx3);font-size:12px}
+.elements-module .descriptor-detail .dd-gap{color:var(--wn)}
+.elements-module .descriptor-detail .dd-subgap{border-left:3px solid var(--wn-b);background:var(--wn-s);color:var(--wn);padding:5px 9px;border-radius:0 var(--r) var(--r) 0}
+.elements-module .descriptor-detail .dd-policies{margin:6px 0}
+.elements-module .descriptor-detail .dd-policies>summary{font-size:13px;color:var(--pri);cursor:pointer;padding:3px 0}
+.elements-module .descriptor-detail .dd-tool{margin:4px 0;font-size:12px;color:var(--tx2)}
+.elements-module .descriptor-detail .dd-tool b{color:var(--tx)}
+.elements-module .descriptor-detail .dd-note{color:var(--tx3)}

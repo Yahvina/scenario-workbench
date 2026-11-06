@@ -1,6 +1,10 @@
 import { el } from '../../core/ui.mjs';
 import { variableColor } from '../../core/object-colors.mjs';
 import { interpolate, draftOf, parseDraft, buildChange, chartDomain } from './logic.mjs';
+import { yearDetail } from './year-detail.mjs';
+import { formulaCard } from '../shared/formula-card.mjs';
+import { formulaById } from '../../core/formulas.mjs';
+import { overrideLedgerPanel } from './override-ledger-panel.mjs';
 
 const NS = 'http://www.w3.org/2000/svg';
 function svgEl(tag, attrs = {}, text = '') {
@@ -10,16 +14,25 @@ function svgEl(tag, attrs = {}, text = '') {
   return node;
 }
 export function mount(container, context) {
-  const root = el('section', { class: 'timeline-module' });
+  const inline=!!context.inlineTimeline;
+  const root = el('section', { class: 'timeline-module'+(inline?' inline-timeline':'') });
   const message = el('p', { class: 'timeline-message', role: 'status', 'aria-live': 'polite' });
   const left = el('div', { class: 'timeline-variables', 'aria-label': '活动描述符' });
   const right = el('div', { class: 'timeline-editor' });
-  root.append(el('h2', {}, '日历年实施路径'), el('p', {}, '设置所选变量随日历年份变化的路径，不表示因素间因果响应或动态预测。'), message, el('div', { class: 'timeline-layout' }, left, right));
+  root.append(el('h2', {}, inline?'设置年份变化':'日历年实施路径'), el('p', {}, inline?'填写各年的数值，或拖动已有圆点；保存后生效。':'设置所选变量随日历年份变化的路径，不表示因素间因果响应或动态预测。'), message, interpolationFormulaCard(context), el('div', { class: 'timeline-layout' }, left, right));
   container.append(root);
-  let descriptorId = null, pathId = null, original = null, draft = null, baseline = null, clean = '', drag = null, svg = null, disposed = false, saving = false;
+  let descriptorId = context.inlineTimeline?.descriptorId || context.store.read().view.objectId || null, pathId = null, original = null, draft = null, baseline = null, clean = '', drag = null, svg = null, disposed = false, saving = false;
+  // P7-A 只读年度详情：挂在编辑区之外，只读已保存的路径，不参与保存与草稿判定。
+  // P7-C1：可核验绑定只能由调用方通过 context.reviewBindingFor 显式注入；默认入口不提供，
+  // 因此正式页面恒为未绑定（项目数据里携带的 reviewBinding 不进判定）。
+  const annual = yearDetail({bindingFor: context?.reviewBindingFor ?? null});
+  // P7 年度覆盖台账面板：同样挂在编辑区之外。它的输入框若留在 .timeline-editor 里，就会被
+  // save() 的 right.querySelectorAll('input') 扫描，从而误拦路径保存。
+  const ledgerPanel = overrideLedgerPanel({ context });
   const dirty = () => !!draft && JSON.stringify(draft) !== clean;
+  const pending=()=>dirty()||!!drag||[...right.querySelectorAll('input')].some(input=>input.validity.badInput);
   function canLeave() {
-    if (dirty() || drag) { message.textContent = '有未保存修改，请先保存或取消，再切换变量、路径、页面或视角。'; return false; }
+    if (pending()) { message.textContent = '有未保存修改，请先保存或取消，再切换变量、路径、页面或视角。'; return false; }
     return true;
   }
   function choose(id, path = null) {
@@ -32,7 +45,7 @@ export function mount(container, context) {
     const paths = p.data.paths.filter(path => path.descriptorId === descriptorId);
     if (!paths.some(path => path.id === pathId)) pathId = paths.length === 1 ? paths[0].id : null;
     original = paths.find(path => path.id === pathId) || null;
-    draft = original ? draftOf(original) : null;
+    draft = original ? draftOf(original) : inline&&!paths.length ? {unit:'',interpolation:'none',points:[...p.scope.years].sort((a,b)=>a-b).map(year=>({year:String(year),value:'',stateId:null,origin:'user-assumption',evidenceRefs:[]}))} : null;
     baseline = context.store.snapshot(); clean = JSON.stringify(draft);
   }
   function create() {
@@ -80,6 +93,16 @@ export function mount(container, context) {
           record?.after ? el('details', {}, el('summary', {}, '完整修改记录（含原始出处）'), el('pre', {}, e.excerpt)) : null);
       }), !ids.length ? el('p', {}, '未关联依据。用户假设不等于已验证政策目标。') : null);
   }
+  // 年度详情挂在编辑区之外：编辑区的保存会用 right.querySelectorAll('input')
+  // 检查 badInput，把只读的年份输入留在里面会误拦路径保存。
+  function publish(p) {
+    if(inline)return;
+    if (!annual.root.isConnected) root.append(annual.root);
+    annual.update(p, descriptorId, p.view.perspective === 'expert');
+    annual.setDirty(dirty());
+    if (!ledgerPanel.root.isConnected) root.append(ledgerPanel.root);
+    ledgerPanel.update(p, { descriptorId, path: original });
+  }
   function render() {
     if (disposed) return;
     const p = context.store.read();
@@ -93,13 +116,13 @@ export function mount(container, context) {
     right.replaceChildren(); svg = null;
     if (!descriptorId) {
       right.append(el('p', {}, p.selection.nodeIds.length ? '已选分类尚无计算变量映射，请先配置描述符。' : '尚未选择计算变量。'), el('button', { class: 'button', onclick: () => context.navigate('elements') }, '返回描述符选择'));
-      return;
+      publish(p); return;
     }
     const d = p.data.descriptors.find(item => item.id === descriptorId);
     right.append(el('h3', {}, d.label));
-    if (!p.scope.years.length) {
+    if (!p.scope.years.length && !inline) {
       right.append(el('p', {}, '尚未指定研究年份，不创建假起止年份。'), el('button', { class: 'button', onclick: () => context.navigate('workspace') }, '返回项目范围设置'));
-      return;
+      publish(p); return;
     }
     const paths = p.data.paths.filter(path => path.descriptorId === descriptorId);
     const picker = el('select', { id: 'timeline-path', onchange: e => {
@@ -107,24 +130,25 @@ export function mount(container, context) {
       pathId = e.target.value || null; load(); render();
     } }, el('option', { value: '' }, paths.length > 1 ? '请选择路径（不自动指定权威路径）' : '选择已有路径'), ...paths.map(path => el('option', { value: path.id }, path.id + ' · v' + path.version)));
     picker.value = pathId || '';
-    right.append(el('label', { for: 'timeline-path' }, '路径选择'), picker,
-      el('button', { class: 'button', onclick: create }, '新建用户假设路径'));
+    const pathControls=el('div',{class:'timeline-path-controls'},el('label', { for: 'timeline-path' }, '路径选择'), picker,el('button', { class: 'button', onclick: create }, '新建用户假设路径'));
+    if(inline&&paths.length<=1)right.append(el('details',{},el('summary',{},'其他时间方案'),pathControls));else right.append(pathControls);
     if (original && original.points.some(point => point.year < Math.min(...p.scope.years) || point.year > Math.max(...p.scope.years))) right.append(el('p', { class: 'warning-text' }, '包含研究年份范围外的原始节点，图表完整保留，不静默裁切。'));
     if (original && original.scope.regionId !== p.scope.regionId) right.append(el('p', { class: 'warning-text' }, '路径地区与项目范围不同，请核对适用性；未自动换算。'));
-    if (!draft) { right.append(el('p', {}, paths.length ? '请选择一条路径查看；多条路径不自动合并。' : '该变量暂无路径，可创建用户假设。')); return; }
-    const unit = el('input', { id: 'timeline-unit', 'aria-label': '单位', value: draft.unit, placeholder: '未指定', oninput: e => { draft.unit = e.target.value; draw(); } });
+    if (!draft) { right.append(el('p', {}, paths.length ? '请选择一条路径查看；多条路径不自动合并。' : '该变量暂无路径，可创建用户假设。')); publish(p); return; }
+    const unit = el('input', { id: 'timeline-unit', 'aria-label': '单位', value: draft.unit, placeholder: inline?'':'未指定', oninput: e => { draft.unit = e.target.value; draw(); } });
     const mode = el('select', { id: 'timeline-interpolation', 'aria-label': '插值方式', onchange: e => { draft.interpolation = e.target.value; draw(); } },
-      el('option', { value: 'none' }, 'none · 仅锚点'), el('option', { value: 'linear' }, 'linear · 线性插值'), el('option', { value: 'step' }, 'step · 左端值保持'));
+      el('option', { value: 'none' }, inline?'只显示填写的年份':'none · 仅锚点'), el('option', { value: 'linear' }, inline?'年份之间连成直线':'linear · 线性插值'), el('option', { value: 'step' }, inline?'数值保持到下个节点':'step · 左端值保持'));
     mode.value = draft.interpolation;
-    right.append(el('div', { class: 'timeline-settings' }, el('label', {}, '单位', unit), el('label', {}, '插值方式', mode)),
-      el('p', { class: 'muted' }, '单位空白为未指定。空值不等于0；不外推，不跨缺失点插值，不自动推断定性状态。纵向拖动仅改草稿，点击保存后提交。窄屏图表可横向滚动查看全部年份。'));
+    right.append(el('div', { class: 'timeline-settings' }, el('label', {}, '单位', unit), el('label', {}, inline?'年份之间如何变化':'插值方式', mode)),
+      el('details',{},el('summary',{},'数值与状态如何处理'),el('p', { class: 'muted' }, '空白不是0；不跨缺失点推算，不自动推断状态。数值或年份修改后，状态对应需要重新核对。拖动只改草稿，保存后生效。')));
     svg = svgEl('svg', { viewBox: '0 0 640 300', class: 'timeline-chart', tabindex: '0', role: 'img', 'aria-label': '日历年路径图，精确编辑请使用下方节点表' });
     svg.addEventListener('pointerdown', pointerDown);
     svg.addEventListener('pointermove', pointerMove);
     svg.addEventListener('pointerup', () => stopDrag(false));
     svg.addEventListener('pointercancel', () => stopDrag(true));
     svg.addEventListener('lostpointercapture', () => { if (drag) stopDrag(true); });
-    right.append(el('div', { class: 'timeline-chart-frame', tabindex: '0', 'aria-label': '路径图区域，窄屏可横向滚动查看日历年份' }, svg));
+    const chartFrame=el('div', { class: 'timeline-chart-frame', tabindex: '0', 'aria-label': inline?'年份变化图，可拖动已填写的圆点':'路径图区域，窄屏可横向滚动查看日历年份' }, svg);
+    if(inline)right.insertBefore(chartFrame,right.children[1]||null);else right.append(chartFrame);
     const table = el('table', { class: 'timeline-table' }, el('thead', {}, el('tr', {}, ...['年份', '数值', '状态 / 来源', '操作'].map(text => el('th', { scope: 'col' }, text)))));
     const tbody = el('tbody');
     draft.points.forEach((point, index) => {
@@ -137,12 +161,13 @@ export function mount(container, context) {
     });
     table.append(tbody); right.append(table,
       el('button', { class: 'button', onclick: () => { draft.points.push({ year: '', value: '', stateId: null, origin: 'user-assumption', evidenceRefs: [] }); render(); } }, '添加节点'),
-      el('div', { class: 'timeline-save' }, el('button', { class: 'button', onclick: cancel }, '取消修改'), el('button', { class: 'button primary-action', onclick: save }, '保存路径')));
+      el('div', { class: 'timeline-save' }, el('button', { class: 'button', onclick: cancel }, '取消修改'), el('button', { class: 'button primary-action', onclick: save }, inline?'保存年份变化':'保存路径')));
     if (original) {
       right.append(sources(original, p));
       if (p.view.perspective === 'expert') right.append(el('p', { class: 'muted' }, '变量ID：' + descriptorId + '；路径ID：' + original.id + '；版本：' + original.version));
     }
     draw();
+    publish(p);
   }
   function drawing() {
     const p = context.store.read(), parsed = parseDraft(draft, descriptorId, p.data.states);
@@ -152,6 +177,7 @@ export function mount(container, context) {
     if (!svg || !draft) return;
     svg.replaceChildren();
     right.querySelector('.timeline-preview')?.remove();
+    annual.setDirty(dirty());
     try {
       const drawingState = drawing(), parsed = drawingState.parsed, a = drag?.domain || drawingState.domain;
       const x = y => 64 + (y - a.minX) / (a.maxX - a.minX) * 552;
@@ -178,6 +204,7 @@ export function mount(container, context) {
       const old = right.querySelector('.timeline-preview'); old?.remove();
       const values = context.store.read().scope.years.map(year => {
         const result = interpolate(parsed, year);
+        if(inline)return year+'：'+(result?.value===null||!result?'未填写':Number(result.value.toPrecision(6)))+(result?.derived?'（按节点推算）':'');
         return year + '：' + (result?.value === null || !result ? '未定义' : Number(result.value.toPrecision(6))) + (result?.derived ? '（插值，状态未推断）' : result ? '（锚点）' : '');
       });
       svg.after(el('p', { class: 'timeline-preview muted' }, '研究年份预览 · ' + values.join('；')));
@@ -187,7 +214,7 @@ export function mount(container, context) {
     const index = event.target.dataset.pointIndex;
     if (index === undefined || event.button !== 0) return;
     event.preventDefault();
-    svg.focus();
+    svg.focus({preventScroll:true});
     const { domain } = drawing();
     drag = { index: Number(index), before: structuredClone(draft.points[Number(index)]), domain, pointerId: event.pointerId };
     svg.setPointerCapture(event.pointerId);
@@ -215,11 +242,35 @@ export function mount(container, context) {
   function keydown(event) { if (event.key === 'Escape' && drag) { event.preventDefault(); stopDrag(true); } }
   root.addEventListener('keydown', keydown);
   window.addEventListener('beforeunload', beforeUnload);
-  const unsubscribe = context.store.subscribe(() => {
+  const unsubscribe = inline ? ()=>{} : context.store.subscribe(() => {
     if (saving || disposed) return;
+    // 台账按项目 ID 归属：项目在别处被换掉（含草稿存在、走不到 load 的情形）也要复核并重新装载。
+    ledgerPanel.sync(context.store.read());
     if (dirty()) { message.textContent = '项目输入已变化；草稿保留，请取消后重载再保存。'; return; }
     load(); render();
   });
   load(); render();
-  return { canLeave, dispose() { disposed = true; stopDrag(true); unsubscribe(); window.removeEventListener('beforeunload', beforeUnload); root.remove(); } };
+  return { canLeave, hasPendingChanges:pending, dispose() { disposed = true; stopDrag(true); unsubscribe(); window.removeEventListener('beforeunload', beforeUnload); root.remove(); } };
+}
+
+// R19：插值公式卡。代入值取第一条「线性插值且有相邻非缺失节点」的真实路径；
+// 没有可代入的路径时如实显示“当前没有可代入的完整输入”，不给示例数字。
+function interpolationFormulaCard(context) {
+  const p = context.store.read();
+  let sample = null;
+  outer: for (const path of p.data.paths) {
+    if (path.interpolation !== 'linear') continue;
+    const pts = [...path.points].sort((a, b) => a.year - b.year);
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1], b = pts[i];
+      if (a.value === null || b.value === null || a.value === undefined || b.value === undefined) continue;
+      const name = p.data.descriptors.find(d => d.id === path.descriptorId)?.label || path.descriptorId;
+      const midYear = Math.round((a.year + b.year) / 2);
+      if (midYear === a.year || midYear === b.year) continue;
+      const value = a.value + (b.value - a.value) * (midYear - a.year) / (b.year - a.year);
+      sample = '路径「' + name + '」：' + a.year + ' 年 ' + a.value + '，' + b.year + ' 年 ' + b.value + '；中点 ' + midYear + ' 年 = ' + a.value + '+(' + b.value + '−' + a.value + ')×(' + midYear + '−' + a.year + ')/(' + b.year + '−' + a.year + ') = ' + Math.round(value * 100) / 100 + (path.unit ? ' ' + path.unit : '');
+      break outer;
+    }
+  }
+  return el('details', { class: 'timeline-formula' }, el('summary', {}, '本页方法与公式：数值路径插值'), formulaCard(formulaById('interp'), { interpolationSample: sample }));
 }

@@ -11,6 +11,15 @@
 .relationships-module .relationships-table th { background:var(--panel); font-weight:400; }
 .relationships-module .relationships-table caption { text-align:left; padding:8px 0; }
 .relationships-module .relationships-table input { width:95px; }
+/* 点格子选分：分数条固定在表格下方，不遮挡格子；键盘输入照旧可用。 */
+.relationships-module .relationships-table td.is-active { box-shadow:inset 0 0 0 2px var(--pri-b); }
+.relationships-module .score-dock { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:8px 0 4px; }
+.relationships-module .score-dock[hidden] { display:none; }
+.relationships-module .score-dock-label { font-size:12px; color:var(--tx3); max-width:38ch; overflow-wrap:anywhere; }
+.relationships-module .score-dock-chips { display:flex; gap:4px; flex-wrap:wrap; }
+.relationships-module .score-chip { min-width:34px; height:30px; padding:0 8px; font:inherit; font-size:13px; background:var(--panel); color:var(--tx); border:1px solid var(--line); border-radius:var(--r); cursor:pointer; }
+.relationships-module .score-chip:hover, .relationships-module .score-chip:focus-visible { border-color:var(--pri-b); background:var(--pri-s); }
+.relationships-module .score-chip.clear { color:var(--tx3); }
 .relationships-module .relationships-missing { background:var(--panel); outline:1px dashed var(--tx3); outline-offset:-4px; color:var(--tx); }
 .relationships-module .relationships-score { color:var(--tx); }
 .relationships-module .relationships-na { color:var(--tx3); background:var(--info-bg); }
@@ -25,3 +34,91 @@
 .relationships-module .relationships-matrix td[data-score="-3"],.relationships-module .relationships-matrix td[data-score="3"] { color:var(--panel); }
 .relationships-module input:not([type=checkbox]),.relationships-module select { padding:8px; border:1px solid var(--line); border-radius:var(--r); background:var(--panel); color:var(--tx); font:inherit; }
 .relationships-module h3 { overflow-wrap:anywhere; }
+/* 第二步：完整性摘要（还差什么、能不能去检验） */
+.relationships-module .rev-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 8px}
+.relationships-module .rev-head h3{margin:0;font-size:16px}
+.relationships-module .rev-scope{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--tx3)}
+.relationships-module .rev-scope select{min-height:30px;padding:2px 6px}
+.relationships-module .rev-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 14px;margin:6px 0 10px;align-items:end}
+.relationships-module .rev-stats>div{border:1px solid var(--line2);border-radius:var(--r2);padding:8px 12px;background:var(--panel)}
+.relationships-module .rev-stats b{display:block;font-size:21px;line-height:1.2;color:var(--pri-d);font-variant-numeric:tabular-nums}
+.relationships-module .rev-stats span{font-size:12px;color:var(--tx3)}
+.relationships-module .rev-stats-note{grid-column:1/-1;margin:0;font-size:12px;color:var(--tx3)}
+.relationships-module .rev-next{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 12px}
+.relationships-module .rev-next-note{font-size:12px;color:var(--tx3);max-width:62ch}
+.relationships-module .rev-adopt{border:1px solid var(--line2);border-radius:var(--r2);padding:10px 12px;margin:0 0 12px;background:var(--panel)}
+.relationships-module .rev-adopt p{margin:0 0 6px;font-size:13px}
+.relationships-module .rev-adopt-scope{font-size:12px;color:var(--tx3);overflow-wrap:anywhere}
+.relationships-module .rev-issues{margin:0 0 12px}
+.relationships-module .rev-issues h3{font-size:16px;margin:0 0 8px}
+.relationships-module .rev-clear{font-size:13px;color:var(--pri-d);background:var(--pri-s);border:1px solid var(--pri-b);border-radius:var(--r2);padding:8px 12px;margin:0}
+.relationships-module .rev-issue{border:1px solid var(--line2);border-radius:var(--r2);padding:10px 12px;margin:0 0 8px;display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:start}
+.relationships-module .rev-issue-hd{display:flex;align-items:baseline;gap:8px;grid-column:1}
+.relationships-module .rev-issue p{margin:0;font-size:12px;color:var(--tx2);grid-column:1}
+.relationships-module .rev-issue .rev-issue-list{color:var(--tx3)}
+.relationships-module .rev-issue button{grid-column:2;grid-row:1/4;align-self:center;margin:0}
+.relationships-module .rev-count{font-size:21px;font-weight:600;color:var(--pri-d);font-variant-numeric:tabular-nums}
+.relationships-module .rev-conflicts{border:1px solid var(--wn-b);background:var(--wn-s);border-radius:var(--r2);padding:10px 12px;margin:0 0 12px}
+.relationships-module .rev-conflicts h3{font-size:14px;margin:0 0 8px;color:var(--wn)}
+.relationships-module .rev-conflict-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:6px 0}
+.relationships-module .rev-conflict-row span{font-size:13px;min-width:180px}
+.relationships-module .rev-conflict-row select{max-width:100%;min-width:0}
+.relationships-module .rev-matrix{margin:0 0 10px}
+.relationships-module .rev-matrix summary{font-size:13px;color:var(--pri);cursor:pointer;padding:4px 0}
+.relationships-module .rev-diag{margin:0 0 10px;border-top:1px solid var(--line2);padding-top:8px}
+.relationships-module .rev-diag summary{font-size:12px;color:var(--pri);cursor:pointer}
+.relationships-module .rev-diag h4{font-size:13px;margin:8px 0 4px}
+.relationships-module .rev-diag p{margin:2px 0;font-size:12px;color:var(--tx2)}
+.relationships-module .rev-blocked{border:1px solid var(--wn-b);background:var(--wn-s);color:var(--wn);border-radius:var(--r2);padding:10px 12px;margin:0 0 10px;font-size:13px}
+/* 参考评分入口与预览 */
+.relationships-module .rel-mode-note{font-size:12px;color:var(--tx3)}
+.reference-dialog{border:1px solid var(--line);border-radius:var(--r2);width:min(760px,94vw);max-height:86vh;padding:0}
+.reference-dialog::backdrop{background:rgba(20,28,36,.45)}
+.reference-hd{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line2)}
+.reference-hd h3{margin:0;font-size:16px}
+.reference-body{padding:12px 16px;overflow:auto;max-height:calc(86vh - 52px);font-size:13px}
+.reference-tag{display:inline-block;font-size:12px;border:1px solid var(--wn-b);background:var(--wn-s);color:var(--wn);border-radius:3px;padding:1px 8px;margin:0 0 10px}
+.reference-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:6px 16px;margin:0 0 10px}
+.reference-meta div{display:grid;grid-template-columns:56px minmax(0,1fr);gap:8px}
+.reference-meta dt{color:var(--tx3);font-size:12px}
+.reference-meta dd{margin:0;font-size:12px;color:var(--tx2);overflow-wrap:anywhere}
+.reference-table{margin:8px 0}
+.reference-warn{border-left:3px solid var(--wn-b);background:var(--wn-s);color:var(--wn);padding:6px 10px;font-size:12px;margin:8px 0}
+.reference-note{font-size:12px;color:var(--tx3);margin:8px 0}
+.reference-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 0}
+.reference-actions button{margin:0}
+/* 参考回执、无规则方向、范围明细：都用现有排版，不新增颜色 */
+.relationships-module .rev-refill{border:1px solid var(--pri-b);background:var(--pri-s);border-radius:var(--r2);padding:10px 12px;margin:0 0 10px}
+.relationships-module .rev-refill h4{margin:0 0 4px;font-size:14px;color:var(--pri-d)}
+.relationships-module .rev-refill-sub{margin:0 0 6px;font-size:12px;color:var(--tx2)}
+.relationships-module .rev-refill-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:4px 12px;margin:0}
+.relationships-module .rev-refill-facts div{display:flex;gap:6px;align-items:baseline}
+.relationships-module .rev-refill-facts dt{font-size:12px;color:var(--tx3)}
+.relationships-module .rev-refill-facts dd{margin:0;font-size:13px;color:var(--tx)}
+.relationships-module .rev-norule{margin:0 0 10px}
+.relationships-module .rev-norule>summary{font-size:13px;color:var(--pri);cursor:pointer;padding:4px 0}
+.relationships-module .rev-norule-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--line2);padding:5px 0;font-size:12px;color:var(--tx2)}
+.relationships-module .rev-norule-row button{margin:0;flex:none}
+.relationships-module .rev-scope-item{border-top:1px solid var(--line2);padding:6px 0;display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.relationships-module .rev-scope-item p{margin:0;font-size:12px;color:var(--tx2)}
+.relationships-module .rev-scope-actions{display:flex;gap:8px;flex-wrap:wrap}
+.relationships-module .rev-scope-actions button{margin:0}
+.relationships-module .rel-return{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;border:1px solid var(--pri-b);background:var(--pri-s);border-radius:var(--r2);padding:6px 10px;margin:0 0 8px;font-size:12px;color:var(--pri-d)}
+.relationships-module .rel-return button{margin:0}
+
+.relationships-module .rel-limits>summary{font-size:12px;color:var(--pri);cursor:pointer;padding:4px 0}
+.relationships-module .rel-limits p{margin:2px 0;font-size:12px;color:var(--tx3)}
+/* 齐全态：一条紧凑状态 + 折叠来源；不再重复计数 */
+.relationships-module .rev-done{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid var(--pri-b);background:var(--pri-s);border-radius:var(--r2);padding:9px 14px;margin:0 0 8px}
+.relationships-module .rev-done strong{font-size:15px;color:var(--pri-d)}
+.relationships-module .rev-done button{margin:0}
+.relationships-module .rev-done .ref-tag{font-size:12px;border:1px solid var(--wn-b);background:var(--wn-s);color:var(--wn);border-radius:3px;padding:1px 8px}
+.relationships-module .rev-done-details{margin:0 0 8px}
+.relationships-module .rev-done-details>summary{font-size:13px;color:var(--pri);cursor:pointer;padding:3px 0}
+.relationships-module .rev-done-src{margin:4px 0 0;padding-left:20px;font-size:12px;color:var(--tx2)}
+.relationships-module .rev-done-src li{margin:2px 0;overflow-wrap:anywhere}
+.relationships-module .rev-review{margin:0 0 8px}
+.relationships-module .rev-review>summary{font-size:13px;color:var(--wn);cursor:pointer;padding:3px 0}
+.relationships-module .rev-review p{margin:3px 0;font-size:12px;color:var(--tx2)}
+/* 步骤条 hidden 必须赢过 display:flex */
+.rel-steps[hidden]{display:none}

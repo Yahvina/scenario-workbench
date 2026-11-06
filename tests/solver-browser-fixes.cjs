@@ -7,7 +7,7 @@ const {fixture}=require('./solver-browser-fixtures.cjs'),review=require('./solve
  const boot='__require("src/app.mjs");';assert.ok(bundle.includes(boot));
  // Test-only access to the actual bundled engine, without adding a production global or booting another app.
  const engineBundle=bundle.replace(boot,'globalThis.__solverFixTest=__require("src/modules/solver/engine.mjs");');
- const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true}),reports=[];
+ const browser=await chromium.launch({args:['--no-sandbox','--disable-gpu'],executablePath:process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true}),reports=[];
  try{for(const [mode,url]of[['source',process.env.APP_URL||'http://127.0.0.1:4184'],['offline',pathToFileURL(path.join(root,'dist/scenario-workbench.html')).href]]){
   const ctx=await browser.newContext({viewport:{width:1280,height:960}}),p=fixture();p.data.states[0].validYears=[];p.data.states[0].scope.regionId=null;
   await ctx.addInitScript(p=>{if(!localStorage.getItem('scenario-workbench.project.v1'))localStorage.setItem('scenario-workbench.project.v1',JSON.stringify(p));},p);

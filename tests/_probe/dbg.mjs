@@ -1,0 +1,13 @@
+import pw from 'file:///C:/Users/guiqu/.workbuddy/binaries/node/workspace/node_modules/playwright-core/index.js';
+const { chromium } = pw;
+const b = await chromium.launch({ executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: true, args: ['--no-sandbox','--disable-gpu'] });
+const ctx = await b.newContext({viewport:{width:1440,height:1000}});
+const p = await ctx.newPage();
+p.on('pageerror',e=>console.log('PAGEERROR',e.message));
+await p.goto('file:///C:/Users/guiqu/WorkBuddy/2026-09-16-21-47-56/output/public-task-flow/dist/scenario-workbench.html');
+await p.evaluate(()=>{const raw=localStorage.getItem('scenario-workbench.project.v1');console.log('stored',!!raw)});
+await p.locator('.nav-item', { hasText: '检验与结果' }).click();
+await p.waitForTimeout(500);
+console.log(await p.evaluate(()=>{const d=[...document.querySelectorAll('details')].find(x=>x.textContent.includes('核对各方向使用哪条评分'));return d?d.outerHTML.slice(0,1500):'no details';}));
+console.log('YEARSELECT=',await p.evaluate(()=>document.querySelector('[aria-label="检算年份"]')?.value));
+await b.close();

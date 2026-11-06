@@ -2,12 +2,12 @@ import {el} from '../../core/ui.mjs';
 import {definitionDraft,definitionChange} from './definitions.mjs';
 export function definitionPanel(container,context){
  const root=el('section',{class:'definition-editor'});container.append(root);let draft=null,baseline=null,baseProject=null,dirty=false,pending=null,saving=false;
- const message=el('p',{role:'status'}),body=el('div'),tools=el('div');root.append(el('h3',{},'因素与状态定义'),el('p',{},'支持创建、编辑和新增状态；首包不支持删除、ID改名或聚合。保存不会自动选择或锁定变量。空年份/地区是未声明，不代表永久有效；空数值界限为无界，不猜测状态排序，也不自动映射路径。'),tools,message,body);
+ const message=el('p',{role:'status'}),body=el('div'),tools=el('div');root.append(el('h3',{},'管理因素和状态'),tools,message,body);
  const button=(label,fn)=>el('button',{class:'button',type:'button',onclick:fn},label);
  function canLeave(){if(dirty){message.textContent='有未保存定义，请先确认保存或取消草稿。';return false;}return true;}
  function begin(id){if(!canLeave())return;draft=definitionDraft(context.store.read(),id);baseline=context.store.snapshot();baseProject=JSON.stringify(context.store.read());pending=null;dirty=false;render();}
  function mark(){dirty=true;pending=null;body.querySelector('[data-definition-preview]')?.remove();}
- function renderTools(){const p=context.store.read();tools.replaceChildren(button('新建因素',()=>begin(null)));const select=el('select',{'aria-label':'编辑已有因素'},el('option',{value:''},'选择已有因素'),...p.data.descriptors.map(d=>el('option',{value:d.id},d.label)));tools.append(select,button('编辑所选因素',()=>{if(select.value)begin(select.value);}));}
+ function renderTools(){const p=context.store.read();tools.replaceChildren(button('新建因素',()=>begin(null)));const select=el('select',{'aria-label':'编辑已有因素'},el('option',{value:''},'选择要修改的因素'),...p.data.descriptors.map(d=>el('option',{value:d.id},d.label)));tools.append(select,button('打开这个因素的定义',()=>{if(select.value)begin(select.value);}));}
  function field(parent,label,value,change,type='text'){const input=el('input',{'aria-label':label,type,value:value??'',oninput:e=>{change(e.target.value);mark();}});parent.append(el('label',{},label,input));return input;}
  function render(){renderTools();body.replaceChildren();if(!draft)return;const p=context.store.read();field(body,'因素名称',draft.label,v=>draft.label=v);const role=el('select',{'aria-label':'因素角色',onchange:e=>{draft.role=e.target.value;mark();}},...['input','outcome','context'].map(v=>el('option',{value:v},{input:'输入因素',outcome:'结果因素',context:'背景因素'}[v])));role.value=draft.role;body.append(el('label',{},'因素角色',role));
   if(!draft.id){const nodes=el('select',{'aria-label':'绑定分类',onchange:e=>{draft.nodeId=e.target.value;mark();}},el('option',{value:''},p.data.taxonomy.length?'请选择已有分类':'新建独立根分类'),...p.data.taxonomy.map(n=>el('option',{value:n.id},n.label)));nodes.value=draft.nodeId;body.append(el('label',{},'绑定分类',nodes));if(!p.data.taxonomy.length)field(body,'新根分类名称',draft.rootLabel,v=>draft.rootLabel=v);}

@@ -1,7 +1,7 @@
 export const CONTRACT_VERSION = '1.0.0';
 export const DATA_KEYS = ['policies', 'taxonomy', 'descriptors', 'states', 'paths', 'judgments', 'evidence', 'mappings'];
 export const SELECTION_KEYS = ['nodeIds', 'descriptorIds', 'stateIds', 'lockedStateIds'];
-export const VIEW_MODULES = ['workspace', 'policy', 'elements', 'timeline', 'ai-draft', 'relationships', 'importance', 'review', 'solver', 'explanation', 'analysis', 'optimization', 'knowledge', 'exports', 'collaboration', 'methods'];
+export const VIEW_MODULES = ['workspace', 'policy', 'elements', 'timeline', 'ai-draft', 'relationships', 'importance', 'review', 'solver', 'explanation', 'analysis', 'optimization', 'knowledge', 'exports', 'collaboration', 'methods', 'chain', 'robustness', 'about'];
 
 export class ContractError extends Error {
   constructor(code, message, recordIds = [], recoveryAction = '修正输入后重试') {

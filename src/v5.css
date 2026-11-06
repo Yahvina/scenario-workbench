@@ -1,0 +1,169 @@
+/* ═══ v5 平台级落地（2026-11-05）═══
+   学自用户认可的《关系页改版样稿 v5》：冷灰画布 + 白功能卡 + 独立右栏；
+   克制的选中蓝只用于“当前/选中/主操作”，其余仍是灰按钮；
+   CIB 色阶回到蓝—纸灰—赭双极（正=赭，负=蓝，0=纸灰）。 */
+:root{
+  --pri:#1B589E;--pri-d:#003B7A;--pri-s:#DBE9FC;--pri-b:#A9C0DE;
+  --action:var(--pri);--action-hover:var(--pri-d);
+  --selection-bg:var(--pri-s);--selection-text:var(--pri-d);
+  --s-3:#386CA0;--s-2:#608AB5;--s-1:#96AEC7;--s0:#E1E5E8;--s1:#C3A392;--s2:#AE785A;--s3:#965630;
+  --serif:"Noto Serif SC","Source Han Serif SC","SimSun",serif;
+}
+.button.primary-action{background:var(--pri);border-color:var(--pri);color:#fff;font-weight:600}
+.button.primary-action:hover{background:var(--pri-d);border-color:var(--pri-d);color:#fff}
+.button.primary-action:active{background:var(--pri-d)}
+.nav-item[aria-current=page]{background:var(--pri-s);color:var(--pri-d)}
+.nav-item[aria-current=page]::before{background:var(--pri);width:2px}
+
+/* 页面骨架：标题 + 主区 + 右栏（v5 的 1fr / 384px 比例） */
+.v5-head{margin:2px 0 14px}
+.v5-head .eyebrow{font-size:12px;color:var(--tx3);letter-spacing:.04em}
+.v5-head h1{font:700 21px/1.45 var(--serif);letter-spacing:.02em;margin:2px 0 4px}
+.v5-head .lead{font-size:13px;color:var(--tx3);max-width:76ch}
+.v5-head .head-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.v5-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+.v5-main{min-width:0}
+.v5-rail{min-width:0;display:flex;flex-direction:column;gap:12px}
+.v5-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);box-shadow:0 1px 2px rgba(8,14,19,.05);min-width:0}
+.v5-card+.v5-card{margin-top:12px}
+.v5-card>.hd{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line2)}
+.v5-card>.hd h2,.v5-card>.hd h3{font-size:16px;font-weight:600;margin:0}
+.v5-card>.hd .no{font-size:12px;color:var(--pri);border:1px solid var(--pri-b);border-radius:var(--r);padding:0 7px;flex:none}
+.v5-card>.hd .note{margin-left:auto;font-size:12px;color:var(--tx3);font-weight:400}
+.v5-card>.bd{padding:12px 14px}
+.v5-card>.bd>:first-child{margin-top:0}
+.v5-hint{font-size:12px;color:var(--tx3);line-height:1.7}
+.v5-hint b{color:var(--tx2);font-weight:600}
+.v5-list{list-style:none;margin:0;padding:0}
+.v5-list>li{padding:7px 0;border-bottom:1px solid var(--line2);font-size:13px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.v5-list>li:last-child{border-bottom:0}
+.v5-k{font-variant-numeric:tabular-nums;font-weight:600}
+.v5-tag{font-size:12px;border:1px solid var(--line);border-radius:3px;padding:0 7px;color:var(--tx2);background:var(--panel);white-space:nowrap}
+.v5-tag.ok{color:var(--pri);border-color:var(--pri-b);background:var(--pri-s)}
+.v5-tag.warn{color:var(--wn);border-color:var(--wn-b);background:var(--wn-s)}
+.v5-tag.bad{color:var(--rd);border-color:var(--rd-b);background:var(--rd-s)}
+.v5-empty{border:1px dashed var(--line);border-radius:var(--r2);padding:22px 18px;color:var(--tx3);font-size:13px;background:var(--panel)}
+.v5-empty b{color:var(--tx2)}
+@media(max-width:1180px){.v5-grid{grid-template-columns:minmax(0,1fr)}.v5-rail{order:3}}
+
+/* 步骤条（v5 层级：圆点数字 + 当前项下划线） */
+.v5-steps{display:flex;align-items:center;flex-wrap:wrap;gap:0;padding:8px 14px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);margin:0 0 12px}
+.v5-step{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--tx3);padding-right:20px;position:relative}
+.v5-step .n{width:19px;height:19px;border-radius:50%;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:12px;background:var(--panel);flex:none}
+.v5-step+.v5-step::before{content:"";position:absolute;left:-15px;top:9px;width:12px;height:1px;background:var(--line)}
+.v5-step.done{color:var(--tx2)}
+.v5-step.done .n{background:var(--pri);border-color:var(--pri);color:#fff}
+.v5-step.cur{color:var(--tx);font-weight:600;border-bottom:2px solid var(--pri);padding-bottom:1px}
+.v5-step.cur .n{background:var(--pri);border-color:var(--pri);color:#fff}
+
+/* 表格：白底细线，数字等宽 */
+.v5-table{border-collapse:collapse;width:100%;font-size:13px;background:var(--panel)}
+.v5-table th,.v5-table td{border:1px solid var(--line2);padding:7px 9px;text-align:left;vertical-align:top}
+.v5-table th{background:var(--bg);font-weight:600;font-size:12px}
+.v5-table td.num,.v5-table th.num{text-align:right;font-variant-numeric:tabular-nums}
+.v5-table caption{caption-side:top;text-align:left;font-size:12px;color:var(--tx3);padding-bottom:6px}
+.v5-scroll{overflow:auto;max-width:100%}
+
+/* ── 年度方案检验（R11） ── */
+.plan-check{background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);padding:12px 14px;margin:0 0 12px}
+.plan-check-hd{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.plan-check-hd h3{font-size:16px;margin:0}
+.plan-check-src{margin-left:auto;font-size:12px;color:var(--tx3)}
+.plan-check-rows{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:6px 10px;margin-bottom:8px}
+.plan-check-row{display:flex;align-items:center;gap:8px;border:1px solid var(--line2);border-radius:var(--r);padding:5px 9px;min-width:0;background:var(--panel)}
+.plan-check-row .nm{font-size:13px;font-weight:600;min-width:0;overflow-wrap:anywhere;flex:1 1 auto}
+.plan-check-row .st{font-size:13px;color:var(--pri-d);background:var(--pri-s);border:1px solid var(--pri-b);border-radius:3px;padding:0 7px;white-space:nowrap}
+.plan-check-row .st.missing{color:var(--rd);background:var(--rd-s);border-color:var(--rd-b)}
+.plan-check-row .from{font-size:12px;color:var(--tx3);flex:none}
+.plan-check-row select{font-size:12px;min-height:28px;padding:2px 4px;max-width:120px}
+.plan-check-row.is-missing{border-color:var(--rd-b);border-style:dashed}
+.plan-check-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:6px 0 0}
+.plan-check-msg{font-size:12px;color:var(--tx2);margin-top:6px}
+.plan-check-msg:empty{display:none}
+.plan-check-stale{font-size:12px;color:var(--wn);background:var(--wn-s);border:1px solid var(--wn-b);border-radius:var(--r);padding:6px 10px;margin:8px 0 0}
+.plan-check-verdict{display:flex;flex-direction:column;gap:3px;border-radius:var(--r);padding:8px 11px;margin:8px 0;font-size:13px}
+.plan-check-verdict span{font-size:12px;color:var(--tx3)}
+.plan-check-verdict.ok{background:var(--pri-s);border:1px solid var(--pri-b);color:var(--pri-d)}
+.plan-check-verdict.warn{background:var(--wn-s);border:1px solid var(--wn-b);color:var(--wn)}
+.plan-check-table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}
+.plan-check-table th,.plan-check-table td{border:1px solid var(--line2);padding:5px 7px}
+.plan-check-table th{background:var(--bg);font-weight:600;text-align:left}
+.plan-check-table td.num{text-align:right;font-variant-numeric:tabular-nums}
+.plan-check-table tr.is-conflict td{background:var(--wn-s)}
+.plan-check-detail{margin-top:8px;border-top:1px solid var(--line2);padding-top:8px}
+.plan-check-detail summary{font-size:12px;color:var(--pri);cursor:pointer}
+.plan-check-detail h4{font-size:13px;margin:10px 0 4px}
+.plan-check-detail ul{margin:0;padding-left:18px;font-size:12px;color:var(--tx2)}
+.plan-check-member{font-size:12px;color:var(--tx2);background:var(--bg);border:1px solid var(--line2);border-radius:var(--r);padding:6px 10px;margin-top:8px}
+.plan-check-blocks{margin:6px 0 0;padding-left:18px;font-size:12px;color:var(--wn)}
+.plan-check-blocks li{margin:2px 0}
+
+/* ── 白箱链（R18） ── */
+.chain-summary{margin:0 0 12px}
+.chain-summary-grid{display:flex;flex-wrap:wrap;gap:10px 26px;margin-bottom:6px}
+.chain-stat{display:flex;flex-direction:column;min-width:76px}
+.chain-stat strong{font-size:21px;font-weight:600;color:var(--pri-d);font-variant-numeric:tabular-nums;line-height:1.2}
+.chain-stat span{font-size:12px;color:var(--tx3)}
+.chain-node{margin-bottom:8px;position:relative}
+.chain-node+.chain-node::before{content:"";position:absolute;left:26px;top:-8px;height:8px;width:1px;background:var(--line)}
+.chain-node-hd{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 14px;background:transparent;border:0;min-height:42px}
+.chain-node-hd:hover{background:var(--bg)}
+.chain-no{width:20px;height:20px;border-radius:50%;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:12px;flex:none;color:var(--tx2);background:var(--panel)}
+.chain-node[data-status=ok] .chain-no{background:var(--pri);border-color:var(--pri);color:#fff}
+.chain-node[data-status=gap] .chain-no{border-color:var(--wn-b);background:var(--wn-s);color:var(--wn)}
+.chain-title{font-size:15px;font-weight:600;flex:1 1 auto;min-width:0}
+.chain-go{font-size:12px;color:var(--pri);flex:none}
+.chain-node-bd{padding:0 14px 12px 14px;border-top:1px solid var(--line2);margin-top:2px}
+.chain-input{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:4px 14px;margin:10px 0}
+.chain-input dt{font-size:12px;color:var(--tx3)}
+.chain-input dd{margin:1px 0 0;font-size:13px;font-variant-numeric:tabular-nums}
+.chain-did{font-size:13px;margin:6px 0}
+.chain-output{margin:6px 0;padding-left:18px;font-size:13px}
+.chain-output li{margin:2px 0}
+.chain-source{font-size:12px;color:var(--tx3);margin:6px 0 0;overflow-wrap:anywhere}
+.chain-gaps{margin:8px 0 0;padding:7px 10px 7px 26px;background:var(--wn-s);border:1px solid var(--wn-b);border-radius:var(--r);font-size:12px;color:var(--wn)}
+.chain-gaps li{margin:2px 0}
+.chain-actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+.chain-detail{margin-top:10px;border-top:1px solid var(--line2);padding-top:8px}
+.chain-detail summary{font-size:12px;color:var(--pri);cursor:pointer}
+.chain-detail select{max-width:100%;margin:8px 0}
+.chain-reverse .v5-table{margin-top:6px;font-size:12px}
+
+/* ── 公式卡（R19） ── */
+.v5-formula{border:1px solid var(--line2);border-radius:var(--r);background:var(--panel);margin:6px 0}
+.v5-formula summary{display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;font-size:13px;font-weight:600}
+.v5-formula-name{flex:1 1 auto;min-width:0}
+.v5-formula-body{padding:2px 10px 10px}
+.v5-formula-expr{font-family:"Cambria Math",Georgia,serif;font-size:15px;line-height:1.7;background:var(--bg);border:1px solid var(--line2);border-radius:var(--r);padding:8px 10px;margin:6px 0;overflow-wrap:anywhere}
+.v5-formula-sym{font-size:12px;margin:6px 0}
+.v5-formula-sub{border-left:3px solid var(--pri);background:var(--pri-s);padding:6px 10px;margin:8px 0;font-size:12px}
+.v5-formula-sub .cap{font-size:12px;color:var(--pri-d);font-weight:600;display:block}
+.v5-formula-sub p{margin:2px 0 0;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.v5-formula-sub.is-empty{border-left-color:var(--line);background:var(--bg)}
+.v5-formula-sub.is-empty .cap{color:var(--tx3)}
+.v5-formula-meta{display:grid;gap:4px;margin:6px 0 0;font-size:12px}
+.v5-formula-meta div{display:grid;grid-template-columns:64px minmax(0,1fr);gap:8px}
+.v5-formula-meta dt{color:var(--tx3)}
+.v5-formula-meta dd{margin:0;overflow-wrap:anywhere}
+.v5-formula-inline .expr{font-family:"Cambria Math",Georgia,serif;background:var(--bg);padding:8px 10px;border-radius:var(--r);margin-bottom:6px}
+@media(max-width:560px){.chain-stat{min-width:64px}.chain-no{display:none}}
+
+/* 骨架收紧：右栏由页面自带，项目范围与来源收进左栏折叠区 */
+.workspace{padding:16px 22px 40px;max-width:1560px}
+.content-grid{grid-template-columns:minmax(0,1fr)!important}
+.side-context{border-top:1px solid var(--line2);margin-top:14px;padding-top:10px}
+.side-context>summary{font-size:12px;color:var(--tx3);cursor:pointer;padding:4px 2px}
+.side-context .context-panel{border:0!important;background:transparent!important;padding:6px 0 0!important;box-shadow:none}
+.side-context .context-panel h2{font-size:13px!important}
+.side-context .context-panel .facts{gap:6px 12px!important}
+.side-context .context-panel .facts dd{font-size:12px!important}
+.sidebar{padding:18px 14px}
+.nav-group{margin-bottom:14px}
+.page-heading[hidden]{display:none!important}
+
+/* 标题旁“i”：次要解释默认不占版面 */
+.info-tip{position:relative;display:inline-flex;align-items:center;margin-left:6px;vertical-align:middle}
+.info-btn{width:16px;height:16px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--tx3);font:600 11px/1 Georgia,serif;padding:0;cursor:help;flex:none}
+.info-btn:hover,.info-btn:focus-visible{border-color:var(--pri);color:var(--pri)}
+.info-pop{position:absolute;top:22px;left:-4px;z-index:20;width:min(320px,70vw);background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);box-shadow:0 6px 18px rgba(8,14,19,.12);padding:8px 10px;font-size:12px;line-height:1.7;color:var(--tx2);font-weight:400}
+.info-pop[hidden]{display:none}

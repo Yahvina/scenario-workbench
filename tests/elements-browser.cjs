@@ -3,11 +3,12 @@ const path = require('node:path');
 const fs = require('node:fs/promises');
 const { pathToFileURL } = require('node:url');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const home = require('./home-controls.cjs');
 (async () => {
   const root = path.resolve(__dirname, '..');
   const out = path.join(root, 'artifacts');
   await fs.mkdir(out, { recursive: true });
-  const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: true });
+  const browser = await chromium.launch({args:['--no-sandbox','--disable-gpu'], executablePath: process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: true });
   try {
     for (const [mode, url] of [['source', process.env.APP_URL || 'http://127.0.0.1:4174'], ['offline', pathToFileURL(path.join(root, 'dist/scenario-workbench.html')).href]]) {
       const context = await browser.newContext({ viewport: { width: 1440, height: 1080 } });
@@ -21,7 +22,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
       const revision = () => page.evaluate(() => JSON.parse(localStorage.getItem('scenario-workbench.project.v1')).revision);
       await go();
       await page.getByRole('button', { name: '返回项目页载入机制示例' }).click();
-      await page.getByRole('button', { name: '载入机制示例', exact: true }).click();
+      await home.loadDemo(page);
       await go();
       const initial = await selection(), rev = await revision();
       for (const label of ['示例领域', '示例部门', '示例行业', '示例技术路径', '示例政策工具']) await page.getByRole('button', { name: '展开 ' + label, exact: true }).click();

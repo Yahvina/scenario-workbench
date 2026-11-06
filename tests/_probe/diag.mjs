@@ -1,0 +1,14 @@
+import pw from 'file:///C:/Users/guiqu/.workbuddy/binaries/node/workspace/node_modules/playwright-core/index.js';
+const { chromium } = pw;
+const b = await chromium.launch({ executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: true, args: ['--no-sandbox','--disable-gpu'] });
+const c = await b.newContext({viewport:{width:1440,height:1000}});
+const p = await c.newPage(); p.on('pageerror',e=>console.log('ERR',e.message));
+await p.addInitScript((proj)=>localStorage.setItem('scenario-workbench.project.v1',JSON.stringify(proj)), JSON.parse(process.argv[2]));
+await p.goto('file:///C:/Users/guiqu/WorkBuddy/2026-09-16-21-47-56/output/public-task-flow/dist/scenario-workbench.html');
+await p.locator('.nav-item',{hasText:'检验与结果'}).click();
+await p.waitForTimeout(300);
+await p.evaluate(()=>{const d=document.querySelector('.solver-fill-unique')?.closest('details');if(d)d.open=true;});
+await p.locator('.solver-fill-unique button').click();
+await p.waitForTimeout(300);
+console.log(await p.evaluate(()=>{const d=document.querySelector('.solver-diagnostics');return d?d.innerText:'no diag';}));
+await b.close();

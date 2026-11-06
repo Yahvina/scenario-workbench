@@ -17,6 +17,19 @@ export function parseYears(text) {
   if (years.some(year => !Number.isInteger(year) || year < 1900 || year > 2300) || new Set(years).size !== years.length) throw new Error('适用年须为1900—2300且不重复的整数');
   return years.sort((a,b)=>a-b);
 }
+// 方向覆盖：A→B 与 B→A 独立计数；只要该方向存在判断记录就算已覆盖（不分格子）。
+export function directionCoverage(project) {
+  const ids = project.selection.descriptorIds;
+  const covered = new Set(project.data.judgments.map(j => j.sourceDescriptorId + '>' + j.targetDescriptorId));
+  const missing = [];
+  for (const a of ids) for (const b of ids) { if (a === b) continue; if (!covered.has(a + '>' + b)) missing.push({ source: a, target: b }); }
+  return { need: ids.length * (ids.length - 1), covered: covered.size, missing };
+}
+// 保存后推进：按活动变量顺序取第一个未判方向；全部覆盖返回 null。
+export function nextUngjudgedDirection(project) {
+  const { missing } = directionCoverage(project);
+  return missing.length ? missing[0] : null;
+}
 export function buildJudgmentChange(project, sourceId, targetId, original, draft, newId) {
   if (sourceId === targetId || ![sourceId,targetId].every(id => project.selection.descriptorIds.includes(id))) throw new Error('请选择两个不同的活动变量');
   if (original && (original.sourceDescriptorId !== sourceId || original.targetDescriptorId !== targetId)) throw new Error('判断方向不匹配');

@@ -78,10 +78,11 @@ function evaluateCompiled(input,c,configuration){
  return {configuration:structuredClone(configuration),consistent:balances.every(b=>b.consistent),conflicts:balances.filter(b=>!b.consistent).map(b=>b.descriptorId),violatesLocks:[...c.locked].some(([id,state])=>configuration[id]!==state),balances};
 }
 export function explain(input,configuration){return evaluateCompiled(input,inspectInput(input),configuration);}
-export function createEnumeration(rawInput,{displayLimit=100}={}){
+export function createEnumeration(rawInput,{displayLimit=100,keepLimit=displayLimit}={}){
  const input=freeze(structuredClone(rawInput));let compiled=null,error=null;
- try{compiled=inspectInput(input);need(compiled.space<=BigInt(compiled.limit),'SPACE_LIMIT：空间'+compiled.space+'超过'+compiled.limit);need(Number.isInteger(displayLimit)&&displayLimit>=0,'展示上限无效');}catch(e){error=e;}
- const result={id:'run-'+input?.projectId+'-'+input?.revision+'-'+Date.now(),inputSnapshot:input,status:error?'blocked':null,space:compiled?{unconstrained:compiled.unrestricted.toString(),constrained:compiled.space.toString(),limit:compiled.limit}:null,checked:0,count:null,coverage:compiled?structuredClone(compiled.coverage):null,scenarios:[],truncated:false,sampled:false,balanceTrace:[],diagnostics:error?[{code:error.code||'INVALID_OR_LARGE_INPUT',message:error.message}]:structuredClone(compiled.scopeDiagnostics),createdAt:new Date().toISOString()};
+ try{compiled=inspectInput(input);need(compiled.space<=BigInt(compiled.limit),'SPACE_LIMIT：空间'+compiled.space+'超过'+compiled.limit);need(Number.isInteger(displayLimit)&&displayLimit>=0,'展示上限无效');need(Number.isInteger(keepLimit)&&keepLimit>=displayLimit,'保留上限无效');}catch(e){error=e;}
+ const result={id:'run-'+input?.projectId+'-'+input?.revision+'-'+Date.now(),inputSnapshot:input,status:error?'blocked':null,space:compiled?{unconstrained:compiled.unrestricted.toString(),constrained:compiled.space.toString(),limit:compiled.limit}:null,checked:0,count:null,coverage:compiled?structuredClone(compiled.coverage):null,scenarios:[],all:[],truncated:false,sampled:false,balanceTrace:[],// stateCounts 统计全量自洽配置里的状态出现次数，作为频率的分母；all 只保留到 keepLimit，供聚类等逐条比较。
+ stateCounts:compiled?Object.fromEntries(compiled.ids.map(id=>[id,Object.fromEntries(compiled.byDescriptor.get(id).map(s=>[s,0]))])):{},diagnostics:error?[{code:error.code||'INVALID_OR_LARGE_INPUT',message:error.message}]:structuredClone(compiled.scopeDiagnostics),createdAt:new Date().toISOString()};
  let found=0,cancelled=false,done=!!error;
  const choices=compiled?.ids.map(id=>compiled.locked.has(id)?[compiled.locked.get(id)]:compiled.byDescriptor.get(id)),positions=choices?.map(()=>0);
  return {cancel(){cancelled=true;},step(batch=250){
@@ -91,7 +92,10 @@ export function createEnumeration(rawInput,{displayLimit=100}={}){
    for(let k=0;k<batch;k++){
      const config=Object.fromEntries(compiled.ids.map((id,i)=>[id,choices[i][positions[i]]]));
      const trace=evaluateCompiled(input,compiled,config);result.checked++;
-     if(trace.consistent){found++;if(result.scenarios.length<displayLimit){result.scenarios.push(config);result.balanceTrace.push(trace);}}
+     if(trace.consistent){found++;
+       for(const id of compiled.ids){const bucket=result.stateCounts[id];if(bucket&&Object.hasOwn(bucket,config[id]))bucket[config[id]]++;}
+       if(result.all.length<keepLimit)result.all.push(config);
+       if(result.scenarios.length<displayLimit){result.scenarios.push(config);result.balanceTrace.push(trace);}}
      let carry=positions.length-1;while(carry>=0&&++positions[carry]===choices[carry].length){positions[carry]=0;carry--;}
      if(carry<0){done=true;result.status='completed';result.count=found;result.truncated=found>result.scenarios.length;break;}
    }

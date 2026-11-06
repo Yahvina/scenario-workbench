@@ -3,12 +3,13 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const home = require('./home-controls.cjs');
 const key = 'scenario-workbench.project.v1';
 (async () => {
   const root = path.resolve(__dirname, '..'), out = path.join(root, 'artifacts', 'timeline');
   await fs.mkdir(out, { recursive: true });
   const { createDemoProject } = await import(pathToFileURL(path.join(root,'src/fixtures/demo.mjs')).href);
-  const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: true });
+  const browser = await chromium.launch({args:['--no-sandbox','--disable-gpu'], executablePath: process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: true });
   const results = [];
   async function open(url, fixture, failure = false) {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 1080 }, acceptDownloads: true });
@@ -28,7 +29,7 @@ const key = 'scenario-workbench.project.v1';
     for (const [mode,url] of [['source',process.env.APP_URL || 'http://127.0.0.1:4175'],['offline',pathToFileURL(path.join(root,'dist/scenario-workbench.html')).href]]) {
       const fixture=createDemoProject(); fixture.data.paths[0].points[0].origin='source';
       const {ctx,page,errors,external}=await open(url,fixture);
-      await page.getByRole('button',{name:'记录未检验快照',exact:true}).click();
+      await home.snapshot(page);
       await route(page,'timeline');
       assert.equal(await page.locator('.timeline-variable').count(),2);
       assert.equal(await page.locator('circle[data-point-index]').count(),2);
@@ -103,10 +104,10 @@ const key = 'scenario-workbench.project.v1';
       await page.reload(); assert.equal((await stored(page)).data.paths[0].points[0].value,draftValue);
       // Export and restore the real backup through the existing workspace controls.
       await route(page,'workspace');
-      const downloadEvent=page.waitForEvent('download'); await page.getByRole('button',{name:'下载项目备份',exact:true}).click();
+      const downloadEvent=page.waitForEvent('download'); await home.downloadBackup(page);
       const download=await downloadEvent, backup=JSON.parse(await fs.readFile(await download.path(),'utf8'));
       assert.ok(backup.data.evidence.some(e=>e.kind==='user-assumption' && JSON.parse(e.excerpt).before?.points[0].value===20));
-      await page.getByLabel('从JSON备份恢复').setInputFiles({name:'timeline.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(backup))});
+      await home.restore(page,backup,'timeline.json');
       await route(page,'timeline'); assert.equal(await page.getByLabel('节点1数值',{exact:true}).inputValue(),String(draftValue));
       await page.locator('[data-descriptor="descriptor-b"]').click(); assert.match(await page.locator('.timeline-editor').innerText(),/暂无路径/);
       await page.getByRole('button',{name:'新建用户假设路径',exact:true}).click();

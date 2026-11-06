@@ -1,0 +1,13 @@
+import pw from 'file:///C:/Users/guiqu/.workbuddy/binaries/node/workspace/node_modules/playwright-core/index.js';
+const { chromium } = pw;
+import path from 'node:path'; import { fileURLToPath, pathToFileURL } from 'node:url';
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const b = await chromium.launch({ executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: true, args: ['--no-sandbox','--disable-gpu'] });
+const c = await b.newContext({viewport:{width:1440,height:900}, deviceScaleFactor:2});
+const p = await c.newPage();
+await p.goto(pathToFileURL(path.join(root,'dist/scenario-workbench.html')).href);
+await p.waitForTimeout(600);
+const ff = await p.evaluate(()=>getComputedStyle(document.body).fontFamily+' | h1:'+getComputedStyle(document.querySelector('h1')).fontFamily);
+console.log('FONT:',ff);
+await p.screenshot({path: path.join(root,'artifacts/v5/zoom-home.png')});
+await b.close();

@@ -1,5 +1,15 @@
 const unique = values => [...new Set(values)];
 
+export function toggleBranch(project,selectedIds,nodeId,checked){
+ const nodes=new Map(project.data.taxonomy.map(n=>[n.id,n])),selected=new Set(selectedIds),visited=new Set();
+ function walk(id){if(visited.has(id)||!nodes.has(id))return;visited.add(id);if(checked)selected.add(id);else selected.delete(id);nodes.get(id).childIds.forEach(walk);}
+ walk(nodeId);
+ const memo=new Map();
+ function all(id,ancestors=new Set()){if(memo.has(id))return memo.get(id);const n=nodes.get(id);if(!n||ancestors.has(id))return false;const result=n.childIds.length?n.childIds.every(child=>all(child,new Set([...ancestors,id]))):selected.has(id);memo.set(id,result);return result;}
+ for(const n of nodes.values())if(n.childIds.length){if(all(n.id))selected.add(n.id);else selected.delete(n.id);}
+ return [...selected];
+}
+
 export function descendantChoices(project,nodeId){
  const visited=new Set(),nodeIds=[],descriptorIds=[];
  function visit(id){if(visited.has(id))return;visited.add(id);const node=project.data.taxonomy.find(n=>n.id===id);if(!node)return;

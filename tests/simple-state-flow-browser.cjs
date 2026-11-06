@@ -1,0 +1,47 @@
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
+const {pathToFileURL}=require('node:url');
+const path=require('node:path'),fs=require('node:fs/promises'),assert=require('node:assert/strict');
+(async()=>{
+ const root=path.resolve(__dirname,'..'),entry=process.env.APP_URL||pathToFileURL(process.env.ARTIFACT_URL||path.join(root,'dist/scenario-workbench.html')).href;
+ const out=path.join(root,'artifacts/simple-state-flow');await fs.mkdir(out,{recursive:true});
+ const browser=await chromium.launch({args:['--no-sandbox','--disable-gpu'],executablePath:process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe'});
+ try{
+ const ctx=await browser.newContext({viewport:{width:1440,height:1000}}),page=await ctx.newPage();page.setDefaultTimeout(6000);
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(entry);
+ assert.equal(await page.locator('#project-region').inputValue(),'京津冀');
+ assert.equal(await page.getByRole('button',{name:'移除年份 2030',exact:true}).count(),1);assert.equal(await page.getByRole('button',{name:'移除年份 2035',exact:true}).count(),1);
+ await page.getByRole('button',{name:'继续：选择因素',exact:true}).click();
+ await page.getByRole('button',{name:'向当前项目加入京津冀框架',exact:true}).click();
+ const read=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('scenario-workbench.project.v1')));
+ assert.equal((await read()).data.descriptors.length,24);
+ await page.locator('input[data-node="jjj-group-0"]').check();
+ let p=await read();assert.ok(p.selection.descriptorIds.includes('jjj-d1'));assert.ok(p.selection.descriptorIds.length>1);
+ const selected=p.selection.descriptorIds.length;
+ const leaf=page.locator('input[data-node="jjj-node-d1"]');assert.equal(await leaf.isChecked(),true);
+ const show=async()=>{if(await page.getByLabel('当前查看的因素',{exact:true}).count())await page.getByLabel('当前查看的因素',{exact:true}).selectOption('jjj-d1');else await page.getByRole('button',{name:'经济增长速度',exact:true}).click();};
+ await show();
+ assert.equal(await page.locator('.numeric-time-options').evaluate(e=>e.open),false);
+ assert.equal(await page.getByLabel('节点1数值',{exact:true}).count(),0);
+ await page.getByLabel('2030年状态',{exact:true}).selectOption('jjj-d1-state-0');
+ await page.getByLabel('2035年状态',{exact:true}).selectOption('jjj-d1-state-2');
+ p=await read();const plan=p.data.paths.find(p=>p.descriptorId==='jjj-d1'&&p.provenance.locator==='state-plan');assert.ok(plan);assert.equal(plan.points.find(p=>p.year===2030).stateId,'jjj-d1-state-0');assert.equal(plan.points.find(p=>p.year===2035).stateId,'jjj-d1-state-2');assert.ok(plan.points.every(p=>p.value===null));
+ await page.screenshot({path:path.join(out,'states-2030-2035.png'),fullPage:true});
+ const svg=page.locator('.state-plan-panel svg');await svg.scrollIntoViewIfNeeded();const dot=page.locator('.state-plan-point[data-year="2030"]'),b=await dot.boundingBox();
+ const target=await svg.evaluate(svg=>{const p=new DOMPoint(155,106.5).matrixTransform(svg.getScreenCTM());return{x:p.x,y:p.y};});
+ await page.mouse.move(b.x+b.width/2,b.y+b.height/2);await page.mouse.down();await page.mouse.move(target.x,target.y,{steps:4});await page.mouse.up();
+ assert.equal(await page.getByLabel('2030年状态',{exact:true}).inputValue(),'jjj-d1-state-1');
+ await leaf.uncheck();p=await read();assert.equal(p.selection.descriptorIds.length,selected-1);assert.ok(!p.selection.descriptorIds.includes('jjj-d1'));assert.equal(await page.locator('input[data-node="jjj-group-0"]').evaluate(e=>e.indeterminate),true);
+ await page.locator('input[data-node="jjj-group-0"]').check();p=await read();assert.equal(p.selection.descriptorIds.length,selected);
+ await page.locator('input[data-node="jjj-group-0"]').uncheck();assert.equal((await read()).selection.descriptorIds.length,0);
+ await page.locator('input[data-node="jjj-group-0"]').check();await show();assert.equal(await page.getByLabel('2030年状态',{exact:true}).inputValue(),'jjj-d1-state-1');
+ await page.locator('nav [data-route="relationships"]').first().click();assert.equal(await page.locator('.workspace').getAttribute('data-route'),'relationships');
+ await page.locator('nav [data-route="elements"]').first().click();await show();
+ await page.reload();await show();assert.equal(await page.getByLabel('2030年状态',{exact:true}).inputValue(),'jjj-d1-state-1');
+ await page.getByLabel('2030年状态',{exact:true}).selectOption('');p=await read();assert.equal(p.data.paths.find(p=>p.descriptorId==='jjj-d1'&&p.provenance.locator==='state-plan').points.find(p=>p.year===2030).stateId,null);
+ await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:path.join(out,'states-390.png'),fullPage:true});
+ assert.deepEqual(errors,[]);
+ await fs.writeFile(path.join(out,'result.json'),JSON.stringify({entry,errors,checks:['fresh defaults 京津冀/2030/2035','real 24-factor framework','parent includes descendants','single child removal and indeterminate parent','parent reselect and clear','states not numerical values','automatic save and null values','real discrete state drag','clear preserves null','switch and refresh without blocking','390px no overflow']},null,2));
+ console.log('Simple state flow passed');
+ }finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

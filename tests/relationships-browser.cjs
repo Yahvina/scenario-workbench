@@ -2,7 +2,7 @@ const assert=require('node:assert/strict');
 const path=require('node:path');
 const fs=require('node:fs/promises');
 const {pathToFileURL}=require('node:url');
-const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright'),home=require('./home-controls.cjs');
 const key='scenario-workbench.project.v1';
 (async()=>{
   const root=path.resolve(__dirname,'..'),out=path.join(root,'artifacts','relationships');await fs.mkdir(out,{recursive:true});
@@ -13,7 +13,7 @@ const key='scenario-workbench.project.v1';
     return p;
   }
   function record(p,id='ab-original',score=-1){return {id,sourceDescriptorId:'descriptor-a',targetDescriptorId:'descriptor-b',scope:{regionId:p.scope.regionId},validYears:[2030],directness:'direct',curveEncoding:null,entries:p.data.descriptors[0].stateIds.flatMap(a=>p.data.descriptors[1].stateIds.map(b=>({sourceStateId:a,targetStateId:b,score:a==='a-low'&&b==='b-low'?score:null}))),alternatives:[],rationale:'原始导入判断测试记录',evidenceRefs:['fixture-source'],reviewStatus:'reviewed',version:1,provenance:{origin:'import',sourceId:'fixture-source'}};}
-  const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
+  const browser=await chromium.launch({args:['--no-sandbox','--disable-gpu'],executablePath:process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
   const source=process.env.APP_URL||'http://127.0.0.1:4176',results=[];
   async function open(url,p,fail=false,corrupt=false){
     const ctx=await browser.newContext({viewport:{width:1440,height:1080},acceptDownloads:true});
@@ -27,7 +27,7 @@ const key='scenario-workbench.project.v1';
   try{
     for(const [mode,url] of [['source',source],['offline',pathToFileURL(path.join(root,'dist/scenario-workbench.html')).href]]){
       const p=fixture();p.view.perspective='expert';p.data.judgments.push(record(p));const {ctx,page,errors,external}=await open(url,p);
-      await page.getByRole('button',{name:'记录未检验快照',exact:true}).click();await route(page,'relationships');
+      await home.snapshot(page);await route(page,'relationships');
       assert.equal(await page.locator('input[data-source-state]').count(),6);
       assert.equal(await cell(page,'a-low','b-low').inputValue(),'');
       await page.getByLabel('编辑判断记录',{exact:true}).selectOption('ab-original');assert.equal(await cell(page,'a-low','b-low').inputValue(),'-1');
@@ -63,9 +63,9 @@ const key='scenario-workbench.project.v1';
       assert.equal(await page.getByLabel('选用 示例变量A → 示例变量B',{exact:true}).inputValue(),'ab-original');assert.equal((await stored(page)).revision,revision);
       await page.screenshot({path:path.join(out,mode+'-matrix.png'),fullPage:true});await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:path.join(out,mode+'-mobile.png'),fullPage:true});
       await page.reload();await page.getByRole('button',{name:'按年份准备矩阵',exact:true}).click();assert.match(await page.locator('[data-matrix-coverage]').innerText(),/已判 3/);
-      await route(page,'workspace');const downloadEvent=page.waitForEvent('download');await page.getByRole('button',{name:'下载项目备份',exact:true}).click();const download=await downloadEvent,backup=JSON.parse(await fs.readFile(await download.path(),'utf8'));
+      await route(page,'workspace');const downloadEvent=page.waitForEvent('download');await home.downloadBackup(page);const download=await downloadEvent,backup=JSON.parse(await fs.readFile(await download.path(),'utf8'));
       const history=backup.data.evidence.filter(e=>e.kind==='user-assumption').map(e=>JSON.parse(e.excerpt));assert.ok(history.some(e=>e.before?.entries[0].score===-1&&e.after.entries[0].score===0));
-      await page.getByLabel('从JSON备份恢复').setInputFiles({name:'relationships.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(backup))});await route(page,'relationships');
+      await home.restore(page,backup,'relationships.json');await route(page,'relationships');
       await page.getByRole('button',{name:'关系判断输入',exact:true}).click();await page.getByLabel('来源变量',{exact:true}).selectOption('descriptor-a');await page.getByLabel('编辑判断记录',{exact:true}).selectOption('ab-original');assert.equal(await cell(page,'a-low','b-low').inputValue(),'0');
       assert.deepEqual(errors,[]);assert.deepEqual(external,[]);results.push({mode,passed:true,checks:['2x3 direction independence','0 vs null','invalid input atomic rejection','no-op revision','dirty protection','source history/JSON roundtrip','matrix12/judged3/missing9','year applicability','perspective and refresh selection','390px']});await ctx.close();
     }

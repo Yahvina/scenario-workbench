@@ -21,7 +21,8 @@ test('2x2 expected coverage: directed full space8, exactly zero and +2 judged, s
   assert.equal(snapshot.coverage.required,8);assert.equal(snapshot.coverage.judged,2);assert.equal(snapshot.coverage.missingPairs.length,6);
   assert.deepEqual(snapshot.entries.find(e=>e.sourceStateId==='a-low'&&e.targetStateId==='b-low'),{sourceStateId:'a-low',targetStateId:'b-low',score:0,judgmentId:'ab'});
   assert.ok(snapshot.entries.filter(e=>e.sourceStateId.startsWith('b-')).every(e=>e.score===null));
-  assert.equal(matrix(p).snapshot.coverage.judged,0);assert.ok(matrix(p).diagnostics.some(d=>d.code==='RECORD_NOT_SELECTED'));
+  // 未显式选用、但方向只有一条适用记录时，直接采用它，不再报“仍需明确选用”。
+ assert.equal(matrix(p).snapshot.coverage.judged,2);assert.ok(!matrix(p).diagnostics.some(d=>/仍需明确选用/.test(d.message)));
 });
 test('heterogeneous2x3 gives6 per direction/12 total; no transpose or index coupling',()=>{
   const p=fixture(true),ab=judgment(p),ba=judgment(p,'ba','descriptor-b','descriptor-a');ab.entries[5].score=3;ba.entries[0].score=-2;p.data.judgments.push(ab,ba);

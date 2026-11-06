@@ -109,9 +109,10 @@ export function buildMatrix(project, {year,selectedJudgmentIds=[]} = {}) {
     else if(explicit.length===1) {
       if(applicable.some(j=>j.id===explicit[0].id)) chosen=explicit[0];
       else report('SELECTED_INAPPLICABLE','明确选择的记录不适用，不能替换为其他记录',[explicit[0].id]);
-    } else if(applicable.length>1) report('CONFLICT','同方向有多个适用候选，请明确选用；不求均值',applicable.map(j=>j.id));
-    else if(applicable.length===1) report('RECORD_NOT_SELECTED','存在一条适用记录，仍需明确选用',[applicable[0].id]);
-    else report('NO_APPLICABLE_JUDGMENT','该方向没有可用判断',[sourceId,targetId]);
+    } else if(applicable.length>1) report('CONFLICT','这个方向有多条评分，请选一条（不取平均）',applicable.map(j=>j.id));
+    // 只有一条适用记录时没有任何可选项，直接采用，不再要求用户重复确认。
+    else if(applicable.length===1) chosen=applicable[0];
+    else report('NO_APPLICABLE_JUDGMENT','这个方向还没有评分',[sourceId,targetId]);
     if(chosen && applicable.length>1) report('CONFLICT_RESOLVED','多个候选中已显式选择一条，未作聚合',applicable.map(j=>j.id));
     const scoreMap=new Map();
     if(chosen) {

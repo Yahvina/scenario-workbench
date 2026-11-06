@@ -295,29 +295,30 @@ export function mount(container,context){
   const spaceText=el('p',{'data-solver-space':''},'组合空间：'+(pre.space?pre.space.constrained+' 种（无约束 '+pre.space.unconstrained+'），上限 '+pre.space.limit:'尚不能确定'));
   fullSpace.append(spaceText);
   if(fatal.length){
-   // 普通界面把同义技术诊断合并成一个可操作问题（选因素数量）；
-   // 底层校验原文不删不改，完整清单仍在下方“查看输入诊断与假设”。
-   let mergedFactors=false;
-   const shown=[];
+   // 同一件事只留一句：缺因素、缺评分、缺状态各合并成一条可操作问题。
+   // 底层校验原文一行不删，完整清单仍在下方「查看输入诊断与假设」。
+   let needFactors=false,needScores=false,needStates=false,otherMsgs=[];
    for(const d of fatal){
-    if(/至少需要两个活动变量|至少两个不重复的非空活动变量ID/.test(d.message)){
-     if(mergedFactors)continue;
-     mergedFactors=true;
-     shown.push({message:'请先选择至少 2 个研究因素（当前因素数不够，无法形成方向）'});
-     continue;
-    }
-    shown.push({message:d.message});
+    const m=d.message||'';
+    if(/至少需要两个活动变量|至少两个不重复的非空活动变量ID/.test(m)){needFactors=true;continue;}
+    if(/没有可用判断|还没有评分|没填评分|缺分|还没给分|矩阵不完整|矩阵缺失|无法准备当前矩阵/.test(m)
+      ||d.code==='MISSING_SCORES'||d.code==='NO_APPLICABLE_JUDGMENT'||d.code==='MATRIX_REQUIRED'
+      ||/格子/.test(m)){needScores=true;continue;}
+    if(/状态|STATES|变量|描述符/.test(m)){needStates=true;continue;}
+    otherMsgs.push(m);
    }
-   const others=shown.filter(item=>!/请先选择至少 2 个研究因素/.test(item.message));
-   fullSpace.append(el('p',{class:'solver-cannot'},'还不能检验：有 '+fatal.length+' 项需要处理'+(mergedFactors?'；其中因素数量问题已合并为一条':'')),
-    el('ul',{class:'solver-cannot-list'},...[...new Set(shown.map(d=>d.message))].slice(0,6).map(text=>el('li',{},text))));
-   if(others.length||mergedFactors)fullSpace.append(el('div',{class:'solver-cannot-actions'},
-      mergedFactors?button('去选择因素',()=>context.navigate('elements')):null,
-      others.length?button('去关系页核对评分',()=>context.navigate('relationships')):null,
-      button('去因素页核对状态',()=>context.navigate('elements'))));
+   const problems=[];
+   if(needFactors)problems.push('还没有选够研究因素（至少 2 个）');
+   if(needScores)problems.push('还有格子没给分（空白＝未判断，不等于 0）');
+   if(needStates)problems.push('还有因素没选这一年的状态');
+   for(const m of otherMsgs.slice(0,3))problems.push(m);
+   fullSpace.append(el('p',{class:'solver-cannot'},'还不能检验：'+(problems.length?problems.join('；'):'输入未通过前置检查')),
+    el('div',{class:'solver-cannot-actions'},
+      needFactors?button('去选择因素',()=>context.navigate('elements')):null,
+      needScores?button('去填评分',()=>context.navigate('relationships')):null,
+      needStates?button('去选年度状态',()=>context.navigate('elements')):null));
    fullSpace.append(el('div',{class:'solver-cannot-actions'},
-      button('展开全部输入诊断',()=>{const d=fullSpace.querySelector('.solver-diagnostics');if(d)d.open=true;d?.scrollIntoView({block:'center'});})),
-    el('p',{class:'v5-hint'},'这些是计算前置条件，不是结果；处理完再点“开始检验”。'));
+      button('查看输入诊断',()=>{const d=fullSpace.querySelector('.solver-diagnostics');if(d)d.open=true;d?.scrollIntoView({block:'center'});})));
   }
   const hasResult=last?.RunResult?.status==='completed';
   const start=button(fatal.length?'开始检验（仍需处理输入）':hasResult?'重新检验':'开始检验',()=>startRun(p,pre));start.disabled=!!job;
@@ -375,10 +376,10 @@ export function mount(container,context){
     el('button',{class:'button text',onclick:()=>context.navigate('relationships')},'改评分'));
    return section;
   }
-  section.append(el('p',{},'关系页已发送 '+candidate.year+' 年、'+candidate.selectionOfJudgments.length+' 条记录（完整矩阵 '+candidate.matrix.coverage.judged+'/'+candidate.matrix.coverage.required+'）。'+(checked.ok?'':'候选已失效：'+checked.message)));
+  section.append(el('p',{},'关系页送来了 '+candidate.year+' 年的 '+candidate.selectionOfJudgments.length+' 条评分（已填 '+candidate.matrix.coverage.judged+'/'+candidate.matrix.coverage.required+' 格）。'+(checked.ok?'':'这份评分已失效：'+checked.message)));
   const adopt=button('采用这份评分',()=>{
    if(job)return;const current=verifyMatrixHandoff(context.store.read(),candidate);if(!current.ok){handoffMessage='未采用：'+current.message;render();return;}
-   if((session.year!==''||session.selected.length)&&!confirm('采用候选会替换本页年份和记录选用。已有结果保留，不触发计算。继续采用吗？'))return;
+   if((session.year!==''||session.selected.length)&&!confirm('改用这份评分会替换本页的年份与评分选用。已有结果保留，不重新计算。继续吗？'))return;
    session.year=String(candidate.year);session.selected=candidate.selectionOfJudgments.map(j=>j.id);handoffMessage='已采用；尚未计算。';render();
   });adopt.disabled=!!job||!checked.ok;
   section.append(adopt,button('返回关系页',()=>context.navigate('relationships')));

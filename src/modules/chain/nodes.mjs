@@ -125,11 +125,11 @@ export function buildChain({ project, archive, fresh, planChecks = {} }) {
   } else {
     const { snapshot, diagnostics } = year ? buildMatrix(p, { year, selectedJudgmentIds: [] }) : { snapshot: null, diagnostics: [] };
     matrixNode = {
-      input: [['年份', year ?? '未选'], ['选用记录', '尚未明确选用']],
+      input: [['年份', year ?? '未选'], ['评分选用', '还没选评分']],
       did: '只准备矩阵形状与覆盖，不代替你选择记录。',
       output: snapshot ? ['应判 ' + snapshot.coverage.required + ' 格；已判 ' + snapshot.coverage.judged] : ['尚不能准备矩阵'],
       source: '当前项目（未冻结）',
-      gaps: ['还没有冻结的采用矩阵：到关系页逐方向选用判断，再发送到检验页。', ...diagnostics.slice(0, 3).map(d => d.message)],
+      gaps: ['还没有可检验的评分：到关系页把每个方向填好，再继续到检验页。', ...diagnostics.slice(0, 3).map(d => d.message)],
       status: 'empty'
     };
   }

@@ -21,7 +21,8 @@ test('matrix candidate is private, copied, explicitly selected, complete and rev
  const p=solverFixtures.fixture();p.id='flow-unit-candidate';const sent=sendMatrixHandoff(p,options);assert.equal(sent.matrix.coverage.judged,8);assert.ok(sent.diagnostics.some(d=>d.code==='ASSUMPTIONS_REQUIRED'));assert.equal(verifyMatrixHandoff(p,sent).ok,true);assert.equal(prepareRun(p,options).input,null);
  const r=solve(prepareRun(p,{...options,assumptionAcknowledgements:{currentAssumptions:true}}).input);assert.equal(r.count,2);
  sent.matrix.entries[0].score=3;assert.equal(readMatrixHandoff(p.id).matrix.entries[0].score,1);assert.equal(verifyMatrixHandoff(p,sent).ok,false);const read=readMatrixHandoff(p.id);read.projectInputSnapshot.data.states[0].label='mutated';assert.notEqual(readMatrixHandoff(p.id).projectInputSnapshot.data.states[0].label,'mutated');
- assert.throws(()=>prepareMatrixHandoff(p,{year:null,selectedJudgmentIds:options.selectedJudgmentIds}),/YEAR_REQUIRED/);assert.throws(()=>prepareMatrixHandoff(p,{year:2030,selectedJudgmentIds:[]}),/RECORD_NOT_SELECTED/);
+ assert.throws(()=>prepareMatrixHandoff(p,{year:null,selectedJudgmentIds:options.selectedJudgmentIds}),/YEAR_REQUIRED/);// 只有一条适用记录时直接采用，不再要求用户再明确选用一次。
+ assert.equal(prepareMatrixHandoff(p,{year:2030,selectedJudgmentIds:[]}).matrix.coverage.judged,8);
  p.data.judgments[0].entries[0].score=null;assert.throws(()=>sendMatrixHandoff(p,options),/MISSING_SCORES/);
 });
 test('candidate rejects science drift, imported same ID/revision data, foreign projects and forged versions/matrix',()=>{

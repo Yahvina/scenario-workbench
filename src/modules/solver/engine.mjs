@@ -3,7 +3,7 @@ import {validateProject} from '../../core/contracts.mjs';
 export const engineVersion='cib-exact-1.0.0';
 export const maxSpace=100000;
 export const diagnosticClasses={
- YEAR_REQUIRED:'block',REGION_REQUIRED:'block',DESCRIPTORS_REQUIRED:'block',STATES_MISSING:'block',STATE_REFERENCE_MISSING:'block',STATE_YEARS_INVALID:'block',STATE_YEAR_MISMATCH:'block',STATE_REGION_MISMATCH:'block',STATE_YEARS_UNKNOWN:'unknown-state',STATE_REGION_UNKNOWN:'unknown-state',JUDGMENT_NOT_FOUND:'block',INACTIVE_JUDGMENT:'block',MULTIPLE_SELECTED:'block',SELECTED_INAPPLICABLE:'block',CONFLICT:'block',RECORD_NOT_SELECTED:'block',NO_APPLICABLE_JUDGMENT:'block',STALE_STATE_REFERENCE:'block',DUPLICATE_ENTRY:'block',INVALID_SCORE:'block',EVIDENCE_MISSING:'block',
+ YEAR_REQUIRED:'block',REGION_REQUIRED:'block',DESCRIPTORS_REQUIRED:'block',STATES_MISSING:'block',STATE_REFERENCE_MISSING:'block',STATE_YEARS_INVALID:'block',STATE_YEAR_MISMATCH:'block',STATE_REGION_MISMATCH:'block',STATE_YEARS_UNKNOWN:'unknown-state',STATE_REGION_UNKNOWN:'unknown-state',JUDGMENT_NOT_FOUND:'block',INACTIVE_JUDGMENT:'block',MULTIPLE_SELECTED:'block',SELECTED_INAPPLICABLE:'block',CONFLICT:'block',NO_APPLICABLE_JUDGMENT:'block',STALE_STATE_REFERENCE:'block',DUPLICATE_ENTRY:'block',INVALID_SCORE:'block',EVIDENCE_MISSING:'block',
  JUDGMENT_REGION_UNKNOWN:'candidate',JUDGMENT_REGION_MISMATCH:'candidate',JUDGMENT_YEARS_UNKNOWN:'candidate',JUDGMENT_YEARS_INVALID:'candidate',JUDGMENT_YEAR_MISMATCH:'candidate',CURVE_METHOD_UNVERIFIED:'candidate',CURVE_METHOD_WARNING:'candidate-warning',
  CONFLICT_RESOLVED:'info',EVIDENCE_NOT_INDEPENDENTLY_VERIFIED:'warning',DRAFT_JUDGMENT:'warning',DIRECTNESS_UNCONFIRMED:'warning',RELATION_EVIDENCE_GAP:'warning'
 };
@@ -47,7 +47,7 @@ function dimensions(input){
 export function inspectInput(input){
  const compiled=dimensions(input),{ids,states,byDescriptor}=compiled,matrix=input.matrix;
  const entries=new Map();need(Array.isArray(matrix.entries),'矩阵缺失');
- for(const e of matrix.entries){need(record(e)&&id(e.sourceStateId)&&id(e.targetStateId),'矩阵单元/状态ID无效');const a=states.find(s=>s.id===e.sourceStateId),b=states.find(s=>s.id===e.targetStateId);need(a&&b&&a.descriptorId!==b.descriptorId&&!entries.has(key(a.id,b.id)),'矩阵重复、归属错误或包含自影响');need(Number.isInteger(e.score)&&Math.abs(e.score)<=3&&id(e.judgmentId),'缺分/非法分或未明确选用');entries.set(key(a.id,b.id),e);}
+ for(const e of matrix.entries){need(record(e)&&id(e.sourceStateId)&&id(e.targetStateId),'矩阵单元/状态ID无效');const a=states.find(s=>s.id===e.sourceStateId),b=states.find(s=>s.id===e.targetStateId);need(a&&b&&a.descriptorId!==b.descriptorId&&!entries.has(key(a.id,b.id)),'矩阵重复、归属错误或包含自影响');need(Number.isInteger(e.score)&&Math.abs(e.score)<=3&&id(e.judgmentId),'有格子还没给分，或分数不是 −3…+3 的整数');entries.set(key(a.id,b.id),e);}
  let required=0;for(const a of ids)for(const b of ids)if(a!==b)for(const x of byDescriptor.get(a))for(const y of byDescriptor.get(b)){required++;need(entries.has(key(x,y)),'矩阵不完整，不能补0');}
  need(entries.size===required,'额外矩阵单元');
  const coverage={required,judged:entries.size,missingPairs:[]},declared=matrix.coverage;
@@ -60,7 +60,7 @@ export function prepareRun(project,{year,selectedJudgmentIds=[],assumptionAcknow
  const result=buildMatrix(project,{year,selectedJudgmentIds});snapshot=result.snapshot;
  for(const d of result.diagnostics)diagnostics.push({...d,classification:classifyDiagnostic(d,selectedJudgmentIds)});
  if(!snapshot)add('MATRIX_REQUIRED','无法准备当前矩阵');
- if(snapshot&&snapshot.coverage.missingPairs.length)add('MISSING_SCORES','存在未判断单元，不能补0');
+ if(snapshot&&snapshot.coverage.missingPairs.length)add('MISSING_SCORES','还有 '+snapshot.coverage.missingPairs.length+' 格没填评分（空白＝未判断，不等于 0）');
  if(diagnostics.some(d=>d.classification==='warning')&&assumptionAcknowledgements.currentAssumptions!==true)add('ASSUMPTIONS_REQUIRED','请明确同意按当前草案/依据不足/量表假设检算');
  if(diagnostics.some(d=>d.classification==='unknown-state')&&assumptionAcknowledgements.unknownStateScope!==true)add('STATE_ASSUMPTIONS_REQUIRED','请明确同意把未声明的状态范围作为当前截面假设');
  const input={schemaVersion:1,contractVersion:project.contractVersion,projectId:project.id,revision:project.revision,scope:structuredClone(project.scope),year,activeDescriptorIds:[...project.selection.descriptorIds],stateDefinitions:structuredClone(project.data.states.filter(s=>project.selection.descriptorIds.includes(s.descriptorId))),matrix:structuredClone(snapshot),lockedStateIds:[...project.selection.lockedStateIds],method:'cib',engineVersion,solverConfig:{mode:'enumerate',limit},seed:null};

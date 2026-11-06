@@ -457,7 +457,9 @@ export function mount(container, context) {
       const records=p.data.judgments.filter(j=>j.sourceDescriptorId===a&&j.targetDescriptorId===b);
       const applicable=records.filter(j=>recordApplies(j,p,y));
       const selected=records.filter(j=>picked.includes(j.id));
-      const chosen=selected.length===1?applicable.find(j=>j.id===selected[0].id)||null:null;
+      // 用户点过选用就用那条；没点过但只有一条适用记录时，视同已采用（没有别的选择）。
+      const chosen=selected.length===1?(applicable.find(j=>j.id===selected[0].id)||null)
+        :(applicable.length===1?applicable[0]:null);
       out.push({a,b,records,applicable,selected,chosen,cells:statesFor(p,a).length*statesFor(p,b).length});
     }
     return out;
@@ -504,7 +506,8 @@ export function mount(container, context) {
     const doneDirs=dirs.filter(d=>d.filled===d.cells&&d.applicable.length<=1);
     const incompleteDirs=dirs.filter(d=>d.filled<d.cells);
     const conflictDirs=dirs.filter(d=>d.applicable.length>1&&!d.chosen);
-    const unadopted=dirs.filter(d=>d.filled===d.cells&&!d.chosen&&d.applicable.length===1);
+    // 只有一条适用记录的方向不存在“选哪条”的问题，早就当已采用处理了。
+    const unadopted=[];
     const judged=required-missing;
 
     // 适用范围不匹配的记录：按“缺什么、影响哪一步、怎么解决”分成四类，每类给直达动作。
@@ -532,7 +535,7 @@ export function mount(container, context) {
     const noRule=covered.size?dirs.filter(d=>!covered.has(d.a+'|'+d.b)&&d.filled<d.cells):[];
 
     body.append(el('div',{class:'rev-head'},
-      el('h3',{},'检查评分完整性',infoTip('方向按 A→B 与 B→A 分别计数；格子按源状态×目标状态计数。已判不等于已采用：采用进矩阵后才参与检验。','评分计数的口径')),
+      el('h3',{},'检查评分完整性',infoTip('A→B 与 B→A 分开计数；格子按源状态×目标状态计数。','评分怎么算')),
       el('div',{class:'rev-scope'},el('span',{},'地区：'+(p.scope.regionId||'未指定')),el('label',{},'年份',yearSelect))));
     if(!y){
       body.append(el('p',{class:'rev-blocked'},'还不能检验：请先选研究年份。'),el('button',{class:'button',onclick:()=>context.navigate('workspace')},'去设置年份'));
@@ -594,7 +597,7 @@ export function mount(container, context) {
       doneDetails.append(el('ul',{class:'rev-done-src'},...srcLines.map(t=>el('li',{},t))));
       body.append(doneDetails);
       if(pendingReview){
-        const review=el('details',{class:'rev-review'},el('summary',{},'有 '+pendingReview+' 项待核对（不阻塞检验，但检验时会要求明确确认）'));
+        const review=el('details',{class:'rev-review'},el('summary',{},'有 '+pendingReview+' 条评分对不上当前年份或地区（不影响检验，供你核对）'));
         for(const item of scopeIssues.slice(0,8))review.append(el('p',{},variableLabel(p,item.direction.a)+'→'+variableLabel(p,item.direction.b)+' · '+item.detail));
         if(unknownStates.length)review.append(el('p',{},'状态定义：'+unknownStates.slice(0,4).map(x=>variableLabel(p,x.descriptorId)+'「'+x.state.label+'」（'+x.what+'）').join('、')+(unknownStates.length>4?' 等 '+unknownStates.length+' 个':'')));
         body.append(review);
@@ -608,7 +611,7 @@ export function mount(container, context) {
       el('div',{},el('b',{},doneDirs.length+' / '+dirs.length),el('span',{},'影响方向已完成')),
       el('div',{},el('b',{},String(missing)),el('span',{},'还缺评分格（共 '+required+' 格）')),
       el('div',{},el('b',{},String(conflictDirs.length)),el('span',{},'方向存在多份候选')),
-      el('p',{class:'rev-stats-note'},'已判 '+judged+' 格'+(unadopted.length?'；'+unadopted.length+' 个方向判完但未采用':'')+'。')));
+      el('p',{class:'rev-stats-note'},'已判 '+judged+' 格。')));
 
     // 参考填入后的回执：只在还有缺口时展开；齐全后上面那条紧凑状态已覆盖，不再重复。
     if(refReport&&!canContinue){
@@ -620,9 +623,9 @@ export function mount(container, context) {
           : '这些判断已保存，但还没选用进矩阵；点下方「选用已判完的方向」即可。'),
         el('dl',{class:'rev-refill-facts'},
           el('div',{},el('dt',{},'待保存'),el('dd',{},pendingSave?pendingSave+' 条（浏览器保存失败，请下载备份）':'0（已写入项目）')),
-          el('div',{},el('dt',{},'待选用'),el('dd',{},unadopted.length||conflictDirs.length?String(unadopted.length+conflictDirs.length):'0')),
+          el('div',{},el('dt',{},'有多条评分待选'),el('dd',{},conflictDirs.length?String(conflictDirs.length):'0')),
           el('div',{},el('dt',{},'没有参考规则'),el('dd',{},noRule.length?noRule.length+' 个方向':'0')),
-          el('div',{},el('dt',{},'适用范围待核'),el('dd',{},scopeIssues.length?scopeIssues.length+' 条':'0')))));
+          el('div',{},el('dt',{},'对不上当前范围'),el('dd',{},scopeIssues.length?scopeIssues.length+' 条':'0')))));
     }
 
     // 主按钮区：不完整时才带说明，完整时主按钮已在上方紧凑状态里。
@@ -635,20 +638,6 @@ export function mount(container, context) {
       ...referenceEntry('matrix'),
       el('span',{class:'rev-next-note'},canContinue?'评分已齐，可以直接检验。':'还不能检验：先处理下面 '+(incompleteDirs.length+conflictDirs.length+unadopted.length)+' 个方向的问题。')));
 
-    if(unadopted.length){
-      const scope=unadopted.map(d=>variableLabel(p,d.a)+'→'+variableLabel(p,d.b)+'（'+d.applicable[0].scope.regionId+'，'+d.applicable[0].validYears.join('/')+'，v'+d.applicable[0].version+'）').join('；');
-      body.append(el('section',{class:'rev-adopt'},
-        el('p',{},'有 '+unadopted.length+' 个方向已判完、各只有一份适用记录。采用后直接进入检验，不必在下一页逐方向再选：'),
-        el('p',{class:'rev-adopt-scope'},scope),
-        button('使用这份评分，继续检验',()=>{
-          if(!canLeave())return;
-          const next=[...new Set([...picked,...unadopted.map(d=>d.applicable[0].id)])];
-          picked=next;remember();
-          try{sendMatrixHandoff(context.store.read(),{year:y,selectedJudgmentIds:next,adopted:true});context.navigate('solver');}
-          catch(error){render();status.textContent='已采用这些评分，但还不能进入检验：'+error.message;}
-        },true)));
-    }
-
     // 问题按“要做的动作”合并；齐全时整个区块不出现（没有“没有待处理项”的空状态）。
     const issues=[];
     if(incompleteDirs.length)issues.push({key:'missing',title:'缺评分',count:incompleteDirs.length,
@@ -656,12 +645,12 @@ export function mount(container, context) {
       list:incompleteDirs.slice(0,6).map(d=>variableLabel(p,d.a)+'→'+variableLabel(p,d.b)).join('、')+(incompleteDirs.length>6?' 等':''),
       action:'填写第一个方向',run:()=>{const d=incompleteDirs[0];if(!d)return;fillDirection(d.a,d.b,d.best?.id||null);}});
     if(conflictDirs.length)issues.push({key:'conflict',title:'记录有冲突',count:conflictDirs.length,
-      detail:conflictDirs.length+' 个方向有多份适用记录，必须明确选一条（不取均值）',
+      detail:conflictDirs.length+' 个方向有多条评分，请选一条（不取平均）',
       list:conflictDirs.slice(0,6).map(d=>variableLabel(p,d.a)+'→'+variableLabel(p,d.b)).join('、'),
       action:'去选一条',run:()=>{focusPair=conflictDirs[0].a+'|'+conflictDirs[0].b;render();
         const box=body.querySelector('[data-rev-conflict]');if(box){box.scrollIntoView({block:'center'});box.querySelector('select')?.focus();}}});
-    if(byKind('record-missing').length||byKind('record-mismatch').length||byKind('project').length)issues.push({key:'scope',title:'适用范围待确认',count:scopeIssues.length,
-      detail:scopeIssues.length+' 条记录的适用范围要核对；下面按原因分开处理，不靠“确认假设”绕过',
+    if(byKind('record-missing').length||byKind('record-mismatch').length||byKind('project').length)issues.push({key:'scope',title:'有些评分不属于这个年份或地区',count:scopeIssues.length,
+      detail:scopeIssues.length+' 条评分对不上当前的年份或地区，下面列出来了',
       list:[...new Set(scopeIssues.slice(0,6).map(x=>x.direction.a===x.direction.b?'':variableLabel(p,x.direction.a)+'→'+variableLabel(p,x.direction.b)+' · '+x.detail))].join('；'),
       action:'逐条处理',run:()=>{const box=body.querySelector('[data-rev-scope-issues]');if(box){box.open=true;box.scrollIntoView({block:'center'});box.querySelector('button')?.focus();}}});
 
@@ -718,7 +707,7 @@ export function mount(container, context) {
 
     // 只有多份候选的方向才展开选择；用户点“去处理”时也把该方向带出来。
     if(conflictDirs.length){
-      const box=el('section',{class:'rev-conflicts','data-rev-conflict':''},el('h3',{},'有冲突的方向：请明确选用一条'));
+      const box=el('section',{class:'rev-conflicts','data-rev-conflict':''},el('h3',{},'这些方向有多条评分，请选一条'));
       for(const d of conflictDirs){
         const select=el('select',{'aria-label':'选用 '+variableLabel(p,d.a)+' → '+variableLabel(p,d.b),onchange:e=>{
           picked=picked.filter(id=>!d.records.some(j=>j.id===id));if(e.target.value)picked.push(e.target.value);remember();render();

@@ -60,6 +60,22 @@ export function curvePanel(host,context,sourceId,targetId,onDirty,onCancel,onSav
         el('p',{},'尺度政策：'+curveData.scale.policy+'，原值 '+curveData.scale.originalValues.join('/')+'，不生成 ±3。'),
         el('table',{class:'relationships-table'},el('caption',{},'原表完整子矩阵：源 H/L × 目标 H/L'),rows)));
     }
+    // 选图即出参考分数：这是论文 Table 1 的原值，直接摆出来，不再让人猜点了有没有反应。
+    // 只是预览；真正落库仍走下面的确认与保存，口径不变。
+    try{
+      const aHigh=(typeof highA!=='undefined'&&src.find(s=>s.id===highA.value))||src[0];
+      const bHigh=(typeof highB!=='undefined'&&tgt.find(s=>s.id===highB.value))||tgt[0];
+      const aLow=src.find(s=>s.id!==aHigh.id),bLow=tgt.find(s=>s.id!==bHigh.id);
+      if(aHigh&&bHigh&&aLow&&bLow){
+        const cells=[[aHigh,bHigh,entry.matrix[0][0]],[aHigh,bLow,entry.matrix[0][1]],[aLow,bHigh,entry.matrix[1][0]],[aLow,bLow,entry.matrix[1][1]]];
+        const t=el('table',{class:'relationships-table paper-score'},el('caption',{},'这张图对应的参考分数（论文原值，尚未保存）'));
+        t.append(el('thead',{},el('tr',{},el('th',{},sourceLabel+' ↓ / '+targetLabel+' →'),el('th',{},bHigh.label),el('th',{},bLow.label))));
+        t.append(el('tbody',{},
+          el('tr',{},el('th',{},aHigh.label),el('td',{},String(entry.matrix[0][0])),el('td',{},String(entry.matrix[0][1]))),
+          el('tr',{},el('th',{},aLow.label),el('td',{},String(entry.matrix[1][0])),el('td',{},String(entry.matrix[1][1])))));
+        body.append(t,el('p',{class:'muted'},'高低两档按状态顺序预置，可改；点下面「保存已确认编码草案」才写进项目。'));
+      }
+    }catch{}
     shapeState.append(el('div',{class:'shape-detail'},thumbnail(panel.id,{width:168}),body));
   }
   for(const panel of panelIds){
@@ -84,8 +100,10 @@ export function curvePanel(host,context,sourceId,targetId,onDirty,onCancel,onSav
   const choice=(label,options)=>{const s=el('select',{'aria-label':label,onchange:invalidate},el('option',{value:''},'请选择'),...options);box.append(el('label',{},label,s));return s;};
   const highA=choice('源变量高状态',src.map(s=>el('option',{value:s.id},s.label)));
   const highB=choice('目标变量高状态',tgt.map(s=>el('option',{value:s.id},s.label)));
+  // 默认：第一档为高、第二档为低；范围取当前研究范围。用户想改再改。
+  if(src.length===2){highA.value=src[0].id;}if(tgt.length===2){highB.value=tgt[0].id;}
   const direct=checkbox('我明确判断这是直接影响');const ordinal=checkbox('我确认双方全部二档均为有序高低，剩余状态为低');
-  const region=el('input',{'aria-label':'编码适用地区',oninput:invalidate}),years=el('input',{'aria-label':'编码适用年份',placeholder:'2030,2035',oninput:invalidate});
+  const region=el('input',{'aria-label':'编码适用地区',value:project.scope.regionId||'',oninput:invalidate}),years=el('input',{'aria-label':'编码适用年份',placeholder:'2030,2035',value:(project.scope.years||[]).join(', '),oninput:invalidate});
   const rationale=el('textarea',{'aria-label':'编码关系理由',oninput:invalidate});
   box.append(el('p',{},'保存为新的独立编码判断，不覆盖当前记录。选择论文图形/线型，不是年份路径。低、高的绑定依据实际定义，不按名称猜测。'),el('label',{},'编码适用地区',region),el('label',{},'编码适用年份',years),el('label',{},'实际关系理由（方法论文不能替代实际关系依据）',rationale),el('p',{class:'warning-text'},scaleWarning),notice,preview);
   const refs=el('details',{},el('summary',{},'关联已有实际关系依据（与方法论文分开）'));for(const e of project.data.evidence){const input=el('input',{type:'checkbox',onchange:event=>{if(event.target.checked)relationRefs.add(e.id);else relationRefs.delete(e.id);invalidate();}});refs.append(el('label',{class:'relationships-reference'},input,e.kind+' · '+e.sourceId+' · '+e.locator));}box.append(refs);

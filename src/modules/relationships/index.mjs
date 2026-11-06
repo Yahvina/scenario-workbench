@@ -92,6 +92,13 @@ export function mount(container, context) {
       saving=true;const result=context.actions.replaceProject(next);saving=false;
       if(!result.ok)throw new Error(result.error.message+'；'+result.error.recoveryAction);
       recordId=id;
+      // 保存这一对就是用户的明确决定：这个方向只有一份记录时直接选用进矩阵，
+      // 不再让用户在完整性检查页重复点一次「采用」。
+      // 有多份候选时不自动选，避免悄悄替用户挑一条。
+      const afterSave=context.store.read();
+      const sameDir=afterSave.data.judgments.filter(j=>j.sourceDescriptorId===sourceId&&j.targetDescriptorId===targetId);
+      if(sameDir.length===1)picked=[...new Set([...picked,id])];
+      remember();
       const saved=context.store.read(),adv=nextUngjudgedDirection(saved);
       const cov=directionCoverage(saved);
       if(fillOrigin==='completeness'){
@@ -155,9 +162,22 @@ export function mount(container, context) {
   }
   // 图册卡：趋势参考常驻（v5 ② 区），标题与出处折叠收纳。
   function atlasCard(p,graphEligible){
-    const atlas=trendAtlas({selected:selectedTrend,onSelect:panel=>{selectedTrend=panel.id;const note=body.querySelector('.chosen-trend');if(note)note.textContent='趋势参考：'+panel.label+'。评分按右侧各格填写，选图不改分数。';},onEncode:graphEligible?panelId=>{
-      if(!canLeave())return;const panel=panels().find(x=>x.id===panelId),template=panel?.templates.find(t=>t.encodingEnabled);if(!template){const note=body.querySelector('.chosen-trend');if(note)note.textContent='先在图册选一张图形。';return;}recordId=null;inputMode='graph';encodingTemplate=template.id;load();remember();render();
-    }:null});
+    // 点一张图就出分（仅完整二档）；不适用时给出原因和下一步，不再点了没反应。
+    const encodeShape=panelId=>{
+      if(!canLeave())return;
+      const panel=panels().find(x=>x.id===panelId);
+      const template=panel?.templates.find(t=>t.encodingEnabled);
+      if(!panel||!template){status.textContent='这张图不能自动生成评分，请在右侧逐格判断。';return;}
+      recordId=null;inputMode='graph';encodingTemplate=template.id;load();remember();render();
+      status.textContent='已按「'+panel.label+'」生成四格评分预览；核对无误后保存。';
+    };
+    const atlas=trendAtlas({selected:selectedTrend,onSelect:panel=>{
+      selectedTrend=panel.id;
+      if(graphEligible){encodeShape(panel.id);return;}
+      const note=body.querySelector('.chosen-trend');
+      const sn=statesFor(p,sourceId).length,tn=statesFor(p,targetId).length;
+      if(note)note.textContent='趋势参考：'+panel.label+'。当前两个因素各有 '+sn+'、'+tn+' 档，论文图形只覆盖二档，不会自动出分；请在右侧逐格（或逐行）判断。';
+    },onEncode:graphEligible?encodeShape:null});
     return el('section',{class:'rel-card rel-atlas-card'},atlas);
   }
   function evidenceView(p,record) {
@@ -530,6 +550,25 @@ export function mount(container, context) {
 
     const canContinue=!!snapshot&&missing===0&&conflictDirs.length===0&&unadopted.length===0;
     const pendingReview=scopeIssues.length+unknownStates.length;
+
+    // 方向清单：一眼看清哪些方向填了、哪些没填，点一下直接去填。
+    // 方向一多，光看总数记不住是哪一对。
+    const listRows=el('div',{class:'rev-dirlist-rows'});
+    for(const d of dirs){
+      const full=d.filled>=d.cells;
+      const multi=d.applicable.length>1&&!d.chosen;
+      let tag,cls;
+      if(multi){tag='有 '+d.applicable.length+' 条记录，需选一条';cls='warn';}
+      else if(full){tag='已填完 '+d.cells+'/'+d.cells;cls='ok';}
+      else if(d.filled>0){tag='填了 '+d.filled+'/'+d.cells;cls='part';}
+      else{tag='还没填';cls='none';}
+      listRows.append(el('div',{class:'rev-dirlist-row '+cls},
+        el('span',{class:'rev-dirlist-name'},variableLabel(p,d.a)+' → '+variableLabel(p,d.b)),
+        el('span',{class:'rev-dirlist-tag'},tag),
+        (full&&!multi)?null:button(full?'去选一条':'去填',()=>fillDirection(d.a,d.b,d.best?.id||null))));
+    }
+    body.append(el('section',{class:'rev-dirlist','data-rev-dirlist':''},
+      el('h3',{},'方向清单（'+dirs.length+' 个方向）'),listRows));
 
     if(canContinue){
       // 评分齐全：一条紧凑状态，不再把“已填/已完成/已判/没有待处理”重复四遍。

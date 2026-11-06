@@ -49,6 +49,16 @@
 .relationships-module .rev-adopt{border:1px solid var(--line2);border-radius:var(--r2);padding:10px 12px;margin:0 0 12px;background:var(--panel)}
 .relationships-module .rev-adopt p{margin:0 0 6px;font-size:13px}
 .relationships-module .rev-adopt-scope{font-size:12px;color:var(--tx3);overflow-wrap:anywhere}
+.relationships-module .rev-dirlist{margin:10px 0 12px;border:1px solid var(--line2);border-radius:var(--r2);padding:10px 12px;background:var(--panel)}
+.relationships-module .rev-dirlist h3{margin:0 0 8px;font-size:16px}
+.relationships-module .rev-dirlist-rows{display:flex;flex-direction:column;gap:6px}
+.relationships-module .rev-dirlist-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 8px;border:1px solid var(--line2);border-radius:var(--r);background:var(--panel)}
+.relationships-module .rev-dirlist-row.ok{border-left:4px solid var(--pri-b)}
+.relationships-module .rev-dirlist-row.part{border-left:4px solid var(--s2)}
+.relationships-module .rev-dirlist-row.warn{border-left:4px solid var(--s-2)}
+.relationships-module .rev-dirlist-row.none{border-left:4px solid var(--line)}
+.relationships-module .rev-dirlist-name{flex:1 1 220px;font-size:13px;overflow-wrap:anywhere}
+.relationships-module .rev-dirlist-tag{font-size:12px;color:var(--tx3);font-variant-numeric:tabular-nums}
 .relationships-module .rev-issues{margin:0 0 12px}
 .relationships-module .rev-issues h3{font-size:16px;margin:0 0 8px}
 .relationships-module .rev-clear{font-size:13px;color:var(--pri-d);background:var(--pri-s);border:1px solid var(--pri-b);border-radius:var(--r2);padding:8px 12px;margin:0}

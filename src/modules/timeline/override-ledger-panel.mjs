@@ -271,7 +271,7 @@ export function overrideLedgerPanel({ context } = {}) {
   }
 
   function render() {
-    root.replaceChildren(el('h3', {}, '年度覆盖台账'), el('p', { class: 'override-ledger-note muted' }, PANEL_STORAGE_NOTE));
+    root.replaceChildren(el('h3', {}, '年度覆盖台账'));
     if (!ledger) { root.append(el('p', { class: 'warning-text' }, PANEL_UNAVAILABLE_TEXT)); return; }
     if (!project) { root.append(el('p', {}, '尚未载入项目。')); return; }
     const path = target.path;
@@ -316,9 +316,7 @@ export function overrideLedgerPanel({ context } = {}) {
         el('label', {}, '年份', yearSelect),
         el('label', {}, '对照状态', referenceSelect),
         el('label', {}, '参数取值', valueInput)),
-      el('p', { class: 'override-ledger-hint muted' },
-        '参数取值填 0 是有效取值；留空后点「保存年度覆盖」等于撤销，也可以直接点「撤销年度覆盖」。撤销写下的值是空，不是 0。'),
-      el('div', { class: 'override-ledger-actions' },
+            el('div', { class: 'override-ledger-actions' },
         el('button', { type: 'button', class: 'button primary-action', 'data-override-save': '1', onclick: save }, '保存年度覆盖'),
         el('button', { type: 'button', class: 'button', 'data-override-revoke': '1', onclick: revoke }, '撤销年度覆盖'),
         el('label', { class: 'override-ledger-fail' }, failBox, '模拟写入失败（仅下一次保存）')),

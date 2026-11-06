@@ -23,18 +23,15 @@ function archiveOptions(context) {
 
 function reportBody(report) {
   const blocks = [];
-  blocks.push(el('p', { class: 'exports-note' },
-    report.stale === true ? '过期提示：' + report.staleNote
-      : report.stale === false ? '这份结果与当前项目一致。'
-        : '无法判断是否过期：' + report.staleNote));
-  blocks.push(el('p', { class: 'exports-note' }, '生成时间：' + (report.generatedAt || '未记录（归档没有时间戳）')));
+  blocks.push();
+  blocks.push();
   for (const part of report.sections) {
     blocks.push(el('h3', {}, part.heading));
     for (const line of part.lines) blocks.push(el('p', {}, line));
     if (part.table) blocks.push(el('table', { class: 'exports-table' },
       el('thead', {}, el('tr', {}, ...part.table.head.map(cell => el('th', { scope: 'col' }, cell)))),
       el('tbody', {}, ...part.table.rows.map(cells => el('tr', {}, ...cells.map(cell => el('td', {}, cell)))))));
-    blocks.push(el('p', { class: 'exports-source' }, '来源：' + part.source));
+    blocks.push();
   }
   blocks.push(el('h3', {}, '本次没有核到的东西'));
   if (!report.gaps.length) blocks.push(el('p', {}, '没有记录到缺项。这不等于报告已经过核对。'));
@@ -86,9 +83,8 @@ export function reportPanel(container, context) {
     });
 
     body.replaceChildren(
-      el('label', { class: 'save-field' }, '结果来源', select),
-      el('p', { class: 'save-hint' }, '报告只读冻结结果；不读取正在编辑的草稿。'),
-      el('div', { class: 'save-actions' }, preview, download),
+      
+            el('div', { class: 'save-actions' }, preview, download),
       message);
   }
 

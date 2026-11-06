@@ -1,10 +1,10 @@
-// 社会描述符框架：译自导师提供的两份工作簿（Dimensions & Variants matrix.xlsx、Lauer et al 2025.xlsx）。
+// 社会描述符框架：译自两份工作簿（Dimensions & Variants matrix.xlsx、Lauer et al 2025.xlsx）。
 // 只保留原文列出的维度与变体，中文为译文，英文原词随记录保留；不补造原文没有的变体，
 // 也不给这些变体编造阈值、年份或地区适用性——它们要进入求解，必须由使用者显式确认假设。
 export const SOCIAL_SOURCE = {
   workbook: 'Lauer et al 2025.xlsx / Dimensions & Variants matrix.xlsx',
   locator: 'output/meeting_20261102/',
-  note: '工作簿为导师提供的讨论稿（FST5 / FST6 两套情景的维度与变体），不是最终分类体系；变体是否穷尽、能否互相穷举尚未核实。'
+  note: '工作簿为讨论稿（FST5 / FST6 两套情景的维度与变体），不是最终分类体系；变体是否穷尽、能否互相穷举尚未核实。'
 };
 
 const D = [

@@ -151,10 +151,9 @@ export function mount(container,context){
   const plan=year==null?null:planAtYear(p,year);
   const compareBlock=(config,index)=>{
    const box=el('div',{class:'solver-scenario-compare'},el('h4',{},'与我的方案比较（'+year+' 年）'));
-   if(!plan)return box.append(el('p',{class:'v5-hint'},'没有可比较的年度方案。')),box;
+   if(!plan)return box.append(),box;
    if(!plan.complete){
-    box.append(el('p',{class:'v5-hint'},'我的方案 '+year+' 年状态未选齐（缺 '+plan.missing.map(d=>name(d)).join('、')+'），先补齐才能逐因素比较。'),
-     el('button',{class:'button text',onclick:()=>context.navigate('elements')},'去补选状态'));
+    box.append(     el('button',{class:'button text',onclick:()=>context.navigate('elements')},'去补选状态'));
     return box;
    }
    const rows=ids.map(id=>{
@@ -166,7 +165,7 @@ export function mount(container,context){
     ?el('p',{},'与你的方案有 '+diff.length+' 处不同：')
     :el('p',{},'这个组合与你的 '+year+' 年方案完全一致。'),
     el('ul',{class:'solver-compare-list'},...rows.map(x=>el('li',{class:x.same?'':'is-diff'},name(x.id)+'：我的方案「'+x.mine+'」'+(x.same?'＝':'≠')+'组合「'+x.their+'」'))),
-    ...(diff.length?[el('p',{class:'v5-hint'},'差异只说明状态不同，不代表你的方案错误；你的方案自洽与否看上方「我的方案」结论。')]:[]));
+    ...(diff.length?[]:[]));
    return box;
   };
   const saveScenario=(config,index)=>{
@@ -275,8 +274,8 @@ export function mount(container,context){
  function render(){if(disposed)return;
   const p=context.store.read();root.replaceChildren();
   const year=el('select',{'aria-label':'检算年份',disabled:!!job,onchange:e=>{session.year=e.target.value;render();}},el('option',{value:''},'请先选年份'),...p.scope.years.map(y=>el('option',{value:y},y)));year.value=session.year;
-  const yearRow=el('div',{class:'solver-yearbar'},el('span',{class:'cap'},'检验年份'),year,el('span',{class:'hint'},'换年份只换当前截面，不改项目范围'));
-  root.append(el('div',{class:'solver-head'},el('p',{},'先看这一年有哪些自洽情景，再看你自己的方案落在哪里。')),yearRow);
+  const yearRow=el('div',{class:'solver-yearbar'},el('span',{class:'cap'},'检验年份'),year);
+  root.append(yearRow);
 
   const last=session.archives.at(-1);
   root.append(summaryCard(p,last));
@@ -355,8 +354,7 @@ export function mount(container,context){
   if(yearNum!==null)for(const a of p.selection.descriptorIds)for(const b of p.selection.descriptorIds){if(a===b)continue;const list=p.data.judgments.filter(j=>j.sourceDescriptorId===a&&j.targetDescriptorId===b&&j.scope?.regionId===p.scope.regionId&&Array.isArray(j.validYears)&&j.validYears.includes(yearNum));if(list.length===1&&!session.selected.includes(list[0].id))uniq.push(list[0].id);}
   if(uniq.length)controls.append(el('div',{class:'solver-fill-unique'},button('使用这些方向唯一的评分（'+uniq.length+'）',()=>{session.selected=[...new Set([...session.selected,...uniq])];render();})));
   const clear=button('清空本页选用',()=>{session.selected=[];render();});clear.disabled=!!job;
-  settings.append(el('p',{class:'v5-hint'},'这里的选用只影响本次计算；关系页的矩阵仍以那边明确采用的记录为准。'),
-   controls,
+  settings.append(   controls,
    el('div',{class:'solver-settings-actions'},clear,button('核对项目范围',()=>context.navigate('workspace')),button('核对因素与状态',()=>context.navigate('elements')),button('核对关系与矩阵',()=>context.navigate('relationships'))));
   root.append(settings);
   summaryChanged();
@@ -383,7 +381,7 @@ export function mount(container,context){
    session.year=String(candidate.year);session.selected=candidate.selectionOfJudgments.map(j=>j.id);handoffMessage='已采用；尚未计算。';render();
   });adopt.disabled=!!job||!checked.ok;
   section.append(adopt,button('返回关系页',()=>context.navigate('relationships')));
-  if(handoffMessage)section.append(el('p',{class:'v5-hint'},handoffMessage));
+  if(handoffMessage)section.append();
   return section;
  }
 
@@ -433,7 +431,7 @@ export function mount(container,context){
  function sessionResultCard(p,archive){
   const section=el('section',{class:'solver-session'},el('div',{class:'hd'},el('h3',{},'本次检验结果'),el('span',{class:'note'},session.archives.length?('本会话 '+session.archives.length+' 次'):'尚无'))); 
   if(!archive){
-   section.append(el('p',{class:'v5-hint'},'完成一次检验后可下载结果，或到「保存与导出」保存为检验记录。'));
+   section.append();
    section.append(button('前往保存与导出',()=>context.navigate('exports')));
    return section;
   }
@@ -445,7 +443,7 @@ export function mount(container,context){
   }
   const download=button('下载本次结果 JSON',()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(archive,null,2)],{type:'application/json'})),a=el('a',{href:url,download:'cib-archive.json'});a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});download.disabled=!!job;
   section.append(el('div',{class:'solver-session-actions'},download,button('历史检验记录',()=>context.navigate('exports'))));
-  section.append(el('p',{class:'v5-hint'},'本次结果只保留在当前浏览器会话；刷新后需重新计算，或到「保存与导出」存为检验记录。'));
+  section.append();
   return section;
  }
 

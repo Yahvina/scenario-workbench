@@ -87,7 +87,7 @@ export function comparePanel(container, context) {
         return;
       }
       const blocks = [];
-      blocks.push(el('p', { class: 'exports-note' }, result.summary));
+      blocks.push();
       if (kind === 'run' && result.historicallyNotRecomputed) {
         blocks.push(el('p', { class: 'exports-gaps' },
           '注意：这里比的是两份历史归档当时算出的结论，不是平台用当前规则重新复算过的结果。旧归档不会被自动重算。'));

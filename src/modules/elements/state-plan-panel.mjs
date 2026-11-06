@@ -5,7 +5,7 @@ function node(tag,attrs,text=''){const n=document.createElementNS(NS,tag);Object
 export function statePlanPanel(project,descriptorId,context,canChange){
  const d=project.data.descriptors.find(d=>d.id===descriptorId),states=d.stateIds.map(id=>project.data.states.find(s=>s.id===id)).filter(Boolean),years=[...project.scope.years].sort((a,b)=>a-b);
  const box=el('section',{class:'state-plan-panel','aria-label':'按年份选择状态'},el('h3',{},d.label+' · 年份与状态'));
- if((d.evidenceRefs||[]).includes('d46-source-states'))box.append(el('p',{class:'state-note'},el('b',{},'参考状态'),infoTip('这三档状态是平台参考设定：阈值、单位与文献依据均未核定，不代表已核实的政策口径。选择只表达你的方案，不是政策事实，也不锁定检验结果。','参考状态的含义')));
+ if((d.evidenceRefs||[]).includes('d46-source-states'))box.append();
  const message=el('p',{role:'status',class:'state-plan-message'});
  if(!years.length){box.append(el('p',{},'先确定研究年份。'),el('button',{class:'button',onclick:()=>context.navigate('workspace')},'设置年份'));return box;}
  if(!states.length){box.append(el('p',{},'这个因素还没有状态可选。'),el('button',{class:'button',onclick:()=>{const details=document.querySelector('.factor-management');if(details){details.open=true;details.scrollIntoView({block:'start'});}}},'补充这个因素的状态'));return box;}

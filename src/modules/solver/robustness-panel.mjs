@@ -92,9 +92,7 @@ export function mount(container, context) {
             el('div', {}, el('b', {}, '+ ' + added), el('span', {}, '新增')),
             el('div', {}, el('b', {}, '− ' + removed), el('span', {}, '消失'))),
           el('p', {}, planNote),
-          el('p', { class: 'v5-hint' }, '扰动范围：' + name(group.from) + ' → ' + name(group.to) + ' 的 ' + changed + ' 格，每格 ' + (step > 0 ? '+' : '') + step + '（夹在 −3…+3）。基线结果没有被覆盖。'),
-          ...[(base.truncated || variant.truncated) ? el('p', { class: 'v5-hint' }, '注意：基线或扰动后的结果只保留了前 100 个自洽组合，集合差异是这 100 个之间的比较，不是全量集合差异。') : null,
-            el('p', { class: 'v5-hint' }, '这里只说明“改这一处，自洽集合怎么变”，不是稳健性概率，也不证明某个评分正确。')].filter(Boolean));
+                    );
         message.textContent = '已重算完成；比较基于两次完整枚举。';
       } catch (error) {
         out.replaceChildren();
@@ -112,7 +110,7 @@ export function mount(container, context) {
           el('label', { class: 'robust-field' }, '扰动量', delta),
           el('div', { class: 'robust-actions' }, el('button', { class: 'button primary-action', onclick: run }, '重算并比较')),
           message, out)),
-      el('p', { class: 'v5-hint' }, '尚未接入：多参数联合扰动、随机轮次与置信度加权（旧平台 v1.5 的实现基于描述符级矩阵，口径不同，未直接搬用）。'));
+      );
   }
 
   const off = context.store.subscribe(render);

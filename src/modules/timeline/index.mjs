@@ -139,8 +139,7 @@ export function mount(container, context) {
     const mode = el('select', { id: 'timeline-interpolation', 'aria-label': '插值方式', onchange: e => { draft.interpolation = e.target.value; draw(); } },
       el('option', { value: 'none' }, inline?'只显示填写的年份':'none · 仅锚点'), el('option', { value: 'linear' }, inline?'年份之间连成直线':'linear · 线性插值'), el('option', { value: 'step' }, inline?'数值保持到下个节点':'step · 左端值保持'));
     mode.value = draft.interpolation;
-    right.append(el('div', { class: 'timeline-settings' }, el('label', {}, '单位', unit), el('label', {}, inline?'年份之间如何变化':'插值方式', mode)),
-      el('details',{},el('summary',{},'数值与状态如何处理'),el('p', { class: 'muted' }, '空白不是0；不跨缺失点推算，不自动推断状态。数值或年份修改后，状态对应需要重新核对。拖动只改草稿，保存后生效。')));
+    right.append(el('div', { class: 'timeline-settings' }, el('label', {}, '单位', unit), el('label', {}, inline?'年份之间如何变化':'插值方式', mode)));
     svg = svgEl('svg', { viewBox: '0 0 640 300', class: 'timeline-chart', tabindex: '0', role: 'img', 'aria-label': '日历年路径图，精确编辑请使用下方节点表' });
     svg.addEventListener('pointerdown', pointerDown);
     svg.addEventListener('pointermove', pointerMove);
@@ -164,7 +163,7 @@ export function mount(container, context) {
       el('div', { class: 'timeline-save' }, el('button', { class: 'button', onclick: cancel }, '取消修改'), el('button', { class: 'button primary-action', onclick: save }, inline?'保存年份变化':'保存路径')));
     if (original) {
       right.append(sources(original, p));
-      if (p.view.perspective === 'expert') right.append(el('p', { class: 'muted' }, '变量ID：' + descriptorId + '；路径ID：' + original.id + '；版本：' + original.version));
+      if (p.view.perspective === 'expert') right.append();
     }
     draw();
     publish(p);
@@ -207,7 +206,7 @@ export function mount(container, context) {
         if(inline)return year+'：'+(result?.value===null||!result?'未填写':Number(result.value.toPrecision(6)))+(result?.derived?'（按节点推算）':'');
         return year + '：' + (result?.value === null || !result ? '未定义' : Number(result.value.toPrecision(6))) + (result?.derived ? '（插值，状态未推断）' : result ? '（锚点）' : '');
       });
-      svg.after(el('p', { class: 'timeline-preview muted' }, '研究年份预览 · ' + values.join('；')));
+      svg.after();
     } catch (error) { svg.append(svgEl('text', { x: 20, y: 100 }, '草稿无效：' + error.message)); }
   }
   function pointerDown(event) {

@@ -45,7 +45,6 @@ export function mountMap(host, context, options) {
   }
   mapBox.append(svg);
   host.append(el('div', { class: 'geo-shell' }, mapBox, cardBox),
-    el('p', { class: 'geo-source' }, '示意地图，仅用于选择研究范围，不用于测距或边界判定。'),
     status);
 
   function pick(id) {
@@ -77,9 +76,7 @@ export function mountMap(host, context, options) {
         el('div', {}, el('dt', {}, '年份'), el('dd', {}, '生效年份未知 ' + coverage.yearsUnknown + ' 条；已知不等于适用于 2030/2035，平台不做前向填充')),
         el('div', {}, el('dt', {}, '覆盖'), el('dd', {}, coverageLabel(coverage) + (coverage.total ? '；46 项中 ' + coverage.covered + ' 项有条款' : ''))),
         el('div', {}, el('dt', {}, '背景数据'), el('dd', {}, '暂无已核数据，不展示'))),
-      coverage.hasMaterial ? null : el('p', { class: 'geo-gap' }, '本地区在已导入库中 0 条：不等于当地没有政策，也不等于关系评分为 0。'),
-      el('p', { class: 'v5-hint' }, '来源：《' + libraryMeta().source.file + '》「' + libraryMeta().source.sheet + '」（' + libraryMeta().source.received + ' 收到）。另有 3 条天津交流稿摘要属样例资料，不计入正式收录。地理数据来源：' + GEO_SOURCE.label + '；' + GEO_SOURCE.note + '（核对日期 ' + GEO_SOURCE.checkedAt + '）。'),
-      el('details', { class: 'geo-clauses' }, el('summary', {}, '本地区条款（' + (tools.length + clauses.length) + ' 条，列前 8 条）'),
+            el('details', { class: 'geo-clauses' }, el('summary', {}, '本地区条款（' + (tools.length + clauses.length) + ' 条，列前 8 条）'),
         (tools.length + clauses.length) ? el('div', {},
           ...clauses.map(clause => el('p', { class: 'geo-tool' }, el('b', {}, clause.clauseId), ' ', clause.excerpt, el('span', { class: 'geo-clause-note' }, '本项目录入'))),
           ...tools.slice(0, 8).map(row => el('p', { class: 'geo-tool' },
@@ -94,9 +91,6 @@ export function mountMap(host, context, options) {
 
     cardBox.replaceChildren(...[
       el('div', { class: 'geo-card-hd' }, el('h3', {}, shown.label), el('span', { class: 'geo-level' }, shown.level === 'region' ? '区域口径' : '省级行政区')),
-      el('p', { class: 'geo-brief' }, coverage.library
-        ? '政策库收录 ' + coverage.library + ' 条工具记录；46 项描述符中 ' + (coverage.covered || 0) + ' 项有条款关联。'
-        : '已导入政策库中暂无本地区记录（不等于当地没有政策）。'),
       previewing ? el('div', { class: 'geo-impact' }, el('p', { class: 'geo-preview-cap' }, '预览：尚未应用到项目。'), ...impact.lines.map(line => el('p', {}, line))) : null,
       previewing ? null : el('p', { class: 'geo-current-static' }, '✓ 当前研究地区'),
       previewing ? el('div', { class: 'geo-actions' },

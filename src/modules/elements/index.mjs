@@ -109,14 +109,8 @@ export function mount(container, context) {
     const expert = p.view.perspective === 'expert';
     const rows = [
       el('h3', { id: 'elements-pilot-title' }, '目录小样：' + POLICY_PILOT_PATH.join(' → ')),
-      el('p', { class: 'muted' }, '四级目录逐级导航：' + POLICY_PILOT_PATH.map((label, index) => (index + 1) + '级 ' + label).join('；') + '。末级关联候选因素 ID ' + POLICY_PILOT_DESCRIPTOR_ID + '。'),
-      el('p', {}, '三条摘要摘自《描述符分级与时间轴 团队交流版》第 3 节，标注为"交流稿摘要，原条款待核"；用现有可准确呈现摘要的来源类型记录，不挂"政策原文"标签。'),
       el('ul', { class: 'elements-pilot-clauses' }, ...POLICY_PILOT_CLAUSES.map(clause =>
-        el('li', {}, el('strong', {}, clause.clauseId), el('span', { class: 'elements-pilot-excerpt' }, clause.excerpt), el('span', { class: 'elements-pilot-note muted' }, clause.note)))),
-      el('p', { class: 'elements-pilot-gap muted' }, '缺口：' + POLICY_PILOT_GAPS.join(' ')),
-      expert ? el('p', { class: 'muted' }, '来源定位：' + POLICY_PILOT_SOURCE.locator + '；记录 ID ' + POLICY_PILOT_SOURCE.id + '；审核状态 ' + POLICY_PILOT_SOURCE.reviewStatus + '。') : null,
-      el('p', {}, '候选因素的状态与参数映射为空：这里只用于追踪政策来源，关系评分依据继续独立。'),
-      joined ? el('p', { class: 'muted' }, '当前项目已包含该候选因素；重复加入不会新增节点或记录。') : null,
+        el('li', {}, el('strong', {}, clause.clauseId), el('span', { class: 'elements-pilot-excerpt' }, clause.excerpt), null))),
       el('button', { class: 'button', type: 'button', onclick: joinPilot }, joined ? '再次加入目录小样（内容一致时不新增）' : '向当前项目加入目录小样')
     ];
     // replaceChildren 会把 null 转成文本 "null"：先过滤，只有 el() 的 children 会自行跳过 null。
@@ -220,13 +214,9 @@ export function mount(container, context) {
     }},'把当前旧选择迁移到 46 项');
     migrate.disabled=!selectedLegacy.length||!!missingTargets.length;
     box.append(
-      el('p',{class:'v5-hint'},'对照只核身份，不核阈值与评分。'+summary.total+' 项中：同义 '+summary.same+'、部分对应 '+summary.partial+'、拆分 '+summary.split+'、合并 '+summary.merged+'、未匹配 '+summary.unmatched+'（含转入结果指标 '+summary.outcomes+'）。'),
-      missingTargets.length?el('p',{class:'geo-gap'},'尚未加入 46 项目录，迁移按钮不可用；先加入目录再迁移。'):null,
       el('p',{},selectedLegacy.length?'当前选中的旧描述符：'+selectedLegacy.join('、'):'当前没有选中旧目录的描述符。'),
       el('table',{},el('thead',{},el('tr',{},el('th',{},'旧描述符'),el('th',{},'关系'),el('th',{},'新体系对应'),el('th',{},'说明'))),el('tbody',{},...rows)),
-      el('div',{class:'actions'},migrate),
-      el('p',{class:'v5-hint'},'迁移只改选择，不复制旧状态、按年安排与关系评分：拆分与合并项的口径已变，必须重新选年度状态并重新判断。'),
-      el('p',{class:'v5-hint'},MAPPING_SOURCE_NOTE));
+      el('div',{class:'actions'},migrate));
     return box;
   }
   function renderFrameworks(p){
@@ -246,12 +236,12 @@ export function mount(container, context) {
     if(!p.data.descriptors.length)frameworkBox.open=true;
     frameworkBar.replaceChildren(
       card(BASELINE_CATALOG_LABEL,
-        '已确认的分类基线：'+base.counts.domains+' 个领域、'+base.counts.sections+' 个细分领域、'+base.counts.leaves+' 项具体描述符，另有 '+base.counts.outcomes+' 项结果指标单列（不计入 46 项）。',
+        base.counts.domains+' 个领域 · '+base.counts.sections+' 个细分领域 · '+base.counts.leaves+' 项描述符 · '+base.counts.outcomes+' 项结果指标',
         base.present?base.descriptors:0,joinBaselineNow,
-        '分类已确认；每个描述符下的三档状态是平台参考设定，阈值、单位、参数与模型映射均未核定，界面按“参考状态”标注。'),
-      card('社会描述符框架','译自 Lauer et al 2025 与 Dimensions & Variants 工作簿：'+SOCIAL_DIMENSIONS.length+' 个维度，变体为原文列举。',socialCount,openSocial,hasSocial?'只保留原文变体，不补造；变体不保证穷尽，也未被定义为可穷举的状态空间。':'导师提供的讨论稿，不是最终分类体系。'));
+        null),
+      card('社会描述符框架',SOCIAL_DIMENSIONS.length+' 个维度',socialCount,openSocial,null));
     // 旧 24 项 + 迁移工具收进默认折叠的二级分组，不与新目录抢首屏。
-    const legacyCard=card('旧版 24 项目录','旧平台 TREE：6 个分组、24 个因素、每因素 3 档。已由 46 项体系取代；保留它只为旧项目与旧评分仍能打开与对照。',policyCount,joinDraft,hasPolicy?'来源：旧平台 TREE；状态名称原样保留；需要升级时用下面的对照与迁移。':'不建议在新项目里使用。');
+    const legacyCard=card('旧版 24 项目录','6 个分组 · 24 个因素',policyCount,joinDraft,null);
     const legacyWrap=el('details',{class:'fw-legacy'},el('summary',{},'旧项目兼容与迁移（24 项旧目录 → 46 项）'),legacyCard);
     const freshLegacy=renderLegacyMap(p);
     legacyWrap.append(freshLegacy);
@@ -276,20 +266,15 @@ export function mount(container, context) {
     const detail=el('section',{class:'descriptor-detail','data-descriptor-detail':''},
       el('h3',{},descriptor.label+' · 详情'),
       el('p',{},el('span',{class:'dd-cap'},'分类路径'),path),
-      el('p',{},el('span',{class:'dd-cap'},'定义'),
-        descriptor.description?descriptor.description
-          :el('span',{class:'dd-gap'},'尚未建立。目录分类已确认（来自《京津冀政策描述符体系》图示），但这个描述符的正式定义（对象边界、口径）还没有录入；用它做判断前需要先补定义。')),
-      descriptor.role==='outcome'?el('p',{class:'v5-hint'},'结果指标：不计入 46 项，默认不作为政策输入；选中它只用于观察结果。'):null,
-      el('p',{},el('span',{class:'dd-cap'},'参考状态'),'三档状态是平台参考设定（阈值、单位、依据未核定），不是已核定状态。'),
+      descriptor.description?el('p',{},el('span',{class:'dd-cap'},'定义'),descriptor.description):null,
       el('p',{},el('span',{class:'dd-cap'},'相关政策'),
         el('button',{class:'button text',type:'button',onclick:event=>openDrawer(event.currentTarget,'相关政策 · '+descriptor.label,body=>{
           body.append(tools.length?el('div',{},...tools.map(row=>el('p',{class:'dd-tool'},
             el('b',{},row[ROW_LIB.path]),' · ',row[ROW_LIB.name]||row[ROW_LIB.doc],
             el('span',{class:'dd-note'},(row[ROW_LIB.start]?row[ROW_LIB.start]+' 年生效':'年份未知')+' · '+row[ROW_LIB.jurisdiction]))),
-            el('p',{class:'v5-hint'},'共 '+tools.length+' 条工具记录；首页地图的「查看政策资料」可看全部。'))
-            :el('p',{class:'v5-hint'},'已导入政策库中暂无关联这个描述符的本地工具记录；这不等于当地没有政策，也不等于关系评分为 0。'));
-        })},'查看政策（'+(tools.length?tools.length+' 条':'当地暂无')+'）')),
-      hasKids?null:el('p',{class:'v5-hint dd-subgap'},'图示没有在这个描述符下定义行业、技术、对象等更细分；细分需要补定义后才能成为计算变量，分类节点不会自动参与 CIB。'));
+            null)
+            :null);
+        })},'查看政策（'+(tools.length?tools.length+' 条':'当地暂无')+'）')));
     return detail;
   }
 
@@ -353,12 +338,11 @@ export function mount(container, context) {
       if(regionStrip.parentNode===root)root.insertBefore(demoBtn,regionStrip);else root.append(demoBtn);
     }
     if (empty) {
-      catalog.append(el('h3', {}, '从已有框架开始'), el('p', { class: 'muted' }, '当前项目还没有分类。旧平台的24项描述符可以直接载入为草案，下面先展示已有内容。'),
-        el('div', { class: 'elements-catalog-groups' }, ...JJJ_DRAFT_CATALOG.map(group => el('section', {}, el('strong', {}, group.label), el('p', {}, group.children.flatMap(section => section.descriptors.map(d => d.label)).join(' · '))))),
-        el('button', { class: 'button', onclick: joinDraft }, '向当前项目加入京津冀框架'), el('p', { class: 'muted' }, '保留项目名称、地区、年份与无冲突记录。保留原有三级结构，不补造第五、六级；不导入旧版评分或未核实的数值目标。'));
+      catalog.append(el('h3', {}, '从已有框架开始'),         el('div', { class: 'elements-catalog-groups' }, ...JJJ_DRAFT_CATALOG.map(group => el('section', {}, el('strong', {}, group.label), el('p', {}, group.children.flatMap(section => section.descriptors.map(d => d.label)).join(' · '))))),
+        el('button', { class: 'button', onclick: joinDraft }, '向当前项目加入京津冀框架'));
     } else {
       catalog.append(el('div', { class: 'elements-dataset' }, el('span', {}, p.title), el('span', { class: 'muted' }, p.data.descriptors.length + ' 项描述符')));
-      if (p.data.descriptors.some(item => item.provenance.sourceId === 'legacy-framework')) catalog.append(el('p', { class: 'muted elements-draft-note' }, '旧版已有框架草案：保留原三级分类及状态名称，阈值、变量角色与依据尚未重新核验。'));
+      if (p.data.descriptors.some(item => item.provenance.sourceId === 'legacy-framework')) catalog.append();
     }
     catalog.append(el('details',{},el('summary',{},'另建示例项目（替换当前项目）'),el('p',{},'这会重设名称、范围、数据与选择，与“向当前项目加入框架”不同。'),el('button',{class:'button secondary',onclick:loadDraft},'新建京津冀示例项目（替换当前项目）')));
     if (!pilot.isConnected) root.append(el('details',{class:'pilot-library'},el('summary',{},'查看燃煤政策目录小样'),pilot));
@@ -405,7 +389,7 @@ export function mount(container, context) {
           ? el('button', { class: 'elements-disclosure', 'aria-label': (expanded.has(node.id) ? '收起 ' : '展开 ') + node.label, 'aria-expanded': String(open), disabled: !!query.trim(), onclick: toggleOpen }, disclosure(open))
           : el('span', { class: 'elements-leaf', 'aria-hidden': 'true' }),
         el('div', { class: 'elements-cell' }, nameArea, isBranch ? checkbox : null),
-        expert ? el('span', { class: 'elements-node-id muted' }, node.id) : null
+        null
       ];
       tree.append(el('div', { class: 'elements-row' + (depth === 1 ? ' is-root' : '') + (selected.has(node.id) ? ' is-selected' : ''), 'data-path': key, 'data-depth': depth, title: pathLabels, style: '--tree-indent:' + Math.min(depth - 1, 6) * 14 + 'px' }, ...rowChildren));
     }

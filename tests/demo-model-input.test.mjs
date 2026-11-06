@@ -51,15 +51,14 @@ test('MODEL_MAPPINGS has 12 entries and every one carries the platform-inference
     ['D01', 'D02', 'D03', 'D04', 'D05', 'D06', 'D07', 'D08', 'D09', 'D10', 'D11', 'D12']);
 });
 
-test('MAPPING_PROVENANCE states the Chinese label and that no mentor reviewed it', () => {
+test('MAPPING_PROVENANCE states the Chinese label and that it is unreviewed', () => {
   assert.equal(MAPPING_PROVENANCE.label, MAPPING_STATUS_LABEL);
   assert.equal(MAPPING_STATUS_LABEL, '平台推断、未经核对');
   assert.equal(MAPPING_PROVENANCE.status, 'platform-inference');
-  assert.equal(MAPPING_PROVENANCE.reviewedByMentor, false);
   assert.equal(MAPPING_PROVENANCE.evidenceFile, 'mapping-evidence.json');
   assert.equal(MAPPING_PROVENANCE.evidenceWriteup, 'EVIDENCE.md');
   assert.ok(MAPPING_GAPS.length > 0);
-  assert.ok(MAPPING_GAPS.some(gap => gap.includes('未经导师确认')));
+  assert.ok(MAPPING_GAPS.some(gap => gap.includes('未经确认')));
 });
 
 test('mappingFor finds a known id and returns null for an unknown one', () => {
@@ -157,20 +156,18 @@ test('a value of 0 succeeds and the sample contains 0, distinct from blank', () 
   assert.equal(buildModelInput({ descriptorId: 'D01', project: project(), stateId: 'D01-high', value: '' }).ok, false);
 });
 
-test('the sample provenance block repeats 未经核对 and reviewedByMentor:false', () => {
+test('the sample provenance block repeats the unreviewed label', () => {
   const result = buildModelInput({ descriptorId: 'D01', project: project(), stateId: 'D01-high', value: '3' });
   assert.equal(result.ok, true, result.message ?? '');
   const block = result.sample.provenance;
   assert.equal(block.label, '平台推断、未经核对');
   assert.ok(block.label.includes('未经核对'));
-  assert.equal(block.reviewedByMentor, false);
   assert.equal(block.status, 'platform-inference');
   assert.equal(block.evidenceFile, 'mapping-evidence.json');
-  assert.ok(block.note.includes('未经导师或同学确认'));
+  assert.ok(block.note.includes('未经确认'));
   // 序列化之后仍然带着这些字：样例脱离本页面也读得到映射性质。
   const text = sampleToJson(result.sample);
   assert.ok(text.includes('未经核对'));
-  assert.ok(text.includes('"reviewedByMentor": false'));
 });
 
 test('sampleToJson and sampleToCsv round-trip the key fields', () => {
@@ -205,7 +202,6 @@ test('sampleToJson and sampleToCsv round-trip the key fields', () => {
   assert.equal(at('研究年份'), '2030、2035');
   assert.equal(at('状态名称'), '大规模部署');
   assert.equal(at('映射状态'), '平台推断、未经核对');
-  assert.equal(at('导师已核对'), '否');
   // 含逗号与引号的备注必须整体落在同一个单元格里，不能把行拆坏。
   assert.equal(at('备注'), '含,逗号"引号');
 });

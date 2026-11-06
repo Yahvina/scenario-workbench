@@ -39,7 +39,6 @@ export function mount(container, context) {
     const explainAt = run?.createdAt || null;
     const contextBar = el('div', { class: 'v5-card chain-context' }, el('div', { class: 'bd' },
       el('p', {}, '解释对象：' + p.title + ' · ' + (explainYear === null ? '尚未计算（下面是已有输入与缺口）' : explainYear + ' 年检验结果')),
-      el('p', { class: 'v5-hint' }, explainAt ? ('检验时间：' + explainAt + (fresh ? ' · 与当前输入一致' : ' · 输入已变化，这份解释已过期')) : '还没有完成过检验：节点 7 之后是空的，不是“零解”。'),
       el('div', { class: 'chain-context-actions' },
         archive ? el('button', { class: 'button', onclick: () => context.navigate('solver') }, '返回对应的检验结果') : el('button', { class: 'button', onclick: () => context.navigate('solver') }, '去检验与结果'),
         el('button', { class: 'button text', onclick: () => context.navigate('robustness') }, '稳健性检验'))));
@@ -61,7 +60,7 @@ export function mount(container, context) {
         stat(judged, '个状态对格子'),
         stat(run?.count ?? '—', '个自洽配置'),
         stat(run?.checked ?? '—', '个已检查配置')),
-      el('p', { class: 'v5-hint' }, run ? '求解来源：' + run.id + (fresh ? '（当前输入）' : '（输入已变化，节点 6–8 标为过期）') : '还没有完成过检算：节点 7 之后是空的，不是“零解”。'))));
+      )));
 
     const grid = el('div', { class: 'v5-grid' });
     const main = el('div', { class: 'v5-main' });
@@ -129,7 +128,7 @@ export function mount(container, context) {
     function paint() {
       const config = run.scenarios[Number(pick.value) || 0];
       const trace = explain(archive.RunInput, config);
-      out.replaceChildren(el('p', { class: 'v5-hint' }, '下表每一行的分数都能回到一条具体判断记录；点“去关系页”按方向核对。'));
+      out.replaceChildren();
       const table = el('table', { class: 'v5-table' },
         el('thead', {}, el('tr', {}, el('th', {}, '因素'), el('th', {}, '所选'), el('th', {}, '所选支持'), el('th', {}, '最大支持'), el('th', {}, '差距'), el('th', {}, '来源判断'))));
       const body = el('tbody');
@@ -143,7 +142,7 @@ export function mount(container, context) {
       table.append(body);
       out.append(table);
       const ev = archive.RunInput.matrix.evidenceRefs.map(id => p.data.evidence.find(e => e.id === id)).filter(Boolean);
-      out.append(el('p', { class: 'v5-hint' }, '本次矩阵引用的依据：' + (ev.length ? ev.map(e => e.kind + ' · ' + e.sourceId).join('；') : '没有（只有判断记录本身）')));
+      out.append();
     }
     pick.addEventListener('change', paint);
     paint();

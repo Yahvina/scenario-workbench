@@ -13,7 +13,7 @@ function createRunSave(context){
   function renderRunSave(){
     const summary=readRunSummary(context.store),archive=readRunArchive(context.store);
     const download=el('button',{class:'button secondary',type:'button',disabled:!archive,onclick:()=>{const current=readRunArchive(context.store);if(!current)return;const url=URL.createObjectURL(new Blob([JSON.stringify(current,null,2)],{type:'application/json'})),a=el('a',{href:url,download:'cib-archive.json'});a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}},'下载当前查看的检算JSON归档');
-    runSave.replaceChildren(el('h3',{},'检算结果单独保存'),el('p',{},summary?'本会话当前查看的检算归档：'+statusLabel(summary.status)+'；年份 '+(summary.year??'尚无合法输入')+'；冻结修订 '+summary.revision+'；成立数 '+(summary.count===null?'未定':summary.count)+(summary.stale?'；旧输入已过期，归档仍可保存。':'；归档保留冻结输入。'):'本会话还没有检算归档。'),el('p',{},'项目备份保存范围、数据和选择，不包含检算结果或矩阵交接候选。检算页JSON包含冻结矩阵、结果与诊断；可在检算页选择旧归档，下载目标随之切换。刷新后本会话归档丢失，请先下载。'),download,el('button',{class:'button secondary',type:'button',onclick:()=>context.navigate('solver')},'前往检算页查看与保存'),el('p',{class:'muted'},'当前可下载JSON项目备份和检算归档；Word、Excel及完整报告尚未提供。'));
+    runSave.replaceChildren(el('h3',{},'检算结果单独保存'),el('p',{},summary?'本会话当前查看的检算归档：'+statusLabel(summary.status)+'；年份 '+(summary.year??'尚无合法输入')+'；冻结修订 '+summary.revision+'；成立数 '+(summary.count===null?'未定':summary.count)+(summary.stale?'；旧输入已过期，归档仍可保存。':'；归档保留冻结输入。'):'本会话还没有检算归档。'),el('p',{},'项目备份保存范围、数据和选择，不包含检算结果或矩阵交接候选。检算页JSON包含冻结矩阵、结果与诊断；可在检算页选择旧归档，下载目标随之切换。刷新后本会话归档丢失，请先下载。'),download,el('button',{class:'button secondary',type:'button',onclick:()=>context.navigate('solver')},'前往检算页查看与保存'));
   }
   return {runSave,renderRunSave};
 }
@@ -308,16 +308,15 @@ export function mount(container, context) {
 
   const {runSave,renderRunSave}=createRunSave(context);
   const moreDetails = el('details', { id: 'home-more' }, el('summary', {}, '更多设置与操作'),
-    field('研究年份', yearsText, el('small', { id: 'years-help' }, '文本快捷输入：用逗号分隔四位年份；留空表示暂不设年份，仍可先探索。')),
+    field('研究年份', yearsText),
     el('div', { class: 'actions' }, el('button', { class: 'button secondary', type: 'button', onclick: applyText }, '应用文本年份'), el('button', { class: 'button secondary', type: 'button', onclick: saveScope }, '保存项目范围')),
     el('hr', { class: 'section-divider' }),
     el('div', { class: 'actions' }, el('button', { class: 'button secondary', type: 'button', onclick: context.exportProject }, '下载项目备份'), el('button', { class: 'button secondary', type: 'button', onclick: context.captureSnapshot }, '记录未检验快照')),
-    el('div', { class: 'field', style: 'margin-top:16px' }, el('label', { for: 'project-import' }, '从JSON备份恢复'), backupInput(), el('small', {}, '恢复备份会替换当前项目；正常继续已有方案请用上方入口，不必下载文件。')),
-    el('p', { class: 'muted' }, '这里只是文件级备份与快照；项目备份不包含检算结果。'),
+    el('div', { class: 'field', style: 'margin-top:16px' }, el('label', { for: 'project-import' }, '从JSON备份恢复'), backupInput(), ),
     el('div', { class: 'actions' },
       el('button', { class: 'button text', type: 'button', onclick: loadDemo }, '载入机制示例'),
       el('button', { class: 'button text', type: 'button', onclick: loadMechanism }, '载入机制演示（状态有差异、含冲突）')),
-    el('p', { class: 'muted' }, '两个机制演示都只用于验证软件：示例是六层分类两变量；R35 演示的 18 格分值取自评分明细，9 个组合里 2 个自洽、7 个冲突。都不代表真实政策。'));
+    el('hr', { class: 'section-divider' }));
 
   // 首屏两条明确路径：自己的研究走 46 项目录由用户做主；示例体验是机制演示，载入前先讲清替换范围。
   const pathHost = el('div', { class: 'home-paths', 'aria-label': '开始方式' });
@@ -355,12 +354,12 @@ export function mount(container, context) {
     pathHost.replaceChildren(
       el('button', { class: 'home-path', type: 'button', onclick: startOwn },
         el('strong', {}, '开始自己的研究'),
-        el('span', { class: 'muted' }, '默认使用已确认的 46 项目录；因素、年度状态与评分都由你选择，平台不替你勾选。')),
+        ),
       el('span', { class: 'home-path-or', 'aria-hidden': 'true' }, '或'),
       el('button', { class: 'home-path', type: 'button', onclick: startDemo },
         el('strong', {}, '用示例体验完整流程'),
         el('span', { class: 'home-path-badge' }, '机制演示'),
-        el('span', { class: 'muted' }, '载入带完整因素、年度状态与评分的示例，一步看到检验与解释结果。')));
+        ));
   }
   // Start-new and continue stay visible with no disclosure: the first screen must say
   // what happens to the existing project before anything is replaced. Kept to one
@@ -376,8 +375,8 @@ export function mount(container, context) {
       el('button', { class: 'button secondary', type: 'button', onclick: startNewScenario }, pendingNew ? '重新开始填写新情景' : '开始一个新情景'),
       el('button', { class: 'button secondary', type: 'button', onclick: continueExisting }, pendingNew ? '放弃新情景，继续已有方案' : '继续已有方案'),
       el('small', { class: 'muted' }, pendingNew
-        ? '新情景草稿（提交后替换当前活动项目）· 当前项目：' + displayTitle(current.title)
-        : '当前项目：' + displayTitle(current.title) + '（' + rangeSummary(current.scope.regionId, current.scope.years) + '）'));
+        ? '新情景草稿'
+        : displayTitle(current.title) + '（' + rangeSummary(current.scope.regionId, current.scope.years) + '）'));
     primaryButton.textContent = pendingNew ? '建立新情景并继续：选择因素' : '继续：选择因素';
     // While a new scenario is being drafted the decorative progress strip yields its
     // space to the replacement notice, so the one primary action stays on screen.
@@ -402,8 +401,8 @@ export function mount(container, context) {
 
   // Provenance, the editable name and everything else that is secondary sits after the
   // one primary action, so the choice of where and when keeps the first screen.
-  const catalogDetails = el('details', { id: 'home-catalog-source' }, el('summary', {}, '清单来源、核对日期与覆盖范围'),
-    el('p', { class: 'muted' }, REGION_CATALOG.scopeNote + ' 来源：' + REGION_CATALOG.source + '；核对日期 ' + REGION_CATALOG.checkedAt + (REGION_CATALOG.onlineVerified ? '（已在联网条件下核对）' : '（本轮未联网复核，仅按公开口径整理）') + '。'));
+  const catalogDetails = el('details', { id: 'home-catalog-source' }, el('summary', {}, '清单来源'),
+    el('p', {}, REGION_CATALOG.source));
 
   const nameBlock = el('div', { class: 'name-block' },
     el('div', { class: 'form-grid' },
@@ -414,7 +413,7 @@ export function mount(container, context) {
   const libraryHost = el('div', { class: 'library-host' });
   const geoSection = el('section', { class: 'geo-panel', 'aria-labelledby': 'geo-title' },
     el('h3', { id: 'geo-title' }, '在地图上选地区'),
-    el('p', { class: 'geo-lead' }, '悬停、点击与键盘都能看地区卡片；点「研究这个地区」才写入项目。'));
+    );
   geo = mountMap(geoSection, context, {
     getScope: () => regionId || null,
     hasResults: Boolean(readRunSummary(context.store)),

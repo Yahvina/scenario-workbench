@@ -86,7 +86,7 @@ export function overridePreview({project, path, year, reading, states, store, bi
     }, result.candidates.length
       ? '候选状态：' + result.candidates.map(item => item.label + '（' + item.text + '）').join('；') + '。仅展示，需你确认。'
       : '候选状态：无。'));
-    rows.push(el('p', {class: 'annual-override-note muted'}, OVERRIDE_ONLY_VALUES));
+    rows.push();
     readout.replaceChildren(...rows.filter(row => row !== null && row !== undefined));
   }
 
@@ -133,10 +133,7 @@ export function overridePreview({project, path, year, reading, states, store, bi
   }
 
   section.append(
-    el('h5', {class: 'annual-override-title'}, '只改这一年（预览，只读）'),
-    el('p', {class: 'annual-override-hint muted'},
-      '在这里试算「如果这一年改成 X」：不保存、不进入检算，也不写入项目、历史库或本地存储。清空即回到基线；填 0 与清空是两件事。'),
-    el('div', {class: 'annual-override-controls'},
+            el('div', {class: 'annual-override-controls'},
       el('label', {}, '拟采用值', input),
       recorded === null ? el('label', {}, '对照状态', reference) : null,
       clearButton

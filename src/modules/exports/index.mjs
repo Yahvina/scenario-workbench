@@ -23,17 +23,13 @@ function saveStatusStrip(page, context) {
     const persisted = context.persistenceState();
     root.replaceChildren(
       el('div', { class: 'save-chip ' + (persisted.ok ? 'ok' : 'bad') },
-        el('b', {}, persisted.ok ? '本机自动保存 · 正常' : '本机自动保存 · 失败'),
-        el('span', {}, persisted.ok ? '当前编辑内容每次改动即写入本浏览器；不是云同步。' : '修改只在当前页面，请下载项目备份。')),
+        el('b', {}, persisted.ok ? '本机自动保存 · 正常' : '本机自动保存 · 失败')),
       el('div', { class: 'save-chip' + (plans ? ' ok' : '') },
-        el('b', {}, '命名方案 ' + plans + ' 份'),
-        el('span', {}, '含因素、评分与按年状态；不含检验结果。' + (libraryOk ? '' : ' 本地库暂不可读。'))),
+        el('b', {}, '命名方案 ' + plans + ' 份')),
       el('div', { class: 'save-chip' + (runs ? ' ok' : '') },
-        el('b', {}, '检验记录 ' + runs + ' 份'),
-        el('span', {}, '冻结输入与结果，历史不复算。')),
+        el('b', {}, '检验记录 ' + runs + ' 份')),
       el('div', { class: 'save-chip' },
-        el('b', {}, '备份文件'),
-        el('span', {}, '只在你点「下载」时生成；自动保存不等于已下载备份。')));
+        el('b', {}, '备份文件')));
   }
   render();
   const offStore = context.store.subscribe(render);
@@ -60,7 +56,7 @@ export function mountExports(container, context) {
   page.append(
     el('div', { class: 'v5-head' },
       el('h1', {}, '保存与导出'),
-      el('p', { class: 'lead' }, '左边保存当前方案；右边保存或导出检验结果。历史记录在下面分区查看。')),
+      ),
     grid);
 
   const switchBar = el('div', { class: 'exports-switch', role: 'tablist', 'aria-label': '保存与导出分区' });

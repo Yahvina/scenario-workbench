@@ -24,9 +24,9 @@ export function ambitionPanel(project, descriptorId, context, rerender) {
     box.append(el('ul', { class: 'ambition-tiers' }, ...DIRECTIONS.map(d => el('li', { class: 'tier ' + d.id },
       el('span', { class: 'lab' }, d.label), el('span', { class: 'val' }, (byDir[d.id] || []).join('、') || '—'),
       el('span', { class: 'v5-hint' }, d.note)))));
-    if (!a.explicit) box.append(el('p', { class: 'v5-hint' }, '档位顺序还是状态定义的原始顺序，没有人为标注过；下表的“回退/强化”只作草稿。'));
+    if (!a.explicit) box.append();
   } else {
-    box.append(el('p', { class: 'v5-hint' }, '还没有基准：检验只能比较“所选 vs 替代”，无法说明相对 current 是延续、强化还是回退。'));
+    box.append();
   }
 
   const editor = el('details', { class: 'ambition-editor' }, el('summary', {}, a.baselineStateId ? '修改基准与档位顺序' : '设置基准与档位顺序'));
@@ -44,8 +44,7 @@ export function ambitionPanel(project, descriptorId, context, rerender) {
     }));
   };
   paintOrder();
-  editor.append(el('p', { class: 'v5-hint' }, '从上到下＝从回退到强化。基准所在位置决定哪些档算强化；顺序不对，方向就会标错。'),
-    el('label', {}, '基准状态 ', baseSelect), el('label', {}, '基准年 ', yearInput), list,
+  editor.append(    el('label', {}, '基准状态 ', baseSelect), el('label', {}, '基准年 ', yearInput), list,
     el('button', { class: 'button', onclick: () => {
       try {
         const next = setAmbition(context.store.read(), descriptorId, { baselineStateId: baseSelect.value || null, baseYear: yearInput.value ? Number(yearInput.value) : null, order });

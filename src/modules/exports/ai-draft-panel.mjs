@@ -47,10 +47,7 @@ export function aiDraftPanel(container, context) {
     };
     material.addEventListener('input', buildPrompt);
 
-    const serviceNote = el('p', { class: 'exports-source', 'data-draft-service': '' },
-      '本轮不自动调用。若要自己接：本机唯一实测可用的是 Ollama，地址 ' + OLLAMA_DEFAULT_BASE_URL +
-      '，模型 ' + DEFAULT_DRAFT_MODEL + '。该模型默认开启思考，回复正文会落在 thinking 里、content 为空串，' +
-      '所以请求体必须显式带 think:false。本项目不保存任何密钥，也没有配置任何云端密钥。');
+    const serviceNote = el('p', { class: 'exports-source', 'data-draft-service': '' });
 
     const checkButton = el('button', { class: 'button secondary', type: 'button', 'data-draft-check': '' }, '检查本地模型服务（只列模型，不生成）');
     const checkResult = el('p', { class: 'exports-source', 'data-draft-models': '' });
@@ -99,8 +96,7 @@ export function aiDraftPanel(container, context) {
       parsed = result.length ? { items: result } : null;
       if (!parsed) { listBox.replaceChildren(el('p', { class: 'exports-gaps' }, '没有解析出候选条目。')); adoptButton.disabled = true; status.textContent = ''; return; }
       listBox.replaceChildren(
-        el('p', { class: 'exports-note' }, '共 ' + result.length + ' 条候选。标「' + REVIEW_MARK + '」的是没能追到材料原文的条目，仍可勾选采用，但要按待核对待。'),
-        ...result.map(item => {
+                ...result.map(item => {
           const box = el('input', { type: 'checkbox', value: item.id, id: 'draft-' + item.id });
           return el('div', { class: 'exports-draft-item', 'data-draft-item': item.needsReview ? 'review' : 'grounded' },
             box,

@@ -69,11 +69,11 @@ export function savePlanPanel(container, context) {
     const empty = planState(p) === 'empty';
     summary.replaceChildren(...[
       el('p', {}, (p.scope.regionId || '地区未定') + ' · ' + ((p.scope.years || []).join('/') || '年份未定') + ' · ' + p.selection.descriptorIds.length + ' 个因素'),
-      ...(empty ? [el('p', { class: 'save-summary-line warn-line' }, '尚未选择研究因素。')] : years.map(line => el('p', { class: 'save-summary-line' }, line))),
+      ...(empty ? [] : years.map(line => el('p', { class: 'save-summary-line' }, line))),
       ...(empty ? [el('button', { class: 'button text', type: 'button', onclick: () => context.navigate('elements') }, '去选择因素')] : [])]);
     save.textContent = empty ? '保存为草稿（还没有因素与评分）' : '保存这个方案';
     focusValues = Object.create(null);
-    focusHost.replaceChildren(el('p', { class: 'v5-hint' }, '关注状态只随方案快照保存，用于日后对照；它不等于年度状态，也不锁定检算。'));
+    focusHost.replaceChildren();
     for (const id of p.selection.descriptorIds) {
       const d = p.data.descriptors.find(x => x.id === id);
       if (!d) continue;
@@ -105,11 +105,9 @@ export function savePlanPanel(container, context) {
     }
   });
 
-  root.append(el('h3', {}, '保存当前方案'),
-    el('p', { class: 'save-hint' }, '保存地区、年份、因素、评分与按年状态；不包含检验结果。'),
-    el('label', { class: 'save-field' }, '方案名称', name),
+  root.append(
+        el('label', { class: 'save-field' }, '方案名称', name),
     summary,
-    el('p', { class: 'save-readonly' }, '年度状态读自「因素与方案」，这里只读展示。', infoTip('方案保存的是地区、年份、因素、评分与按年状态；检验结果要单独保存为检验记录。关注状态只是快照备注，不等于年度状态或锁定。', '方案保存什么')),
     advanced, message,
     el('div', { class: 'save-actions' }, save));
   advanced.append(focusHost);
@@ -132,8 +130,7 @@ export function runSavePanel(container, context) {
     if (!archive || !s) {
       runName.remove();
       body.replaceChildren(
-        el('p', { class: 'v5-hint' }, '还没有检验结果：先完成一次检验，才能保存检验记录或导出报告。'),
-        el('button', { class: 'button', type: 'button', onclick: () => context.navigate('solver') }, '去检验'));
+                el('button', { class: 'button', type: 'button', onclick: () => context.navigate('solver') }, '去检验'));
       message.textContent = '';
       return;
     }
@@ -142,8 +139,7 @@ export function runSavePanel(container, context) {
     const done = s.status === 'completed';
     body.replaceChildren(
       el('p', {}, '本次检验：' + statusLabel(s.status) + ' · 年份 ' + (s.year ?? '无有效输入') + ' · 自洽组合 ' + (s.count === null ? '未定（不是 0）' : s.count) + (s.stale ? ' · 旧输入已过期' : '')),
-      done ? null : el('p', { class: 'v5-hint' }, '这条记录不是一次完成的结果；保存后会如实标注状态，不会冒充成功。'),
-      el('div', { class: 'save-actions' },
+      done ? null :       el('div', { class: 'save-actions' },
         el('button', { class: 'button primary-action', type: 'button', onclick: () => {
           try {
             const cur = library.load();
@@ -217,7 +213,7 @@ export function savedWorkPanel(container, context) {
     }
     const plans = state.bundle.plans, runs = state.bundle.runs;
     list.append(el('h4', {}, '我的方案（' + plans.length + '）'));
-    if (!plans.length) list.append(el('p', { class: 'v5-hint' }, '还没有保存的方案。回到上方「保存当前方案」即可保存。'));
+    if (!plans.length) list.append();
     for (const plan of plans) {
       const p = plan.project;
       list.append(el('details', { class: 'library-row' }, el('summary', {}, plan.name),
@@ -237,7 +233,7 @@ export function savedWorkPanel(container, context) {
           }))));
     }
     list.append(el('h4', {}, '历史检验记录（' + runs.length + '）'));
-    if (!runs.length) list.append(el('p', { class: 'v5-hint' }, '还没有保存的检验记录。完成一次检验后，在上方「本次检验结果」里保存。'));
+    if (!runs.length) list.append();
     for (const run of runs) {
       const a = run.archive, r = a.RunResult, input = a.RunInput;
       list.append(el('details', { class: 'library-row' }, el('summary', {}, run.name),
@@ -253,7 +249,7 @@ export function savedWorkPanel(container, context) {
         button('重新读取历史库', () => { state = library.load(); pending = null; preview.replaceChildren(); renderList(); message.textContent = state.ok ? '已重新读取；历史仍未复算。' : '原库无法读取，未清空。'; }),
         button('导出完整历史库', () => attempt(() => { const current = library.load(); if (!current.ok) throw new Error(current.error); download('saved-work-bundle.json', current.bundle); }))),
       el('label', { class: 'save-field' }, '导入历史库或单条检验记录', importFile),
-      el('p', { class: 'v5-hint' }, '仅保存在本浏览器；最多 20 条方案 + 20 条检验记录、5MiB；不自动同步、不自动复算。')));
+      ));
   renderList();
   const reload = () => { state = library.load(); pending = null; preview.replaceChildren(); renderList(); };
   window.addEventListener(LIBRARY_EVENT, reload);

@@ -1,5 +1,5 @@
 // P9 模型输入样例：把本平台的描述符接到下游模型（GCAM-China / CHEER）的真实文件上。
-// 这份映射的性质是唯一的重点：本机没有任何导师确认过的参数表，现有映射是平台侧逐条打开
+// 这份映射的性质是唯一的重点：本机没有任何经确认的参数表，现有映射是平台侧逐条打开
 // 真实模型文件比对出来的（见 docs/research/model-export/mapping-evidence.json 与 EVIDENCE.md）。
 // 因此本模块只提供两件事：
 // 1. 忠实转写证据文件里的描述符映射与未核到项，一个字都不补、不改写、不把 null 填成别的值；
@@ -29,7 +29,7 @@ export const MAPPING_PROVENANCE = {
   evidenceWriteup: EVIDENCE_WRITEUP,
   // 证据文件自己声明了它核过什么、没核什么，这里原样带上，便于样例被单独打开时仍能自证范围。
   verifiedAgainst: '本会话用真实命令列目录/统计数量/读取 CSV 头部得到：gcam-china-release/exe/ 下 configuration*.xml 共 7 个；input/gcamdata/xml/ 304 个 XML；input/gcamdata/inst/extdata/ 1112 个 CSV（合计 384221209 字节）；input/gcamdata/inst/extdata/gcam-china/ 157 个 CSV；input/policy/ 55 个文件；input/extra/ 5 个文件；cheer/CHEER-Clean 39 个文件。所有 sourceFile 字段均已由 os.walk 命中并记录 os.path.getsize 字节数。',
-  note: '本映射由平台侧逐条打开真实模型文件比对得出，核过的是「文件是否存在、单位是否如此」，未核「状态档位如何换算成模型取值」。未经导师或同学确认，不得以「已核对」的表述提交或引用。'
+  note: '本映射由平台侧逐条打开真实模型文件比对得出，核过的是「文件是否存在、单位是否如此」，未核「状态档位如何换算成模型取值」。未经确认，不得以「已核对」的表述提交或引用。'
 };
 
 // 逐条转写 mapping-evidence.json 的 descriptors（顺序、用词、标点、null 一律保留）。
@@ -222,7 +222,7 @@ export const MAPPING_GAPS = [
   'extdata 下单位核实仅限于本会话打开头部的那批 CSV；未逐个打开全部 1112 个 CSV 的单位行。',
   'CHEER-P-demo 的 trend.gms 不存在（实际为 trend.gdx 等数据文件），CHEER-P 侧的 TFP/劳动力趋势字段只核到 parshock.gms 中的 tfp0。',
   'USDA_GDP_MER.csv（源 docx 4.1 节列出的关键文件）在 extdata 下未找到，只核到 Maddison_population.csv、UN_popTot.csv、pwt91.csv、SSP_database_2024.csv.gz。',
-  '本映射为平台侧推断并逐条比对真实文件所得，未经导师确认，不得以「已核对」表述提交给导师。'
+  '本映射为平台侧推断并逐条比对真实文件所得，未经确认，不得以「已核对」表述提交。'
 ];
 
 // 可下载样例的基名；扩展名由调用方决定（.json / .csv）。
@@ -362,7 +362,6 @@ const CSV_COLUMNS = [
   ['参数取值', sample => (sample?.value === null || sample?.value === undefined ? null : sample.value)],
   ['备注', sample => sample?.note],
   ['映射状态', sample => sample?.provenance?.label],
-  ['导师已核对', sample => (sample?.provenance?.reviewedByMentor === true ? '是' : '否')],
   ['证据文件', sample => sample?.provenance?.evidenceFile],
   ['换算说明', sample => sample?.conversionNote],
   ['适用边界', sample => sample?.boundary]

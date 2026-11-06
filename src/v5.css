@@ -167,3 +167,13 @@
 .info-btn:hover,.info-btn:focus-visible{border-color:var(--pri);color:var(--pri)}
 .info-pop{position:absolute;top:22px;left:-4px;z-index:20;width:min(320px,70vw);background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);box-shadow:0 6px 18px rgba(8,14,19,.12);padding:8px 10px;font-size:12px;line-height:1.7;color:var(--tx2);font-weight:400}
 .info-pop[hidden]{display:none}
+
+/* 空的状态/提示节点不占位：文案删掉后不留空白 */
+:is(.muted,.v5-hint,.hint,.nexthint,.chosen-trend,.exports-note,.exports-source,
+    .save-hint,.save-summary-line,.save-readonly,.geo-lead,.geo-area,.trend-atlas-note,
+    .reference-note,.reference-lead,.reference-meta-line,.atlas-note,.state-note,
+    .annual-override-hint,.override-ledger-hint,.row-guide-sketch-note,
+    .elements-tree-info,.elements-draft-note,.elements-pilot-gap,.elements-intro,
+    .timeline-preview,.year-detail-message,.year-detail-preview-note,
+    .annual-override-note,.override-ledger-note,.rel-mode-note,
+    .score-dock-label):empty { display: none; }

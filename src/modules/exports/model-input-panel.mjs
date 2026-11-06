@@ -36,7 +36,7 @@ export function modelInputPanel(container, context) {
   const statusLine = el('p', {'data-model-input-status': ''}, MAPPING_PROVENANCE.label);
   const statusNote = el('p', {},
     '这份映射是平台侧逐条打开真实模型文件比对出来的：确实核对过文件是否存在、单位是否如此，'
-    + '但没有导师或同学确认过，也没有核对过「状态档位如何换算成模型取值」。'
+    + '但没有核对过「状态档位如何换算成模型取值」。'
     + '请不要把它当作已核对的参数表引用；样例里每一处都写着「' + MAPPING_PROVENANCE.label + '」。');
 
   const mappingSelect = el('select', {

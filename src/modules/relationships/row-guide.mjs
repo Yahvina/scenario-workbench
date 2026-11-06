@@ -2,7 +2,7 @@
 // 硬纪律：只读写调用方传入的同一份 draft.entries，不生成分数、不补零、不写证据或修改记录、
 // 不改反向关系、不从状态名称猜低/中/高，也不重排传入的状态顺序。
 import {el} from '../../core/ui.mjs';
-import {MENTOR_GLYPHS,MENTOR_SHAPES,MENTOR_SKETCH_NOTE} from './shape-catalog.mjs';
+import {MENTOR_GLYPHS,MENTOR_SHAPES} from './shape-catalog.mjs';
 
 export const ROW_GUIDE_NOTE='逐行判断与直接填表使用同一份未保存草稿：这里填的分数就是表格里的分数，切换显示方式不会清空。参考图形只用于当前展示，不填分数、不补零，也不写入证据或修改记录。';
 export const ROW_GUIDE_SCORE_NOTE='−3…−1抑制，+1…+3促进；0=明确判断没有直接影响，空白=尚未判断，两者不同。';
@@ -36,7 +36,7 @@ export function rowGuide({draft,sources,targets,sourceLabel='源',targetLabel='�
   const cells=new Map();          // aId\0bId -> {row:label节点, table:td节点, input, entry}
   const readoutLines=new Map();   // sourceStateId -> p节点
 
-  root.append(el('p',{class:'muted'},ROW_GUIDE_NOTE),el('p',{class:'muted'},ROW_GUIDE_SCORE_NOTE));
+  root.append();
 
   function paintOne(key){
     const item=cells.get(key);
@@ -71,8 +71,7 @@ export function rowGuide({draft,sources,targets,sourceLabel='源',targetLabel='�
     if(!shape)return;
     graphicHost.append(el('article',{class:'row-guide-sketch','data-row-guide-sketch':shape.id},
       sketchNode(shape.id),
-      el('p',{class:'row-guide-sketch-note'},shape.label+(shape.glyphClass?'：'+shape.glyphClass:'')),
-      el('p',{class:'row-guide-sketch-note'},MENTOR_SKETCH_NOTE)));
+      el('p',{class:'row-guide-sketch-note'},shape.label+(shape.glyphClass?'：'+shape.glyphClass:''))));
   }
   graphicSelect.addEventListener('change',renderGraphic);
   root.append(el('div',{class:'row-guide-graphic'},el('label',{},'参考趋势图形（仅供参考，不填分数）',graphicSelect),graphicHost));
@@ -105,7 +104,7 @@ export function rowGuide({draft,sources,targets,sourceLabel='源',targetLabel='�
         select.value=order[side].map[state.id]||'';
         fields.append(el('label',{},'「'+state.label+'」对应',select));
       }
-      orderHost.append(el('p',{class:'muted'},'请逐档标明低、中、高；同名或同位置的档位不会被自动推断。'),fields);
+      orderHost.append(fields);
     }
     readoutLines.clear();
     const orderedSource=orderedStates('source',sources),orderedTarget=orderedStates('target',targets);

@@ -154,12 +154,6 @@ export function mount(container, context) {
       el('span',{class:'rel-pstate '+stCls},stText),
       el('span',{class:'rel-pstate',title:'A→B 与 B→A 独立计数；保存后自动切到下一个未判方向'},'已判方向 '+directionCoverage(p).covered+' / '+directionCoverage(p).need));
   }
-  function nexthintText(p){
-    const sn=sourceId?statesFor(p,sourceId).length:0,tn=targetId?statesFor(p,targetId).length:0;
-    if(sn===2&&tn===2)return '二档可用图形生成评分预览：在图册点一张图，或在「看图判断」里按编号直选；确认流程照旧。';
-    if(sn===3&&tn===3)return '三档：图册只作趋势参考，九格在右侧逐格填写；0＝没关系，空白＝未判断。';
-    return '当前档数组合不适用图形编码：图册可作趋势参考，评分请直接逐格填写。';
-  }
   // 图册卡：趋势参考常驻（v5 ② 区），标题与出处折叠收纳。
   function atlasCard(p,graphEligible){
     // 点一张图就出分（仅完整二档）；不适用时给出原因和下一步，不再点了没反应。
@@ -208,7 +202,7 @@ export function mount(container, context) {
     dialog.append(head,body);
 
     if(!plan.pack){
-      body.append(el('p',{class:'reference-note'},plan.reason),
+      body.append(
         el('p',{},'本次不会写入任何评分。可以改用完整的机制演示案例，那是唯一能完整算通的参考闭环。'),
         el('div',{class:'reference-actions'},
           el('button',{class:'button',type:'button',onclick:()=>{context.exportProject();}},'先下载当前项目备份'),
@@ -223,10 +217,6 @@ export function mount(container, context) {
     const keptNow=dirs.reduce((n,d)=>n+d.kept,0);
     const parts=[
       el('p',{class:'reference-tag'},'演示参考，可修改，非实时AI生成。'),
-      el('p',{class:'reference-lead'},'将填 '+plan.emptyCells+' 格（共 '+plan.totalCells+' 格'
-        +(keptNow?'；已有分值保留 '+keptNow+' 格':'')+'）。'),
-      el('p',{class:'reference-meta-line'},'写入年份 '+((plan.years.length?plan.years:[plan.year]).join('、'))
-        +' · 研究范围 '+(plan.region||'未指定')+' · 方向 '+dirs.length+' 个'),
       el('table',{class:'v5-table reference-table'},el('thead',{},el('tr',{},el('th',{},'方向'),el('th',{},'分值'),el('th',{},'说明'))),
         el('tbody',{},...dirs.map(d=>el('tr',{},el('td',{},d.fromLabel+' → '+d.toLabel),el('td',{},d.score===null?(d.entries.length+' 格'):String(d.score)),el('td',{},d.why||plan.pack.note))))),
       el('details',{class:'reference-why'},el('summary',{},'这份参考是哪来的'),
@@ -234,7 +224,7 @@ export function mount(container, context) {
         el('p',{},plan.pack.source),
         plan.pack.level==='descriptor'?el('p',{},'同一方向的所有状态对用同一个分值，没有区分状态；采用后可以逐格改。'):null),
       plan.skipped.length?el('p',{class:'reference-warn'},'以下方向没有填入：'+plan.skipped.map(x=>(x.from+'→'+x.to)+'（'+x.reason+'）').join('；')):null,
-      el('p',{class:'reference-note'},'只填空白格；0 和已有分值不动。要覆盖已有评分需要再确认一次。')
+      
     ].filter(Boolean);
     body.append(...parts);
 
@@ -330,8 +320,6 @@ export function mount(container, context) {
       const zero=!p.selection.descriptorIds.length;
       // 0 因素与 1 因素是两个不同的缺口：分开说清，各给直达动作，不互相矛盾。
       body.append(pairBar(p,null,null),
-        zero?el('p',{class:'rel-nexthint'},'尚未选择研究因素：判断关系至少需要两个。可先浏览图册，但评分要选好因素才能开始。')
-           :el('p',{class:'rel-nexthint'},'已选 1 个因素「'+variableLabel(p,only)+'」：再选至少 1 个因素，才能判断 A→B 两个方向。'),
         zero?button('去选择因素',()=>context.navigate('elements'))
             :button('再选一个因素',()=>context.navigate('elements')),
         atlasCard(p,false));
@@ -350,8 +338,7 @@ export function mount(container, context) {
         el('span',{},'正在补「'+variableLabel(p,sourceId)+' → '+variableLabel(p,targetId)+'」；保存后自动回到「检查评分完整性」。'),
         button('返回检查（不保存改动）',backToCompleteness)));
     }
-    body.append(pairBar(p,source,target),
-      el('p',{class:'rel-nexthint'},nexthintText(p)));
+    body.append(pairBar(p,source,target));
     const records=p.data.judgments.filter(j=>j.sourceDescriptorId===sourceId&&j.targetDescriptorId===targetId);
     const chooser=el('select',{'aria-label':'编辑判断记录',onchange:e=>{if(!canLeave()){e.target.value=recordId||'';return;}recordId=e.target.value||null;inputMode='manual';load();remember();render();}},el('option',{value:''},'新增这一个方向的判断'),...records.map(j=>el('option',{value:j.id},(p.view.perspective==='expert'?j.id:'判断 '+(records.indexOf(j)+1))+' · v'+j.version+' · '+(j.scope?.regionId||'地区未知')+' · '+(Array.isArray(j.validYears)&&j.validYears.length?j.validYears.join('/'):'年份未知/格式待核'))));
     chooser.value=recordId||'';
@@ -369,7 +356,7 @@ export function mount(container, context) {
     const manualStart=body.children.length;
     function showAtlas(){
       const pieces=[...body.children].slice(manualStart),rail=el('section',{class:'relation-score-rail'},el('h3',{},'填写并核对评分'));
-      const selectionNote=el('p',{class:'chosen-trend',role:'status'},selectedTrend?'趋势参考：'+(panels().find(panel=>panel.id===selectedTrend)?.label||selectedTrend)+'。评分按下面各格填写，选图不改分数。':'在左边选趋势作参考；评分在下面各格填写。');rail.append(selectionNote,...pieces);
+      const selectionNote=el('p',{class:'chosen-trend',role:'status'});rail.append(selectionNote,...pieces);
       body.append(el('div',{class:'relation-atlas-layout'},atlasCard(p,graphEligible),rail));
     }
     if(original?.curveEncoding){body.append(el('p',{class:'warning-text'},scaleWarning));if(original.curveEncoding.templateId==='A(2)')body.append(el('p',{class:'warning-text'},a2Warning));}
@@ -380,8 +367,7 @@ export function mount(container, context) {
     const directness=el('select',{'aria-label':'直接性说明',onchange:e=>{draft.directness=e.target.value;}},el('option',{value:'unknown'},'待定'),el('option',{value:'direct'},'直接影响'),el('option',{value:'indirect'},'间接影响'));
     directness.value=draft.directness;
     // 一句话说清分数含义；适用范围已按研究范围默认填好，只在这条评分需要例外时才动。
-    body.append(el('p',{class:'muted'},'0＝没关系；空白＝未判断；−3…−1 抑制，+1…+3 促进。'),
-      el('div',{class:'relationships-controls'},el('label',{},'判断适用地区',region),el('label',{},'判断适用年份',years),el('label',{},'直接性说明',directness)));
+    body.append(      el('div',{class:'relationships-controls'},el('label',{},'判断适用地区',region),el('label',{},'判断适用年份',years),el('label',{},'直接性说明',directness)));
     // H3：只有源与目标各有三个状态时，才提供可选的「逐行判断」视图。
     // 两种视图共用同一个 draft 对象，切换只重建界面，不清空判断、来源或理由。
     const hasTernaryGuide=sources.length===3&&targets.length===3;
@@ -394,7 +380,7 @@ export function mount(container, context) {
         const active=guideView===mode.id;
         toggle.append(el('button',{class:'button','data-guide-view':mode.id,'aria-pressed':String(active),onclick:()=>{if(active)return;if(blockIncomplete())return;guideView=mode.id;render();}},mode.label));
       }
-      body.append(el('p',{class:'muted'},'逐行判断与直接填表共用同一份草稿，切换显示方式不清空已填判断、来源或理由。'),toggle);
+      body.append(toggle);
     }
     if(hasTernaryGuide&&guideView==='guide'){
       const guide=rowGuide({draft,sources,targets,sourceLabel:variableLabel(p,sourceId),targetLabel:variableLabel(p,targetId),expert:p.view.perspective==='expert',onChange:draftChanged});
@@ -403,13 +389,11 @@ export function mount(container, context) {
     const table=el('table',{class:'relationships-table'},el('caption',{},'源状态 × 目标状态：'+sources.length+'×'+targets.length+'。点格子选分，也可以直接在格子里输入；0＝没关系，空白＝未判断。'));
     // 点格子选分：分数条放在表格下方，不遮挡其它格子，键盘输入照旧可用。
     let activeInput=null,activeEntry=null,activePaint=null;
-    const dockLabel=el('span',{class:'score-dock-label'},'先点一个格子，再选分数');
     const dock=el('div',{class:'score-dock','data-score-dock':'',hidden:''},
-      dockLabel,
       el('div',{class:'score-dock-chips'},
         ...[-3,-2,-1,0,1,2,3].map(v=>el('button',{type:'button',class:'score-chip','data-pick':String(v),'aria-label':(v===0?'0 没关系':'分数 '+v),onclick:()=>applyPick(v)},v===0?'0':(v>0?'+'+v:String(v)))),
         el('button',{type:'button',class:'score-chip clear','data-pick':'','aria-label':'清除这一格的评分',onclick:()=>applyPick('')},'清除')));
-    function activateCell(input,entry,paint,a,b){activeInput=input;activeEntry=entry;activePaint=paint;dockLabel.textContent=a.label+' → '+b.label;dock.hidden=false;}
+    function activateCell(input,entry,paint,a,b){activeInput=input;activeEntry=entry;activePaint=paint;dock.hidden=false;}
     function applyPick(value){if(!activeInput)return;activeInput.value=value===''?'':String(value);activeEntry.value=activeInput.value;activePaint();draftChanged();}
     const header=el('tr',{},el('th',{scope:'col'},'源状态 ↓ / 目标状态 →'),...targets.map(state=>el('th',{scope:'col'},state.label)));
     table.append(el('thead',{},header));const rows=el('tbody');
@@ -431,7 +415,7 @@ export function mount(container, context) {
     }
     count();
     const rationale=el('textarea',{'aria-label':'判断理由',rows:'3',oninput:e=>{draft.rationale=e.target.value;}});rationale.value=draft.rationale;
-    body.append(el('label',{},'判断理由',rationale),el('p',{class:'muted'},'没有可用规律依据也可保存为用户假设草案；保存不等于专家确认。'));
+    body.append(el('label',{},'判断理由',rationale));
     const refs=el('details',{},el('summary',{},'引用已有依据（不自动认证方向或强度）'));
     for(const e of p.data.evidence){
       const checkbox=el('input',{type:'checkbox','data-evidence-id':e.id,onchange:event=>{draft.evidenceRefs=event.target.checked?[...new Set([...draft.evidenceRefs,e.id])]:draft.evidenceRefs.filter(id=>id!==e.id);}});checkbox.checked=draft.evidenceRefs.includes(e.id);
@@ -440,7 +424,6 @@ export function mount(container, context) {
     if(!p.data.evidence.length)refs.append(el('p',{},'暂无已有依据，保存时会新增用户假设修改记录。'));
     body.append(refs,el('div',{class:'relationships-save'},button('取消草稿',cancel),button('保存这一对的评分',save,true)),evidenceView(p,original),
       el('details',{class:'rel-limits'},el('summary',{},'这个页面不做什么'),el('p',{},'图形模板只在“完整、有序 H/L、明确直接关系”时可用；三档与连续曲线不自动外推。方法论文不能代替实际关系依据。')));
-    if(p.view.perspective==='expert')body.append(el('p',{class:'muted'},'源ID：'+sourceId+'；目标ID：'+targetId+'；判断ID：'+(original?.id||'未保存')+'；版本：'+(original?.version||'未保存')));
     showAtlas();
     paintSteps(p);
   }
@@ -674,7 +657,6 @@ export function mount(container, context) {
       for(const d of noRule.slice(0,8))box.append(el('div',{class:'rev-norule-row'},
         el('span',{},variableLabel(p,d.a)+' → '+variableLabel(p,d.b)+'（还缺 '+(d.cells-d.filled)+' 格）'),
         button('填写这个方向',()=>fillDirection(d.a,d.b,d.best?.id||null))));
-      if(noRule.length>8)box.append(el('p',{class:'v5-hint'},'还有 '+(noRule.length-8)+' 个方向未展开；可先在「填写第一个方向」里逐个处理，或回因素页缩小因素范围。'));
       body.append(box);
     }
 

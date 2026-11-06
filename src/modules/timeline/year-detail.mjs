@@ -140,8 +140,7 @@ export function yearDetail({project = null, descriptorId = null, year = null, ex
   const quick = el('div', {class: 'year-detail-quick', role: 'group', 'aria-label': '从研究年份与原始节点选择年份'});
   const body = el('div', {class: 'year-detail-body', 'data-year-detail-body': ''});
   input.addEventListener('input', () => refresh());
-  root.append(el('h3', {}, '按年查看（只读）'), el('p', {class: 'muted'}, YEAR_DETAIL_NOTE),
-    el('div', {class: 'year-detail-controls'}, el('label', {}, '查看年份', input), quick), message, draftLine, previewNote, body);
+  root.append(el('h3', {}, '按年查看（只读）'),     el('div', {class: 'year-detail-controls'}, el('label', {}, '查看年份', input), quick), message, draftLine, previewNote, body);
 
   function paintQuick(options) {
     // 键盘用户按 Enter 选中后按钮会被重建；保留焦点，否则焦点会掉到页面上。
@@ -213,7 +212,7 @@ export function yearDetail({project = null, descriptorId = null, year = null, ex
         const label = current.data.descriptors.find(item => item.id === currentDescriptor)?.label || currentDescriptor;
         rows.push(gap('no-path', '「' + label + '」' + YEAR_DETAIL_NO_PATH_NOTE));
       } else {
-        if (paths.length > 1) rows.push(el('p', {class: 'muted'}, YEAR_DETAIL_MULTI_NOTE));
+        if (paths.length > 1) rows.push();
         for (const path of paths) rows.push(pathArticle(path, describeYear(path, shownYear)));
       }
     }

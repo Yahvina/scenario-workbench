@@ -12,7 +12,7 @@ export function planCheckSection({ project, prepared, session, context, lastArch
   const section = el('section', { class: 'plan-check', 'data-plan-check': '' });
   const message = el('p', { class: 'plan-check-msg', role: 'status' });
   if (year === null || !project.scope.years.includes(year)) {
-    section.append(el('h3', {}, '检验我的方案'), el('p', { class: 'hint' }, '先在上面选一个检算年份，这里会读出那一年的方案。'));
+    section.append(el('h3', {}, '检验我的方案'));
     return section;
   }
   const plan = planAtYear(project, year);
@@ -43,15 +43,14 @@ export function planCheckSection({ project, prepared, session, context, lastArch
           onRender();
         } catch (error) { message.textContent = '未保存：' + error.message; }
       } }, el('option', { value: '' }, '就地补选'), ...states.map(s => el('option', { value: s.id }, s.label)));
-      row.append(el('span', { class: 'st missing' }, '未选状态'), select);
+      row.append(select);
     }
     rows.append(row);
   }
   section.append(rows);
 
   if (!plan.complete) {
-    section.append(el('p', { class: 'hint' }, '缺状态的因素不能进入方案检验；上表可以就地补选，也可以回因素页按年选择。'),
-      el('button', { class: 'button secondary', onclick: () => context.navigate('elements') }, '回因素页按年份选择'), message);
+    section.append(      el('button', { class: 'button secondary', onclick: () => context.navigate('elements') }, '回因素页按年份选择'), message);
     return section;
   }
 
@@ -81,7 +80,7 @@ export function planCheckSection({ project, prepared, session, context, lastArch
   section.append(check);
   if (!canCheck && blocks.length) {
     section.append(el('ul', { class: 'plan-check-blocks' }, ...blocks.slice(0, 5).map(d => el('li', {}, d.message))));
-    if (blocks.length > 5) section.append(el('p', { class: 'hint' }, '另有 ' + (blocks.length - 5) + ' 项，展开下面的输入诊断查看全部。'));
+    if (blocks.length > 5) section.append();
   }
   section.append(message);
 
@@ -105,7 +104,7 @@ export function planCheckSection({ project, prepared, session, context, lastArch
     else if (record) section.append(el('p', { class: 'plan-check-stale' }, '上次检验（' + new Date(record.at).toLocaleString() + '）已过期：' + planCheckStaleReasons(record, { project, plan }).slice(1).join('；') + '。重新检验后才代表当前输入。'));
     return section;
   }
-  if (fromRecord) section.append(el('p', { class: 'hint' }, '读自上次检验记录（' + new Date(check2.at).toLocaleString() + '）；年份内输入未变，按同一算法复核展示。'));
+  if (fromRecord) section.append();
 
   const trace = check2.trace;
   const bad = trace.balances.filter(b => !b.consistent);
@@ -144,7 +143,7 @@ export function planCheckSection({ project, prepared, session, context, lastArch
       const bestAlt = b.candidates.reduce((m, c) => c.support > m.support ? c : m, b.candidates[0]);
       detail.append(el('h4', {}, name(b.descriptorId) + '：所选 ' + b.selectedSupport + '，替代“' + stateName(bestAlt.stateId) + '”' + bestAlt.support));
       detail.append(el('ul', {}, ...bestAlt.contributions.map(x => el('li', {}, name(x.sourceDescriptorId) + ' 的“' + stateName(x.sourceStateId) + '” × 对方状态“' + stateName(bestAlt.stateId) + '” = ' + x.score + '（判断 ' + x.judgmentId + '）'))));
-      detail.append(el('p', { class: 'hint' }, '这里只列出替代状态那一列的来源；所选状态那一列的来源见下方“检查自己的配置”。'));
+      detail.append();
     }
     section.append(detail);
   }

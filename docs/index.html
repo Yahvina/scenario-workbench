@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>情景研判平台 · 新版工作台</title>
+  <title>京津冀政策情景快速评估平台</title>
 <style>
 /* Provisional slate-blue preview. Exact values await user review; see DESIGN.md. */
 :root{
@@ -1195,6 +1195,16 @@ input[aria-invalid=true]{border-color:var(--danger);background:var(--rd-s)}
 .info-pop{position:absolute;top:22px;left:-4px;z-index:20;width:min(320px,70vw);background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);box-shadow:0 6px 18px rgba(8,14,19,.12);padding:8px 10px;font-size:12px;line-height:1.7;color:var(--tx2);font-weight:400}
 .info-pop[hidden]{display:none}
 
+/* 空的状态/提示节点不占位：文案删掉后不留空白 */
+:is(.muted,.v5-hint,.hint,.nexthint,.chosen-trend,.exports-note,.exports-source,
+    .save-hint,.save-summary-line,.save-readonly,.geo-lead,.geo-area,.trend-atlas-note,
+    .reference-note,.reference-lead,.reference-meta-line,.atlas-note,.state-note,
+    .annual-override-hint,.override-ledger-hint,.row-guide-sketch-note,
+    .elements-tree-info,.elements-draft-note,.elements-pilot-gap,.elements-intro,
+    .timeline-preview,.year-detail-message,.year-detail-preview-note,
+    .annual-override-note,.override-ledger-note,.rel-mode-note,
+    .score-dock-label):empty { display: none; }
+
 </style>
 </head>
 <body>
@@ -1239,7 +1249,7 @@ try {
 const actions = createActions(store);
 const steps = [['workspace', '项目与研究范围'], ['elements', '描述符与状态'], ['timeline', '政策实施路径'], ['relationships', '关系与依据'], ['solver', '检验与解释']];
 const routes = { workspace: mountWorkspace, elements: mountElements, timeline: mountTimeline, relationships: mountRelationships, solver: mountSolver, exports: mountExports, 'ai-draft': mountAiDraft, chain: mountChain, robustness: mountRobustness };
-const header = el('header', { class: 'topbar' }, el('div', {}, el('span', { class: 'brand' }, '情景研判平台'), el('span', { class: 'version' }, '京津冀简明版 · 图册直显')));
+const header = el('header', { class: 'topbar' }, el('div', {}, el('span', { class: 'brand' }, '京津冀政策情景快速评估平台')));
 const perspectiveSelect = el('select', { id: 'perspective-select' }, el('option', { value: 'public' }, '普通用户 · 简洁界面'), el('option', { value: 'expert' }, '专家用户 · 完整工作台'));
 const viewSwitch = el('div', { class: 'view-dropdown' }, el('label', { for: 'perspective-select' }, '界面视角'), perspectiveSelect);
 perspectiveSelect.addEventListener('change', () => {
@@ -1324,7 +1334,7 @@ function renderContext() {
   const sourceText = !records.length ? '还没有载入政策、分类或关系依据。' : fixtureCount === records.length ? '当前全部数据为软件机制示例，不代表真实政策。' : fixtureCount ? '当前包含机制示例及其他来源记录，请分别核对；证据尚未验证。' : '当前包含用户或导入记录；出处可追踪，但证据尚未验证。';
   const trace = el('section', { class: 'side-section' }, el('h2', {}, '这份方案来自哪里'), el('p', { class: 'muted' }, sourceText),
     el('ol', { class: 'trace' }, el('li', {}, '研究范围：当前项目中的设定'), el('li', {}, '已有数据：' + p.data.descriptors.length + ' 个变量，' + p.data.paths.length + ' 条路径'), el('li', {}, p.data.judgments.length ? '影响判断：' + p.data.judgments.length + ' 条；检验范围以选用记录及冻结归档为准' : '影响判断：尚未提供'), el('li', { 'data-cib-trace': '' }, 'CIB检验：' + runText)));
-  if (p.view.perspective === 'expert') trace.append(el('p', { class: 'muted' }, '契约 ' + CONTRACT_VERSION + ' · 科学修订 ' + p.revision), el('p', { class: 'muted' }, '项目ID：' + p.id));
+  if (p.view.perspective === 'expert') trace.append();
   if (snapshot) {
     const current = store.isCurrent(snapshot);
     const details = el('details', { class: 'snapshot', id: 'snapshot-details' }, el('summary', {}, current ? '基础快照：当前输入，未检验' : '基础快照：输入已改变，已过期'), el('p', {}, '这只是输入归档，不包含CIB求解结果。刷新后请重新记录。'));
@@ -1389,7 +1399,7 @@ function mountAbout(container, navigate) {
         ['多专家评分、分歧与聚合', '尚未实现', '旧平台 v1.5 有 Ensemble 模式；新版未迁移，旧数据不能直接当专家记录'],
         ['情景地图（簇 + 热力图）', '尚未实现', '需要真实冻结结果与稳定聚类口径；不用随机点充数'],
         ['AHP、加权 CIB、知识库、模型真实运行', '尚未实现', '方法未核实或缺少外部资源（如 GAMS），不挂假按钮'],
-        ['四种参数输出与模型映射', '部分可用', '报告与 JSON 可用；映射仍为平台推断，未经导师核对']
+        ['四种参数输出与模型映射', '部分可用', '报告与 JSON 可用；映射仍为平台推断，未经核对']
       ].map(row => el('tr', {}, ...row.map(cell => el('td', {}, cell)))))),
     el('h3', {}, '版本'),
     el('p', {}, '2026-11-06 · 本轮：新增一键参考评分（关系评分与矩阵核对两个入口）、参考采用后直通检验、稳健性单点重算、白箱链移入工具区并从结果直达。'),
@@ -3251,7 +3261,7 @@ function createRunSave(context){
   function renderRunSave(){
     const summary=readRunSummary(context.store),archive=readRunArchive(context.store);
     const download=el('button',{class:'button secondary',type:'button',disabled:!archive,onclick:()=>{const current=readRunArchive(context.store);if(!current)return;const url=URL.createObjectURL(new Blob([JSON.stringify(current,null,2)],{type:'application/json'})),a=el('a',{href:url,download:'cib-archive.json'});a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}},'下载当前查看的检算JSON归档');
-    runSave.replaceChildren(el('h3',{},'检算结果单独保存'),el('p',{},summary?'本会话当前查看的检算归档：'+statusLabel(summary.status)+'；年份 '+(summary.year??'尚无合法输入')+'；冻结修订 '+summary.revision+'；成立数 '+(summary.count===null?'未定':summary.count)+(summary.stale?'；旧输入已过期，归档仍可保存。':'；归档保留冻结输入。'):'本会话还没有检算归档。'),el('p',{},'项目备份保存范围、数据和选择，不包含检算结果或矩阵交接候选。检算页JSON包含冻结矩阵、结果与诊断；可在检算页选择旧归档，下载目标随之切换。刷新后本会话归档丢失，请先下载。'),download,el('button',{class:'button secondary',type:'button',onclick:()=>context.navigate('solver')},'前往检算页查看与保存'),el('p',{class:'muted'},'当前可下载JSON项目备份和检算归档；Word、Excel及完整报告尚未提供。'));
+    runSave.replaceChildren(el('h3',{},'检算结果单独保存'),el('p',{},summary?'本会话当前查看的检算归档：'+statusLabel(summary.status)+'；年份 '+(summary.year??'尚无合法输入')+'；冻结修订 '+summary.revision+'；成立数 '+(summary.count===null?'未定':summary.count)+(summary.stale?'；旧输入已过期，归档仍可保存。':'；归档保留冻结输入。'):'本会话还没有检算归档。'),el('p',{},'项目备份保存范围、数据和选择，不包含检算结果或矩阵交接候选。检算页JSON包含冻结矩阵、结果与诊断；可在检算页选择旧归档，下载目标随之切换。刷新后本会话归档丢失，请先下载。'),download,el('button',{class:'button secondary',type:'button',onclick:()=>context.navigate('solver')},'前往检算页查看与保存'));
   }
   return {runSave,renderRunSave};
 }
@@ -3546,16 +3556,15 @@ function mount(container, context) {
 
   const {runSave,renderRunSave}=createRunSave(context);
   const moreDetails = el('details', { id: 'home-more' }, el('summary', {}, '更多设置与操作'),
-    field('研究年份', yearsText, el('small', { id: 'years-help' }, '文本快捷输入：用逗号分隔四位年份；留空表示暂不设年份，仍可先探索。')),
+    field('研究年份', yearsText),
     el('div', { class: 'actions' }, el('button', { class: 'button secondary', type: 'button', onclick: applyText }, '应用文本年份'), el('button', { class: 'button secondary', type: 'button', onclick: saveScope }, '保存项目范围')),
     el('hr', { class: 'section-divider' }),
     el('div', { class: 'actions' }, el('button', { class: 'button secondary', type: 'button', onclick: context.exportProject }, '下载项目备份'), el('button', { class: 'button secondary', type: 'button', onclick: context.captureSnapshot }, '记录未检验快照')),
-    el('div', { class: 'field', style: 'margin-top:16px' }, el('label', { for: 'project-import' }, '从JSON备份恢复'), backupInput(), el('small', {}, '恢复备份会替换当前项目；正常继续已有方案请用上方入口，不必下载文件。')),
-    el('p', { class: 'muted' }, '这里只是文件级备份与快照；项目备份不包含检算结果。'),
+    el('div', { class: 'field', style: 'margin-top:16px' }, el('label', { for: 'project-import' }, '从JSON备份恢复'), backupInput(), ),
     el('div', { class: 'actions' },
       el('button', { class: 'button text', type: 'button', onclick: loadDemo }, '载入机制示例'),
       el('button', { class: 'button text', type: 'button', onclick: loadMechanism }, '载入机制演示（状态有差异、含冲突）')),
-    el('p', { class: 'muted' }, '两个机制演示都只用于验证软件：示例是六层分类两变量；R35 演示的 18 格分值取自评分明细，9 个组合里 2 个自洽、7 个冲突。都不代表真实政策。'));
+    el('hr', { class: 'section-divider' }));
 
   // 首屏两条明确路径：自己的研究走 46 项目录由用户做主；示例体验是机制演示，载入前先讲清替换范围。
   const pathHost = el('div', { class: 'home-paths', 'aria-label': '开始方式' });
@@ -3593,12 +3602,12 @@ function mount(container, context) {
     pathHost.replaceChildren(
       el('button', { class: 'home-path', type: 'button', onclick: startOwn },
         el('strong', {}, '开始自己的研究'),
-        el('span', { class: 'muted' }, '默认使用已确认的 46 项目录；因素、年度状态与评分都由你选择，平台不替你勾选。')),
+        ),
       el('span', { class: 'home-path-or', 'aria-hidden': 'true' }, '或'),
       el('button', { class: 'home-path', type: 'button', onclick: startDemo },
         el('strong', {}, '用示例体验完整流程'),
         el('span', { class: 'home-path-badge' }, '机制演示'),
-        el('span', { class: 'muted' }, '载入带完整因素、年度状态与评分的示例，一步看到检验与解释结果。')));
+        ));
   }
   // Start-new and continue stay visible with no disclosure: the first screen must say
   // what happens to the existing project before anything is replaced. Kept to one
@@ -3614,8 +3623,8 @@ function mount(container, context) {
       el('button', { class: 'button secondary', type: 'button', onclick: startNewScenario }, pendingNew ? '重新开始填写新情景' : '开始一个新情景'),
       el('button', { class: 'button secondary', type: 'button', onclick: continueExisting }, pendingNew ? '放弃新情景，继续已有方案' : '继续已有方案'),
       el('small', { class: 'muted' }, pendingNew
-        ? '新情景草稿（提交后替换当前活动项目）· 当前项目：' + displayTitle(current.title)
-        : '当前项目：' + displayTitle(current.title) + '（' + rangeSummary(current.scope.regionId, current.scope.years) + '）'));
+        ? '新情景草稿'
+        : displayTitle(current.title) + '（' + rangeSummary(current.scope.regionId, current.scope.years) + '）'));
     primaryButton.textContent = pendingNew ? '建立新情景并继续：选择因素' : '继续：选择因素';
     // While a new scenario is being drafted the decorative progress strip yields its
     // space to the replacement notice, so the one primary action stays on screen.
@@ -3640,8 +3649,8 @@ function mount(container, context) {
 
   // Provenance, the editable name and everything else that is secondary sits after the
   // one primary action, so the choice of where and when keeps the first screen.
-  const catalogDetails = el('details', { id: 'home-catalog-source' }, el('summary', {}, '清单来源、核对日期与覆盖范围'),
-    el('p', { class: 'muted' }, REGION_CATALOG.scopeNote + ' 来源：' + REGION_CATALOG.source + '；核对日期 ' + REGION_CATALOG.checkedAt + (REGION_CATALOG.onlineVerified ? '（已在联网条件下核对）' : '（本轮未联网复核，仅按公开口径整理）') + '。'));
+  const catalogDetails = el('details', { id: 'home-catalog-source' }, el('summary', {}, '清单来源'),
+    el('p', {}, REGION_CATALOG.source));
 
   const nameBlock = el('div', { class: 'name-block' },
     el('div', { class: 'form-grid' },
@@ -3652,7 +3661,7 @@ function mount(container, context) {
   const libraryHost = el('div', { class: 'library-host' });
   const geoSection = el('section', { class: 'geo-panel', 'aria-labelledby': 'geo-title' },
     el('h3', { id: 'geo-title' }, '在地图上选地区'),
-    el('p', { class: 'geo-lead' }, '悬停、点击与键盘都能看地区卡片；点「研究这个地区」才写入项目。'));
+    );
   geo = mountMap(geoSection, context, {
     getScope: () => regionId || null,
     hasResults: Boolean(readRunSummary(context.store)),
@@ -3758,11 +3767,11 @@ function savePlanPanel(container, context) {
     const empty = planState(p) === 'empty';
     summary.replaceChildren(...[
       el('p', {}, (p.scope.regionId || '地区未定') + ' · ' + ((p.scope.years || []).join('/') || '年份未定') + ' · ' + p.selection.descriptorIds.length + ' 个因素'),
-      ...(empty ? [el('p', { class: 'save-summary-line warn-line' }, '尚未选择研究因素。')] : years.map(line => el('p', { class: 'save-summary-line' }, line))),
+      ...(empty ? [] : years.map(line => el('p', { class: 'save-summary-line' }, line))),
       ...(empty ? [el('button', { class: 'button text', type: 'button', onclick: () => context.navigate('elements') }, '去选择因素')] : [])]);
     save.textContent = empty ? '保存为草稿（还没有因素与评分）' : '保存这个方案';
     focusValues = Object.create(null);
-    focusHost.replaceChildren(el('p', { class: 'v5-hint' }, '关注状态只随方案快照保存，用于日后对照；它不等于年度状态，也不锁定检算。'));
+    focusHost.replaceChildren();
     for (const id of p.selection.descriptorIds) {
       const d = p.data.descriptors.find(x => x.id === id);
       if (!d) continue;
@@ -3794,11 +3803,9 @@ function savePlanPanel(container, context) {
     }
   });
 
-  root.append(el('h3', {}, '保存当前方案'),
-    el('p', { class: 'save-hint' }, '保存地区、年份、因素、评分与按年状态；不包含检验结果。'),
-    el('label', { class: 'save-field' }, '方案名称', name),
+  root.append(
+        el('label', { class: 'save-field' }, '方案名称', name),
     summary,
-    el('p', { class: 'save-readonly' }, '年度状态读自「因素与方案」，这里只读展示。', infoTip('方案保存的是地区、年份、因素、评分与按年状态；检验结果要单独保存为检验记录。关注状态只是快照备注，不等于年度状态或锁定。', '方案保存什么')),
     advanced, message,
     el('div', { class: 'save-actions' }, save));
   advanced.append(focusHost);
@@ -3821,8 +3828,7 @@ function runSavePanel(container, context) {
     if (!archive || !s) {
       runName.remove();
       body.replaceChildren(
-        el('p', { class: 'v5-hint' }, '还没有检验结果：先完成一次检验，才能保存检验记录或导出报告。'),
-        el('button', { class: 'button', type: 'button', onclick: () => context.navigate('solver') }, '去检验'));
+                el('button', { class: 'button', type: 'button', onclick: () => context.navigate('solver') }, '去检验'));
       message.textContent = '';
       return;
     }
@@ -3831,8 +3837,7 @@ function runSavePanel(container, context) {
     const done = s.status === 'completed';
     body.replaceChildren(
       el('p', {}, '本次检验：' + statusLabel(s.status) + ' · 年份 ' + (s.year ?? '无有效输入') + ' · 自洽组合 ' + (s.count === null ? '未定（不是 0）' : s.count) + (s.stale ? ' · 旧输入已过期' : '')),
-      done ? null : el('p', { class: 'v5-hint' }, '这条记录不是一次完成的结果；保存后会如实标注状态，不会冒充成功。'),
-      el('div', { class: 'save-actions' },
+      done ? null :       el('div', { class: 'save-actions' },
         el('button', { class: 'button primary-action', type: 'button', onclick: () => {
           try {
             const cur = library.load();
@@ -3906,7 +3911,7 @@ function savedWorkPanel(container, context) {
     }
     const plans = state.bundle.plans, runs = state.bundle.runs;
     list.append(el('h4', {}, '我的方案（' + plans.length + '）'));
-    if (!plans.length) list.append(el('p', { class: 'v5-hint' }, '还没有保存的方案。回到上方「保存当前方案」即可保存。'));
+    if (!plans.length) list.append();
     for (const plan of plans) {
       const p = plan.project;
       list.append(el('details', { class: 'library-row' }, el('summary', {}, plan.name),
@@ -3926,7 +3931,7 @@ function savedWorkPanel(container, context) {
           }))));
     }
     list.append(el('h4', {}, '历史检验记录（' + runs.length + '）'));
-    if (!runs.length) list.append(el('p', { class: 'v5-hint' }, '还没有保存的检验记录。完成一次检验后，在上方「本次检验结果」里保存。'));
+    if (!runs.length) list.append();
     for (const run of runs) {
       const a = run.archive, r = a.RunResult, input = a.RunInput;
       list.append(el('details', { class: 'library-row' }, el('summary', {}, run.name),
@@ -3942,7 +3947,7 @@ function savedWorkPanel(container, context) {
         button('重新读取历史库', () => { state = library.load(); pending = null; preview.replaceChildren(); renderList(); message.textContent = state.ok ? '已重新读取；历史仍未复算。' : '原库无法读取，未清空。'; }),
         button('导出完整历史库', () => attempt(() => { const current = library.load(); if (!current.ok) throw new Error(current.error); download('saved-work-bundle.json', current.bundle); }))),
       el('label', { class: 'save-field' }, '导入历史库或单条检验记录', importFile),
-      el('p', { class: 'v5-hint' }, '仅保存在本浏览器；最多 20 条方案 + 20 条检验记录、5MiB；不自动同步、不自动复算。')));
+      ));
   renderList();
   const reload = () => { state = library.load(); pending = null; preview.replaceChildren(); renderList(); };
   window.addEventListener(LIBRARY_EVENT, reload);
@@ -4106,10 +4111,9 @@ function mount(container,context){
   const plan=year==null?null:planAtYear(p,year);
   const compareBlock=(config,index)=>{
    const box=el('div',{class:'solver-scenario-compare'},el('h4',{},'与我的方案比较（'+year+' 年）'));
-   if(!plan)return box.append(el('p',{class:'v5-hint'},'没有可比较的年度方案。')),box;
+   if(!plan)return box.append(),box;
    if(!plan.complete){
-    box.append(el('p',{class:'v5-hint'},'我的方案 '+year+' 年状态未选齐（缺 '+plan.missing.map(d=>name(d)).join('、')+'），先补齐才能逐因素比较。'),
-     el('button',{class:'button text',onclick:()=>context.navigate('elements')},'去补选状态'));
+    box.append(     el('button',{class:'button text',onclick:()=>context.navigate('elements')},'去补选状态'));
     return box;
    }
    const rows=ids.map(id=>{
@@ -4121,7 +4125,7 @@ function mount(container,context){
     ?el('p',{},'与你的方案有 '+diff.length+' 处不同：')
     :el('p',{},'这个组合与你的 '+year+' 年方案完全一致。'),
     el('ul',{class:'solver-compare-list'},...rows.map(x=>el('li',{class:x.same?'':'is-diff'},name(x.id)+'：我的方案「'+x.mine+'」'+(x.same?'＝':'≠')+'组合「'+x.their+'」'))),
-    ...(diff.length?[el('p',{class:'v5-hint'},'差异只说明状态不同，不代表你的方案错误；你的方案自洽与否看上方「我的方案」结论。')]:[]));
+    ...(diff.length?[]:[]));
    return box;
   };
   const saveScenario=(config,index)=>{
@@ -4230,8 +4234,8 @@ function mount(container,context){
  function render(){if(disposed)return;
   const p=context.store.read();root.replaceChildren();
   const year=el('select',{'aria-label':'检算年份',disabled:!!job,onchange:e=>{session.year=e.target.value;render();}},el('option',{value:''},'请先选年份'),...p.scope.years.map(y=>el('option',{value:y},y)));year.value=session.year;
-  const yearRow=el('div',{class:'solver-yearbar'},el('span',{class:'cap'},'检验年份'),year,el('span',{class:'hint'},'换年份只换当前截面，不改项目范围'));
-  root.append(el('div',{class:'solver-head'},el('p',{},'先看这一年有哪些自洽情景，再看你自己的方案落在哪里。')),yearRow);
+  const yearRow=el('div',{class:'solver-yearbar'},el('span',{class:'cap'},'检验年份'),year);
+  root.append(yearRow);
 
   const last=session.archives.at(-1);
   root.append(summaryCard(p,last));
@@ -4310,8 +4314,7 @@ function mount(container,context){
   if(yearNum!==null)for(const a of p.selection.descriptorIds)for(const b of p.selection.descriptorIds){if(a===b)continue;const list=p.data.judgments.filter(j=>j.sourceDescriptorId===a&&j.targetDescriptorId===b&&j.scope?.regionId===p.scope.regionId&&Array.isArray(j.validYears)&&j.validYears.includes(yearNum));if(list.length===1&&!session.selected.includes(list[0].id))uniq.push(list[0].id);}
   if(uniq.length)controls.append(el('div',{class:'solver-fill-unique'},button('使用这些方向唯一的评分（'+uniq.length+'）',()=>{session.selected=[...new Set([...session.selected,...uniq])];render();})));
   const clear=button('清空本页选用',()=>{session.selected=[];render();});clear.disabled=!!job;
-  settings.append(el('p',{class:'v5-hint'},'这里的选用只影响本次计算；关系页的矩阵仍以那边明确采用的记录为准。'),
-   controls,
+  settings.append(   controls,
    el('div',{class:'solver-settings-actions'},clear,button('核对项目范围',()=>context.navigate('workspace')),button('核对因素与状态',()=>context.navigate('elements')),button('核对关系与矩阵',()=>context.navigate('relationships'))));
   root.append(settings);
   summaryChanged();
@@ -4338,7 +4341,7 @@ function mount(container,context){
    session.year=String(candidate.year);session.selected=candidate.selectionOfJudgments.map(j=>j.id);handoffMessage='已采用；尚未计算。';render();
   });adopt.disabled=!!job||!checked.ok;
   section.append(adopt,button('返回关系页',()=>context.navigate('relationships')));
-  if(handoffMessage)section.append(el('p',{class:'v5-hint'},handoffMessage));
+  if(handoffMessage)section.append();
   return section;
  }
 
@@ -4388,7 +4391,7 @@ function mount(container,context){
  function sessionResultCard(p,archive){
   const section=el('section',{class:'solver-session'},el('div',{class:'hd'},el('h3',{},'本次检验结果'),el('span',{class:'note'},session.archives.length?('本会话 '+session.archives.length+' 次'):'尚无'))); 
   if(!archive){
-   section.append(el('p',{class:'v5-hint'},'完成一次检验后可下载结果，或到「保存与导出」保存为检验记录。'));
+   section.append();
    section.append(button('前往保存与导出',()=>context.navigate('exports')));
    return section;
   }
@@ -4400,7 +4403,7 @@ function mount(container,context){
   }
   const download=button('下载本次结果 JSON',()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(archive,null,2)],{type:'application/json'})),a=el('a',{href:url,download:'cib-archive.json'});a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});download.disabled=!!job;
   section.append(el('div',{class:'solver-session-actions'},download,button('历史检验记录',()=>context.navigate('exports'))));
-  section.append(el('p',{class:'v5-hint'},'本次结果只保留在当前浏览器会话；刷新后需重新计算，或到「保存与导出」存为检验记录。'));
+  section.append();
   return section;
  }
 
@@ -4571,7 +4574,7 @@ function planCheckSection({ project, prepared, session, context, lastArchive, on
   const section = el('section', { class: 'plan-check', 'data-plan-check': '' });
   const message = el('p', { class: 'plan-check-msg', role: 'status' });
   if (year === null || !project.scope.years.includes(year)) {
-    section.append(el('h3', {}, '检验我的方案'), el('p', { class: 'hint' }, '先在上面选一个检算年份，这里会读出那一年的方案。'));
+    section.append(el('h3', {}, '检验我的方案'));
     return section;
   }
   const plan = planAtYear(project, year);
@@ -4602,15 +4605,14 @@ function planCheckSection({ project, prepared, session, context, lastArchive, on
           onRender();
         } catch (error) { message.textContent = '未保存：' + error.message; }
       } }, el('option', { value: '' }, '就地补选'), ...states.map(s => el('option', { value: s.id }, s.label)));
-      row.append(el('span', { class: 'st missing' }, '未选状态'), select);
+      row.append(select);
     }
     rows.append(row);
   }
   section.append(rows);
 
   if (!plan.complete) {
-    section.append(el('p', { class: 'hint' }, '缺状态的因素不能进入方案检验；上表可以就地补选，也可以回因素页按年选择。'),
-      el('button', { class: 'button secondary', onclick: () => context.navigate('elements') }, '回因素页按年份选择'), message);
+    section.append(      el('button', { class: 'button secondary', onclick: () => context.navigate('elements') }, '回因素页按年份选择'), message);
     return section;
   }
 
@@ -4640,7 +4642,7 @@ function planCheckSection({ project, prepared, session, context, lastArchive, on
   section.append(check);
   if (!canCheck && blocks.length) {
     section.append(el('ul', { class: 'plan-check-blocks' }, ...blocks.slice(0, 5).map(d => el('li', {}, d.message))));
-    if (blocks.length > 5) section.append(el('p', { class: 'hint' }, '另有 ' + (blocks.length - 5) + ' 项，展开下面的输入诊断查看全部。'));
+    if (blocks.length > 5) section.append();
   }
   section.append(message);
 
@@ -4664,7 +4666,7 @@ function planCheckSection({ project, prepared, session, context, lastArchive, on
     else if (record) section.append(el('p', { class: 'plan-check-stale' }, '上次检验（' + new Date(record.at).toLocaleString() + '）已过期：' + planCheckStaleReasons(record, { project, plan }).slice(1).join('；') + '。重新检验后才代表当前输入。'));
     return section;
   }
-  if (fromRecord) section.append(el('p', { class: 'hint' }, '读自上次检验记录（' + new Date(check2.at).toLocaleString() + '）；年份内输入未变，按同一算法复核展示。'));
+  if (fromRecord) section.append();
 
   const trace = check2.trace;
   const bad = trace.balances.filter(b => !b.consistent);
@@ -4703,7 +4705,7 @@ function planCheckSection({ project, prepared, session, context, lastArchive, on
       const bestAlt = b.candidates.reduce((m, c) => c.support > m.support ? c : m, b.candidates[0]);
       detail.append(el('h4', {}, name(b.descriptorId) + '：所选 ' + b.selectedSupport + '，替代“' + stateName(bestAlt.stateId) + '”' + bestAlt.support));
       detail.append(el('ul', {}, ...bestAlt.contributions.map(x => el('li', {}, name(x.sourceDescriptorId) + ' 的“' + stateName(x.sourceStateId) + '” × 对方状态“' + stateName(bestAlt.stateId) + '” = ' + x.score + '（判断 ' + x.judgmentId + '）'))));
-      detail.append(el('p', { class: 'hint' }, '这里只列出替代状态那一列的来源；所选状态那一列的来源见下方“检查自己的配置”。'));
+      detail.append();
     }
     section.append(detail);
   }
@@ -4811,14 +4813,12 @@ function formulaCard(f, ctx = {}, { open = false } = {}) {
   box.append(el('summary', {}, el('span', { class: 'v5-formula-name' }, f.title),
     el('span', { class: 'v5-tag ' + cls }, label)));
   const body = el('div', { class: 'v5-formula-body' });
-  body.append(el('p', { class: 'v5-hint' }, f.meaning));
+  body.append();
   body.append(el('div', { class: 'v5-formula-expr' }, f.expr));
   if (f.symbols?.length) body.append(el('table', { class: 'v5-table v5-formula-sym' },
     el('thead', {}, el('tr', {}, el('th', { scope: 'col' }, '符号'), el('th', { scope: 'col' }, '含义'))),
     el('tbody', {}, ...f.symbols.map(([sym, text]) => el('tr', {}, el('td', {}, el('code', {}, sym)), el('td', {}, text))))));
   if (substituted) body.append(el('div', { class: 'v5-formula-sub' }, el('span', { class: 'cap' }, '本次代入'), el('p', {}, substituted)));
-  else body.append(el('div', { class: 'v5-formula-sub is-empty' }, el('span', { class: 'cap' }, '本次代入'),
-    el('p', {}, status === 'missing' ? '没有概率模型与先验，这里不给示例数字。' : status === 'pending' ? '原论文公式尚未核实，这里不给代入结果。' : '当前还没有可代入的完整输入。')));
   body.append(el('dl', { class: 'v5-formula-meta' },
     el('div', {}, el('dt', {}, '出处'), el('dd', {}, f.source)),
     el('div', {}, el('dt', {}, '代码位置'), el('dd', {}, el('code', {}, f.code))),
@@ -4834,7 +4834,7 @@ function formulaInline(f, ctx = {}) {
     el('div', { class: 'expr' }, f.expr),
     el('p', { class: 'v5-hint' }, f.meaning));
   if (sub) box.append(el('p', { class: 'sub' }, sub));
-  else box.append(el('p', { class: 'v5-hint' }, status === 'missing' ? '未接入：没有概率模型与先验。' : '当前没有可代入的完整输入。'));
+  else box.append();
   return box;
 }
 
@@ -5285,7 +5285,6 @@ function mountMap(host, context, options) {
   }
   mapBox.append(svg);
   host.append(el('div', { class: 'geo-shell' }, mapBox, cardBox),
-    el('p', { class: 'geo-source' }, '示意地图，仅用于选择研究范围，不用于测距或边界判定。'),
     status);
 
   function pick(id) {
@@ -5317,9 +5316,7 @@ function mountMap(host, context, options) {
         el('div', {}, el('dt', {}, '年份'), el('dd', {}, '生效年份未知 ' + coverage.yearsUnknown + ' 条；已知不等于适用于 2030/2035，平台不做前向填充')),
         el('div', {}, el('dt', {}, '覆盖'), el('dd', {}, coverageLabel(coverage) + (coverage.total ? '；46 项中 ' + coverage.covered + ' 项有条款' : ''))),
         el('div', {}, el('dt', {}, '背景数据'), el('dd', {}, '暂无已核数据，不展示'))),
-      coverage.hasMaterial ? null : el('p', { class: 'geo-gap' }, '本地区在已导入库中 0 条：不等于当地没有政策，也不等于关系评分为 0。'),
-      el('p', { class: 'v5-hint' }, '来源：《' + libraryMeta().source.file + '》「' + libraryMeta().source.sheet + '」（' + libraryMeta().source.received + ' 收到）。另有 3 条天津交流稿摘要属样例资料，不计入正式收录。地理数据来源：' + GEO_SOURCE.label + '；' + GEO_SOURCE.note + '（核对日期 ' + GEO_SOURCE.checkedAt + '）。'),
-      el('details', { class: 'geo-clauses' }, el('summary', {}, '本地区条款（' + (tools.length + clauses.length) + ' 条，列前 8 条）'),
+            el('details', { class: 'geo-clauses' }, el('summary', {}, '本地区条款（' + (tools.length + clauses.length) + ' 条，列前 8 条）'),
         (tools.length + clauses.length) ? el('div', {},
           ...clauses.map(clause => el('p', { class: 'geo-tool' }, el('b', {}, clause.clauseId), ' ', clause.excerpt, el('span', { class: 'geo-clause-note' }, '本项目录入'))),
           ...tools.slice(0, 8).map(row => el('p', { class: 'geo-tool' },
@@ -5334,9 +5331,6 @@ function mountMap(host, context, options) {
 
     cardBox.replaceChildren(...[
       el('div', { class: 'geo-card-hd' }, el('h3', {}, shown.label), el('span', { class: 'geo-level' }, shown.level === 'region' ? '区域口径' : '省级行政区')),
-      el('p', { class: 'geo-brief' }, coverage.library
-        ? '政策库收录 ' + coverage.library + ' 条工具记录；46 项描述符中 ' + (coverage.covered || 0) + ' 项有条款关联。'
-        : '已导入政策库中暂无本地区记录（不等于当地没有政策）。'),
       previewing ? el('div', { class: 'geo-impact' }, el('p', { class: 'geo-preview-cap' }, '预览：尚未应用到项目。'), ...impact.lines.map(line => el('p', {}, line))) : null,
       previewing ? null : el('p', { class: 'geo-current-static' }, '✓ 当前研究地区'),
       previewing ? el('div', { class: 'geo-actions' },
@@ -6519,14 +6513,8 @@ function mount(container, context) {
     const expert = p.view.perspective === 'expert';
     const rows = [
       el('h3', { id: 'elements-pilot-title' }, '目录小样：' + POLICY_PILOT_PATH.join(' → ')),
-      el('p', { class: 'muted' }, '四级目录逐级导航：' + POLICY_PILOT_PATH.map((label, index) => (index + 1) + '级 ' + label).join('；') + '。末级关联候选因素 ID ' + POLICY_PILOT_DESCRIPTOR_ID + '。'),
-      el('p', {}, '三条摘要摘自《描述符分级与时间轴 团队交流版》第 3 节，标注为"交流稿摘要，原条款待核"；用现有可准确呈现摘要的来源类型记录，不挂"政策原文"标签。'),
       el('ul', { class: 'elements-pilot-clauses' }, ...POLICY_PILOT_CLAUSES.map(clause =>
-        el('li', {}, el('strong', {}, clause.clauseId), el('span', { class: 'elements-pilot-excerpt' }, clause.excerpt), el('span', { class: 'elements-pilot-note muted' }, clause.note)))),
-      el('p', { class: 'elements-pilot-gap muted' }, '缺口：' + POLICY_PILOT_GAPS.join(' ')),
-      expert ? el('p', { class: 'muted' }, '来源定位：' + POLICY_PILOT_SOURCE.locator + '；记录 ID ' + POLICY_PILOT_SOURCE.id + '；审核状态 ' + POLICY_PILOT_SOURCE.reviewStatus + '。') : null,
-      el('p', {}, '候选因素的状态与参数映射为空：这里只用于追踪政策来源，关系评分依据继续独立。'),
-      joined ? el('p', { class: 'muted' }, '当前项目已包含该候选因素；重复加入不会新增节点或记录。') : null,
+        el('li', {}, el('strong', {}, clause.clauseId), el('span', { class: 'elements-pilot-excerpt' }, clause.excerpt), null))),
       el('button', { class: 'button', type: 'button', onclick: joinPilot }, joined ? '再次加入目录小样（内容一致时不新增）' : '向当前项目加入目录小样')
     ];
     // replaceChildren 会把 null 转成文本 "null"：先过滤，只有 el() 的 children 会自行跳过 null。
@@ -6630,13 +6618,9 @@ function mount(container, context) {
     }},'把当前旧选择迁移到 46 项');
     migrate.disabled=!selectedLegacy.length||!!missingTargets.length;
     box.append(
-      el('p',{class:'v5-hint'},'对照只核身份，不核阈值与评分。'+summary.total+' 项中：同义 '+summary.same+'、部分对应 '+summary.partial+'、拆分 '+summary.split+'、合并 '+summary.merged+'、未匹配 '+summary.unmatched+'（含转入结果指标 '+summary.outcomes+'）。'),
-      missingTargets.length?el('p',{class:'geo-gap'},'尚未加入 46 项目录，迁移按钮不可用；先加入目录再迁移。'):null,
       el('p',{},selectedLegacy.length?'当前选中的旧描述符：'+selectedLegacy.join('、'):'当前没有选中旧目录的描述符。'),
       el('table',{},el('thead',{},el('tr',{},el('th',{},'旧描述符'),el('th',{},'关系'),el('th',{},'新体系对应'),el('th',{},'说明'))),el('tbody',{},...rows)),
-      el('div',{class:'actions'},migrate),
-      el('p',{class:'v5-hint'},'迁移只改选择，不复制旧状态、按年安排与关系评分：拆分与合并项的口径已变，必须重新选年度状态并重新判断。'),
-      el('p',{class:'v5-hint'},MAPPING_SOURCE_NOTE));
+      el('div',{class:'actions'},migrate));
     return box;
   }
   function renderFrameworks(p){
@@ -6656,12 +6640,12 @@ function mount(container, context) {
     if(!p.data.descriptors.length)frameworkBox.open=true;
     frameworkBar.replaceChildren(
       card(BASELINE_CATALOG_LABEL,
-        '已确认的分类基线：'+base.counts.domains+' 个领域、'+base.counts.sections+' 个细分领域、'+base.counts.leaves+' 项具体描述符，另有 '+base.counts.outcomes+' 项结果指标单列（不计入 46 项）。',
+        base.counts.domains+' 个领域 · '+base.counts.sections+' 个细分领域 · '+base.counts.leaves+' 项描述符 · '+base.counts.outcomes+' 项结果指标',
         base.present?base.descriptors:0,joinBaselineNow,
-        '分类已确认；每个描述符下的三档状态是平台参考设定，阈值、单位、参数与模型映射均未核定，界面按“参考状态”标注。'),
-      card('社会描述符框架','译自 Lauer et al 2025 与 Dimensions & Variants 工作簿：'+SOCIAL_DIMENSIONS.length+' 个维度，变体为原文列举。',socialCount,openSocial,hasSocial?'只保留原文变体，不补造；变体不保证穷尽，也未被定义为可穷举的状态空间。':'导师提供的讨论稿，不是最终分类体系。'));
+        null),
+      card('社会描述符框架',SOCIAL_DIMENSIONS.length+' 个维度',socialCount,openSocial,null));
     // 旧 24 项 + 迁移工具收进默认折叠的二级分组，不与新目录抢首屏。
-    const legacyCard=card('旧版 24 项目录','旧平台 TREE：6 个分组、24 个因素、每因素 3 档。已由 46 项体系取代；保留它只为旧项目与旧评分仍能打开与对照。',policyCount,joinDraft,hasPolicy?'来源：旧平台 TREE；状态名称原样保留；需要升级时用下面的对照与迁移。':'不建议在新项目里使用。');
+    const legacyCard=card('旧版 24 项目录','6 个分组 · 24 个因素',policyCount,joinDraft,null);
     const legacyWrap=el('details',{class:'fw-legacy'},el('summary',{},'旧项目兼容与迁移（24 项旧目录 → 46 项）'),legacyCard);
     const freshLegacy=renderLegacyMap(p);
     legacyWrap.append(freshLegacy);
@@ -6686,20 +6670,15 @@ function mount(container, context) {
     const detail=el('section',{class:'descriptor-detail','data-descriptor-detail':''},
       el('h3',{},descriptor.label+' · 详情'),
       el('p',{},el('span',{class:'dd-cap'},'分类路径'),path),
-      el('p',{},el('span',{class:'dd-cap'},'定义'),
-        descriptor.description?descriptor.description
-          :el('span',{class:'dd-gap'},'尚未建立。目录分类已确认（来自《京津冀政策描述符体系》图示），但这个描述符的正式定义（对象边界、口径）还没有录入；用它做判断前需要先补定义。')),
-      descriptor.role==='outcome'?el('p',{class:'v5-hint'},'结果指标：不计入 46 项，默认不作为政策输入；选中它只用于观察结果。'):null,
-      el('p',{},el('span',{class:'dd-cap'},'参考状态'),'三档状态是平台参考设定（阈值、单位、依据未核定），不是已核定状态。'),
+      descriptor.description?el('p',{},el('span',{class:'dd-cap'},'定义'),descriptor.description):null,
       el('p',{},el('span',{class:'dd-cap'},'相关政策'),
         el('button',{class:'button text',type:'button',onclick:event=>openDrawer(event.currentTarget,'相关政策 · '+descriptor.label,body=>{
           body.append(tools.length?el('div',{},...tools.map(row=>el('p',{class:'dd-tool'},
             el('b',{},row[ROW_LIB.path]),' · ',row[ROW_LIB.name]||row[ROW_LIB.doc],
             el('span',{class:'dd-note'},(row[ROW_LIB.start]?row[ROW_LIB.start]+' 年生效':'年份未知')+' · '+row[ROW_LIB.jurisdiction]))),
-            el('p',{class:'v5-hint'},'共 '+tools.length+' 条工具记录；首页地图的「查看政策资料」可看全部。'))
-            :el('p',{class:'v5-hint'},'已导入政策库中暂无关联这个描述符的本地工具记录；这不等于当地没有政策，也不等于关系评分为 0。'));
-        })},'查看政策（'+(tools.length?tools.length+' 条':'当地暂无')+'）')),
-      hasKids?null:el('p',{class:'v5-hint dd-subgap'},'图示没有在这个描述符下定义行业、技术、对象等更细分；细分需要补定义后才能成为计算变量，分类节点不会自动参与 CIB。'));
+            null)
+            :null);
+        })},'查看政策（'+(tools.length?tools.length+' 条':'当地暂无')+'）')));
     return detail;
   }
 
@@ -6763,12 +6742,11 @@ function mount(container, context) {
       if(regionStrip.parentNode===root)root.insertBefore(demoBtn,regionStrip);else root.append(demoBtn);
     }
     if (empty) {
-      catalog.append(el('h3', {}, '从已有框架开始'), el('p', { class: 'muted' }, '当前项目还没有分类。旧平台的24项描述符可以直接载入为草案，下面先展示已有内容。'),
-        el('div', { class: 'elements-catalog-groups' }, ...JJJ_DRAFT_CATALOG.map(group => el('section', {}, el('strong', {}, group.label), el('p', {}, group.children.flatMap(section => section.descriptors.map(d => d.label)).join(' · '))))),
-        el('button', { class: 'button', onclick: joinDraft }, '向当前项目加入京津冀框架'), el('p', { class: 'muted' }, '保留项目名称、地区、年份与无冲突记录。保留原有三级结构，不补造第五、六级；不导入旧版评分或未核实的数值目标。'));
+      catalog.append(el('h3', {}, '从已有框架开始'),         el('div', { class: 'elements-catalog-groups' }, ...JJJ_DRAFT_CATALOG.map(group => el('section', {}, el('strong', {}, group.label), el('p', {}, group.children.flatMap(section => section.descriptors.map(d => d.label)).join(' · '))))),
+        el('button', { class: 'button', onclick: joinDraft }, '向当前项目加入京津冀框架'));
     } else {
       catalog.append(el('div', { class: 'elements-dataset' }, el('span', {}, p.title), el('span', { class: 'muted' }, p.data.descriptors.length + ' 项描述符')));
-      if (p.data.descriptors.some(item => item.provenance.sourceId === 'legacy-framework')) catalog.append(el('p', { class: 'muted elements-draft-note' }, '旧版已有框架草案：保留原三级分类及状态名称，阈值、变量角色与依据尚未重新核验。'));
+      if (p.data.descriptors.some(item => item.provenance.sourceId === 'legacy-framework')) catalog.append();
     }
     catalog.append(el('details',{},el('summary',{},'另建示例项目（替换当前项目）'),el('p',{},'这会重设名称、范围、数据与选择，与“向当前项目加入框架”不同。'),el('button',{class:'button secondary',onclick:loadDraft},'新建京津冀示例项目（替换当前项目）')));
     if (!pilot.isConnected) root.append(el('details',{class:'pilot-library'},el('summary',{},'查看燃煤政策目录小样'),pilot));
@@ -6815,7 +6793,7 @@ function mount(container, context) {
           ? el('button', { class: 'elements-disclosure', 'aria-label': (expanded.has(node.id) ? '收起 ' : '展开 ') + node.label, 'aria-expanded': String(open), disabled: !!query.trim(), onclick: toggleOpen }, disclosure(open))
           : el('span', { class: 'elements-leaf', 'aria-hidden': 'true' }),
         el('div', { class: 'elements-cell' }, nameArea, isBranch ? checkbox : null),
-        expert ? el('span', { class: 'elements-node-id muted' }, node.id) : null
+        null
       ];
       tree.append(el('div', { class: 'elements-row' + (depth === 1 ? ' is-root' : '') + (selected.has(node.id) ? ' is-selected' : ''), 'data-path': key, 'data-depth': depth, title: pathLabels, style: '--tree-indent:' + Math.min(depth - 1, 6) * 14 + 'px' }, ...rowChildren));
     }
@@ -7053,8 +7031,7 @@ function mount(container, context) {
     const mode = el('select', { id: 'timeline-interpolation', 'aria-label': '插值方式', onchange: e => { draft.interpolation = e.target.value; draw(); } },
       el('option', { value: 'none' }, inline?'只显示填写的年份':'none · 仅锚点'), el('option', { value: 'linear' }, inline?'年份之间连成直线':'linear · 线性插值'), el('option', { value: 'step' }, inline?'数值保持到下个节点':'step · 左端值保持'));
     mode.value = draft.interpolation;
-    right.append(el('div', { class: 'timeline-settings' }, el('label', {}, '单位', unit), el('label', {}, inline?'年份之间如何变化':'插值方式', mode)),
-      el('details',{},el('summary',{},'数值与状态如何处理'),el('p', { class: 'muted' }, '空白不是0；不跨缺失点推算，不自动推断状态。数值或年份修改后，状态对应需要重新核对。拖动只改草稿，保存后生效。')));
+    right.append(el('div', { class: 'timeline-settings' }, el('label', {}, '单位', unit), el('label', {}, inline?'年份之间如何变化':'插值方式', mode)));
     svg = svgEl('svg', { viewBox: '0 0 640 300', class: 'timeline-chart', tabindex: '0', role: 'img', 'aria-label': '日历年路径图，精确编辑请使用下方节点表' });
     svg.addEventListener('pointerdown', pointerDown);
     svg.addEventListener('pointermove', pointerMove);
@@ -7078,7 +7055,7 @@ function mount(container, context) {
       el('div', { class: 'timeline-save' }, el('button', { class: 'button', onclick: cancel }, '取消修改'), el('button', { class: 'button primary-action', onclick: save }, inline?'保存年份变化':'保存路径')));
     if (original) {
       right.append(sources(original, p));
-      if (p.view.perspective === 'expert') right.append(el('p', { class: 'muted' }, '变量ID：' + descriptorId + '；路径ID：' + original.id + '；版本：' + original.version));
+      if (p.view.perspective === 'expert') right.append();
     }
     draw();
     publish(p);
@@ -7121,7 +7098,7 @@ function mount(container, context) {
         if(inline)return year+'：'+(result?.value===null||!result?'未填写':Number(result.value.toPrecision(6)))+(result?.derived?'（按节点推算）':'');
         return year + '：' + (result?.value === null || !result ? '未定义' : Number(result.value.toPrecision(6))) + (result?.derived ? '（插值，状态未推断）' : result ? '（锚点）' : '');
       });
-      svg.after(el('p', { class: 'timeline-preview muted' }, '研究年份预览 · ' + values.join('；')));
+      svg.after();
     } catch (error) { svg.append(svgEl('text', { x: 20, y: 100 }, '草稿无效：' + error.message)); }
   }
   function pointerDown(event) {
@@ -7416,8 +7393,7 @@ function yearDetail({project = null, descriptorId = null, year = null, expert = 
   const quick = el('div', {class: 'year-detail-quick', role: 'group', 'aria-label': '从研究年份与原始节点选择年份'});
   const body = el('div', {class: 'year-detail-body', 'data-year-detail-body': ''});
   input.addEventListener('input', () => refresh());
-  root.append(el('h3', {}, '按年查看（只读）'), el('p', {class: 'muted'}, YEAR_DETAIL_NOTE),
-    el('div', {class: 'year-detail-controls'}, el('label', {}, '查看年份', input), quick), message, draftLine, previewNote, body);
+  root.append(el('h3', {}, '按年查看（只读）'),     el('div', {class: 'year-detail-controls'}, el('label', {}, '查看年份', input), quick), message, draftLine, previewNote, body);
 
   function paintQuick(options) {
     // 键盘用户按 Enter 选中后按钮会被重建；保留焦点，否则焦点会掉到页面上。
@@ -7489,7 +7465,7 @@ function yearDetail({project = null, descriptorId = null, year = null, expert = 
         const label = current.data.descriptors.find(item => item.id === currentDescriptor)?.label || currentDescriptor;
         rows.push(gap('no-path', '「' + label + '」' + YEAR_DETAIL_NO_PATH_NOTE));
       } else {
-        if (paths.length > 1) rows.push(el('p', {class: 'muted'}, YEAR_DETAIL_MULTI_NOTE));
+        if (paths.length > 1) rows.push();
         for (const path of paths) rows.push(pathArticle(path, describeYear(path, shownYear)));
       }
     }
@@ -7920,7 +7896,7 @@ function overridePreview({project, path, year, reading, states, store, binding =
     }, result.candidates.length
       ? '候选状态：' + result.candidates.map(item => item.label + '（' + item.text + '）').join('；') + '。仅展示，需你确认。'
       : '候选状态：无。'));
-    rows.push(el('p', {class: 'annual-override-note muted'}, OVERRIDE_ONLY_VALUES));
+    rows.push();
     readout.replaceChildren(...rows.filter(row => row !== null && row !== undefined));
   }
 
@@ -7967,10 +7943,7 @@ function overridePreview({project, path, year, reading, states, store, binding =
   }
 
   section.append(
-    el('h5', {class: 'annual-override-title'}, '只改这一年（预览，只读）'),
-    el('p', {class: 'annual-override-hint muted'},
-      '在这里试算「如果这一年改成 X」：不保存、不进入检算，也不写入项目、历史库或本地存储。清空即回到基线；填 0 与清空是两件事。'),
-    el('div', {class: 'annual-override-controls'},
+            el('div', {class: 'annual-override-controls'},
       el('label', {}, '拟采用值', input),
       recorded === null ? el('label', {}, '对照状态', reference) : null,
       clearButton
@@ -8256,7 +8229,7 @@ function overrideLedgerPanel({ context } = {}) {
   }
 
   function render() {
-    root.replaceChildren(el('h3', {}, '年度覆盖台账'), el('p', { class: 'override-ledger-note muted' }, PANEL_STORAGE_NOTE));
+    root.replaceChildren(el('h3', {}, '年度覆盖台账'));
     if (!ledger) { root.append(el('p', { class: 'warning-text' }, PANEL_UNAVAILABLE_TEXT)); return; }
     if (!project) { root.append(el('p', {}, '尚未载入项目。')); return; }
     const path = target.path;
@@ -8301,9 +8274,7 @@ function overrideLedgerPanel({ context } = {}) {
         el('label', {}, '年份', yearSelect),
         el('label', {}, '对照状态', referenceSelect),
         el('label', {}, '参数取值', valueInput)),
-      el('p', { class: 'override-ledger-hint muted' },
-        '参数取值填 0 是有效取值；留空后点「保存年度覆盖」等于撤销，也可以直接点「撤销年度覆盖」。撤销写下的值是空，不是 0。'),
-      el('div', { class: 'override-ledger-actions' },
+            el('div', { class: 'override-ledger-actions' },
         el('button', { type: 'button', class: 'button primary-action', 'data-override-save': '1', onclick: save }, '保存年度覆盖'),
         el('button', { type: 'button', class: 'button', 'data-override-revoke': '1', onclick: revoke }, '撤销年度覆盖'),
         el('label', { class: 'override-ledger-fail' }, failBox, '模拟写入失败（仅下一次保存）')),
@@ -8868,7 +8839,7 @@ function node(tag,attrs,text=''){const n=document.createElementNS(NS,tag);Object
 function statePlanPanel(project,descriptorId,context,canChange){
  const d=project.data.descriptors.find(d=>d.id===descriptorId),states=d.stateIds.map(id=>project.data.states.find(s=>s.id===id)).filter(Boolean),years=[...project.scope.years].sort((a,b)=>a-b);
  const box=el('section',{class:'state-plan-panel','aria-label':'按年份选择状态'},el('h3',{},d.label+' · 年份与状态'));
- if((d.evidenceRefs||[]).includes('d46-source-states'))box.append(el('p',{class:'state-note'},el('b',{},'参考状态'),infoTip('这三档状态是平台参考设定：阈值、单位与文献依据均未核定，不代表已核实的政策口径。选择只表达你的方案，不是政策事实，也不锁定检验结果。','参考状态的含义')));
+ if((d.evidenceRefs||[]).includes('d46-source-states'))box.append();
  const message=el('p',{role:'status',class:'state-plan-message'});
  if(!years.length){box.append(el('p',{},'先确定研究年份。'),el('button',{class:'button',onclick:()=>context.navigate('workspace')},'设置年份'));return box;}
  if(!states.length){box.append(el('p',{},'这个因素还没有状态可选。'),el('button',{class:'button',onclick:()=>{const details=document.querySelector('.factor-management');if(details){details.open=true;details.scrollIntoView({block:'start'});}}},'补充这个因素的状态'));return box;}
@@ -9440,13 +9411,13 @@ function zoneCounts(project) {
 Object.assign(__exports, { ZONES, zoneIndex, taxonomyForZone, zoneCounts });
 },
 "src/fixtures/social-framework.mjs": (__require, __exports) => {
-// 社会描述符框架：译自导师提供的两份工作簿（Dimensions & Variants matrix.xlsx、Lauer et al 2025.xlsx）。
+// 社会描述符框架：译自两份工作簿（Dimensions & Variants matrix.xlsx、Lauer et al 2025.xlsx）。
 // 只保留原文列出的维度与变体，中文为译文，英文原词随记录保留；不补造原文没有的变体，
 // 也不给这些变体编造阈值、年份或地区适用性——它们要进入求解，必须由使用者显式确认假设。
 const SOCIAL_SOURCE = {
   workbook: 'Lauer et al 2025.xlsx / Dimensions & Variants matrix.xlsx',
   locator: 'output/meeting_20261102/',
-  note: '工作簿为导师提供的讨论稿（FST5 / FST6 两套情景的维度与变体），不是最终分类体系；变体是否穷尽、能否互相穷举尚未核实。'
+  note: '工作簿为讨论稿（FST5 / FST6 两套情景的维度与变体），不是最终分类体系；变体是否穷尽、能否互相穷举尚未核实。'
 };
 
 const D = [
@@ -9540,9 +9511,9 @@ function ambitionPanel(project, descriptorId, context, rerender) {
     box.append(el('ul', { class: 'ambition-tiers' }, ...DIRECTIONS.map(d => el('li', { class: 'tier ' + d.id },
       el('span', { class: 'lab' }, d.label), el('span', { class: 'val' }, (byDir[d.id] || []).join('、') || '—'),
       el('span', { class: 'v5-hint' }, d.note)))));
-    if (!a.explicit) box.append(el('p', { class: 'v5-hint' }, '档位顺序还是状态定义的原始顺序，没有人为标注过；下表的“回退/强化”只作草稿。'));
+    if (!a.explicit) box.append();
   } else {
-    box.append(el('p', { class: 'v5-hint' }, '还没有基准：检验只能比较“所选 vs 替代”，无法说明相对 current 是延续、强化还是回退。'));
+    box.append();
   }
 
   const editor = el('details', { class: 'ambition-editor' }, el('summary', {}, a.baselineStateId ? '修改基准与档位顺序' : '设置基准与档位顺序'));
@@ -9560,8 +9531,7 @@ function ambitionPanel(project, descriptorId, context, rerender) {
     }));
   };
   paintOrder();
-  editor.append(el('p', { class: 'v5-hint' }, '从上到下＝从回退到强化。基准所在位置决定哪些档算强化；顺序不对，方向就会标错。'),
-    el('label', {}, '基准状态 ', baseSelect), el('label', {}, '基准年 ', yearInput), list,
+  editor.append(    el('label', {}, '基准状态 ', baseSelect), el('label', {}, '基准年 ', yearInput), list,
     el('button', { class: 'button', onclick: () => {
       try {
         const next = setAmbition(context.store.read(), descriptorId, { baselineStateId: baseSelect.value || null, baseYear: yearInput.value ? Number(yearInput.value) : null, order });
@@ -10104,12 +10074,6 @@ function mount(container, context) {
       el('span',{class:'rel-pstate '+stCls},stText),
       el('span',{class:'rel-pstate',title:'A→B 与 B→A 独立计数；保存后自动切到下一个未判方向'},'已判方向 '+directionCoverage(p).covered+' / '+directionCoverage(p).need));
   }
-  function nexthintText(p){
-    const sn=sourceId?statesFor(p,sourceId).length:0,tn=targetId?statesFor(p,targetId).length:0;
-    if(sn===2&&tn===2)return '二档可用图形生成评分预览：在图册点一张图，或在「看图判断」里按编号直选；确认流程照旧。';
-    if(sn===3&&tn===3)return '三档：图册只作趋势参考，九格在右侧逐格填写；0＝没关系，空白＝未判断。';
-    return '当前档数组合不适用图形编码：图册可作趋势参考，评分请直接逐格填写。';
-  }
   // 图册卡：趋势参考常驻（v5 ② 区），标题与出处折叠收纳。
   function atlasCard(p,graphEligible){
     // 点一张图就出分（仅完整二档）；不适用时给出原因和下一步，不再点了没反应。
@@ -10158,7 +10122,7 @@ function mount(container, context) {
     dialog.append(head,body);
 
     if(!plan.pack){
-      body.append(el('p',{class:'reference-note'},plan.reason),
+      body.append(
         el('p',{},'本次不会写入任何评分。可以改用完整的机制演示案例，那是唯一能完整算通的参考闭环。'),
         el('div',{class:'reference-actions'},
           el('button',{class:'button',type:'button',onclick:()=>{context.exportProject();}},'先下载当前项目备份'),
@@ -10173,10 +10137,6 @@ function mount(container, context) {
     const keptNow=dirs.reduce((n,d)=>n+d.kept,0);
     const parts=[
       el('p',{class:'reference-tag'},'演示参考，可修改，非实时AI生成。'),
-      el('p',{class:'reference-lead'},'将填 '+plan.emptyCells+' 格（共 '+plan.totalCells+' 格'
-        +(keptNow?'；已有分值保留 '+keptNow+' 格':'')+'）。'),
-      el('p',{class:'reference-meta-line'},'写入年份 '+((plan.years.length?plan.years:[plan.year]).join('、'))
-        +' · 研究范围 '+(plan.region||'未指定')+' · 方向 '+dirs.length+' 个'),
       el('table',{class:'v5-table reference-table'},el('thead',{},el('tr',{},el('th',{},'方向'),el('th',{},'分值'),el('th',{},'说明'))),
         el('tbody',{},...dirs.map(d=>el('tr',{},el('td',{},d.fromLabel+' → '+d.toLabel),el('td',{},d.score===null?(d.entries.length+' 格'):String(d.score)),el('td',{},d.why||plan.pack.note))))),
       el('details',{class:'reference-why'},el('summary',{},'这份参考是哪来的'),
@@ -10184,7 +10144,7 @@ function mount(container, context) {
         el('p',{},plan.pack.source),
         plan.pack.level==='descriptor'?el('p',{},'同一方向的所有状态对用同一个分值，没有区分状态；采用后可以逐格改。'):null),
       plan.skipped.length?el('p',{class:'reference-warn'},'以下方向没有填入：'+plan.skipped.map(x=>(x.from+'→'+x.to)+'（'+x.reason+'）').join('；')):null,
-      el('p',{class:'reference-note'},'只填空白格；0 和已有分值不动。要覆盖已有评分需要再确认一次。')
+      
     ].filter(Boolean);
     body.append(...parts);
 
@@ -10280,8 +10240,6 @@ function mount(container, context) {
       const zero=!p.selection.descriptorIds.length;
       // 0 因素与 1 因素是两个不同的缺口：分开说清，各给直达动作，不互相矛盾。
       body.append(pairBar(p,null,null),
-        zero?el('p',{class:'rel-nexthint'},'尚未选择研究因素：判断关系至少需要两个。可先浏览图册，但评分要选好因素才能开始。')
-           :el('p',{class:'rel-nexthint'},'已选 1 个因素「'+variableLabel(p,only)+'」：再选至少 1 个因素，才能判断 A→B 两个方向。'),
         zero?button('去选择因素',()=>context.navigate('elements'))
             :button('再选一个因素',()=>context.navigate('elements')),
         atlasCard(p,false));
@@ -10300,8 +10258,7 @@ function mount(container, context) {
         el('span',{},'正在补「'+variableLabel(p,sourceId)+' → '+variableLabel(p,targetId)+'」；保存后自动回到「检查评分完整性」。'),
         button('返回检查（不保存改动）',backToCompleteness)));
     }
-    body.append(pairBar(p,source,target),
-      el('p',{class:'rel-nexthint'},nexthintText(p)));
+    body.append(pairBar(p,source,target));
     const records=p.data.judgments.filter(j=>j.sourceDescriptorId===sourceId&&j.targetDescriptorId===targetId);
     const chooser=el('select',{'aria-label':'编辑判断记录',onchange:e=>{if(!canLeave()){e.target.value=recordId||'';return;}recordId=e.target.value||null;inputMode='manual';load();remember();render();}},el('option',{value:''},'新增这一个方向的判断'),...records.map(j=>el('option',{value:j.id},(p.view.perspective==='expert'?j.id:'判断 '+(records.indexOf(j)+1))+' · v'+j.version+' · '+(j.scope?.regionId||'地区未知')+' · '+(Array.isArray(j.validYears)&&j.validYears.length?j.validYears.join('/'):'年份未知/格式待核'))));
     chooser.value=recordId||'';
@@ -10319,7 +10276,7 @@ function mount(container, context) {
     const manualStart=body.children.length;
     function showAtlas(){
       const pieces=[...body.children].slice(manualStart),rail=el('section',{class:'relation-score-rail'},el('h3',{},'填写并核对评分'));
-      const selectionNote=el('p',{class:'chosen-trend',role:'status'},selectedTrend?'趋势参考：'+(panels().find(panel=>panel.id===selectedTrend)?.label||selectedTrend)+'。评分按下面各格填写，选图不改分数。':'在左边选趋势作参考；评分在下面各格填写。');rail.append(selectionNote,...pieces);
+      const selectionNote=el('p',{class:'chosen-trend',role:'status'});rail.append(selectionNote,...pieces);
       body.append(el('div',{class:'relation-atlas-layout'},atlasCard(p,graphEligible),rail));
     }
     if(original?.curveEncoding){body.append(el('p',{class:'warning-text'},scaleWarning));if(original.curveEncoding.templateId==='A(2)')body.append(el('p',{class:'warning-text'},a2Warning));}
@@ -10330,8 +10287,7 @@ function mount(container, context) {
     const directness=el('select',{'aria-label':'直接性说明',onchange:e=>{draft.directness=e.target.value;}},el('option',{value:'unknown'},'待定'),el('option',{value:'direct'},'直接影响'),el('option',{value:'indirect'},'间接影响'));
     directness.value=draft.directness;
     // 一句话说清分数含义；适用范围已按研究范围默认填好，只在这条评分需要例外时才动。
-    body.append(el('p',{class:'muted'},'0＝没关系；空白＝未判断；−3…−1 抑制，+1…+3 促进。'),
-      el('div',{class:'relationships-controls'},el('label',{},'判断适用地区',region),el('label',{},'判断适用年份',years),el('label',{},'直接性说明',directness)));
+    body.append(      el('div',{class:'relationships-controls'},el('label',{},'判断适用地区',region),el('label',{},'判断适用年份',years),el('label',{},'直接性说明',directness)));
     // H3：只有源与目标各有三个状态时，才提供可选的「逐行判断」视图。
     // 两种视图共用同一个 draft 对象，切换只重建界面，不清空判断、来源或理由。
     const hasTernaryGuide=sources.length===3&&targets.length===3;
@@ -10344,7 +10300,7 @@ function mount(container, context) {
         const active=guideView===mode.id;
         toggle.append(el('button',{class:'button','data-guide-view':mode.id,'aria-pressed':String(active),onclick:()=>{if(active)return;if(blockIncomplete())return;guideView=mode.id;render();}},mode.label));
       }
-      body.append(el('p',{class:'muted'},'逐行判断与直接填表共用同一份草稿，切换显示方式不清空已填判断、来源或理由。'),toggle);
+      body.append(toggle);
     }
     if(hasTernaryGuide&&guideView==='guide'){
       const guide=rowGuide({draft,sources,targets,sourceLabel:variableLabel(p,sourceId),targetLabel:variableLabel(p,targetId),expert:p.view.perspective==='expert',onChange:draftChanged});
@@ -10353,13 +10309,11 @@ function mount(container, context) {
     const table=el('table',{class:'relationships-table'},el('caption',{},'源状态 × 目标状态：'+sources.length+'×'+targets.length+'。点格子选分，也可以直接在格子里输入；0＝没关系，空白＝未判断。'));
     // 点格子选分：分数条放在表格下方，不遮挡其它格子，键盘输入照旧可用。
     let activeInput=null,activeEntry=null,activePaint=null;
-    const dockLabel=el('span',{class:'score-dock-label'},'先点一个格子，再选分数');
     const dock=el('div',{class:'score-dock','data-score-dock':'',hidden:''},
-      dockLabel,
       el('div',{class:'score-dock-chips'},
         ...[-3,-2,-1,0,1,2,3].map(v=>el('button',{type:'button',class:'score-chip','data-pick':String(v),'aria-label':(v===0?'0 没关系':'分数 '+v),onclick:()=>applyPick(v)},v===0?'0':(v>0?'+'+v:String(v)))),
         el('button',{type:'button',class:'score-chip clear','data-pick':'','aria-label':'清除这一格的评分',onclick:()=>applyPick('')},'清除')));
-    function activateCell(input,entry,paint,a,b){activeInput=input;activeEntry=entry;activePaint=paint;dockLabel.textContent=a.label+' → '+b.label;dock.hidden=false;}
+    function activateCell(input,entry,paint,a,b){activeInput=input;activeEntry=entry;activePaint=paint;dock.hidden=false;}
     function applyPick(value){if(!activeInput)return;activeInput.value=value===''?'':String(value);activeEntry.value=activeInput.value;activePaint();draftChanged();}
     const header=el('tr',{},el('th',{scope:'col'},'源状态 ↓ / 目标状态 →'),...targets.map(state=>el('th',{scope:'col'},state.label)));
     table.append(el('thead',{},header));const rows=el('tbody');
@@ -10381,7 +10335,7 @@ function mount(container, context) {
     }
     count();
     const rationale=el('textarea',{'aria-label':'判断理由',rows:'3',oninput:e=>{draft.rationale=e.target.value;}});rationale.value=draft.rationale;
-    body.append(el('label',{},'判断理由',rationale),el('p',{class:'muted'},'没有可用规律依据也可保存为用户假设草案；保存不等于专家确认。'));
+    body.append(el('label',{},'判断理由',rationale));
     const refs=el('details',{},el('summary',{},'引用已有依据（不自动认证方向或强度）'));
     for(const e of p.data.evidence){
       const checkbox=el('input',{type:'checkbox','data-evidence-id':e.id,onchange:event=>{draft.evidenceRefs=event.target.checked?[...new Set([...draft.evidenceRefs,e.id])]:draft.evidenceRefs.filter(id=>id!==e.id);}});checkbox.checked=draft.evidenceRefs.includes(e.id);
@@ -10390,7 +10344,6 @@ function mount(container, context) {
     if(!p.data.evidence.length)refs.append(el('p',{},'暂无已有依据，保存时会新增用户假设修改记录。'));
     body.append(refs,el('div',{class:'relationships-save'},button('取消草稿',cancel),button('保存这一对的评分',save,true)),evidenceView(p,original),
       el('details',{class:'rel-limits'},el('summary',{},'这个页面不做什么'),el('p',{},'图形模板只在“完整、有序 H/L、明确直接关系”时可用；三档与连续曲线不自动外推。方法论文不能代替实际关系依据。')));
-    if(p.view.perspective==='expert')body.append(el('p',{class:'muted'},'源ID：'+sourceId+'；目标ID：'+targetId+'；判断ID：'+(original?.id||'未保存')+'；版本：'+(original?.version||'未保存')));
     showAtlas();
     paintSteps(p);
   }
@@ -10624,7 +10577,6 @@ function mount(container, context) {
       for(const d of noRule.slice(0,8))box.append(el('div',{class:'rev-norule-row'},
         el('span',{},variableLabel(p,d.a)+' → '+variableLabel(p,d.b)+'（还缺 '+(d.cells-d.filled)+' 格）'),
         button('填写这个方向',()=>fillDirection(d.a,d.b,d.best?.id||null))));
-      if(noRule.length>8)box.append(el('p',{class:'v5-hint'},'还有 '+(noRule.length-8)+' 个方向未展开；可先在「填写第一个方向」里逐个处理，或回因素页缩小因素范围。'));
       body.append(box);
     }
 
@@ -10707,8 +10659,7 @@ Object.assign(__exports, { mount });
 const { el } = __require("src/core/ui.mjs");
 const { curveData } = __require("src/modules/relationships/curve-data.mjs");
 const { definitions, prepareCurve, confirmCurve, scaleWarning } = __require("src/modules/relationships/curve.mjs");
-const { AXIS_NOTE, SKETCH_NOTE, lineTypeText, mentorBlock, panels, thumbnail } = __require("src/modules/relationships/shape-catalog.mjs");
-const { mentorAtlas } = __require("src/modules/relationships/trend-atlas.mjs");
+const { AXIS_NOTE, SKETCH_NOTE, lineTypeText, panels, thumbnail } = __require("src/modules/relationships/shape-catalog.mjs");
 function curvePanel(host,context,sourceId,targetId,onDirty,onCancel,onSaved,initialTemplate='') {
   const project=context.store.read(),baseline=context.store.snapshot();
   const expert=project.view.perspective==='expert';
@@ -10725,11 +10676,11 @@ function curvePanel(host,context,sourceId,targetId,onDirty,onCancel,onSaved,init
   // ---- shape-first picker -------------------------------------------------
   // Thumbnails come first so the user compares shapes before reading codes. Every
   // tile is built from the reviewed paper data; nothing here can score or save.
-  box.append(el('p',{class:'muted'},'选一张图，再核对两侧的高低状态。横轴为 A 水平，纵轴为 B 水平。'));
+  box.append();
   const panelIds=panels();
   const grid=el('div',{class:'shape-grid',role:'group','aria-label':'论文图形与线型选择'});
   const shapeState=el('div',{class:'shape-state'});
-  const templateSelect=el('select',{'aria-label':'编码模板','aria-hidden':'false',onchange:event=>{selectTemplate(event.target.value);}},el('option',{value:''},'尚未选择线型'));
+  const templateSelect=el('select',{'aria-label':'编码模板','aria-hidden':'false',onchange:event=>{selectTemplate(event.target.value);}});
   for(const t of curveData.templates)templateSelect.append(el('option',{value:t.id,disabled:!t.encodingEnabled},t.id+' · '+curveData.panels.find(p=>p.id===t.panel).label+(!t.encodingEnabled?'（停用，项目暂不采用）':'')));
   let template='';
   const templateButtons=new Map();
@@ -10744,7 +10695,7 @@ function curvePanel(host,context,sourceId,targetId,onDirty,onCancel,onSaved,init
   function renderShape() {
     const entry=curveData.templates.find(t=>t.id===template);
     shapeState.replaceChildren();
-    if(!entry){shapeState.append(el('p',{class:'muted'},'尚未选择线型：请点选上方任一缩略图。'));return;}
+    if(!entry){shapeState.append();return;}
     const panel=curveData.panels.find(p=>p.id===entry.panel);
     const body=el('div',{},
       el('p',{class:'shape-claim'},panel.label+'：'+panel.description),
@@ -10779,7 +10730,7 @@ function curvePanel(host,context,sourceId,targetId,onDirty,onCancel,onSaved,init
         t.append(el('tbody',{},
           el('tr',{},el('th',{},aHigh.label),el('td',{},String(entry.matrix[0][0])),el('td',{},String(entry.matrix[0][1]))),
           el('tr',{},el('th',{},aLow.label),el('td',{},String(entry.matrix[1][0])),el('td',{},String(entry.matrix[1][1])))));
-        body.append(t,el('p',{class:'muted'},'高低两档按状态顺序预置，可改；点下面「保存已确认编码草案」才写进项目。'));
+        body.append(t);
       }
     }catch{}
     shapeState.append(el('div',{class:'shape-detail'},thumbnail(panel.id,{width:168}),body));
@@ -10788,7 +10739,7 @@ function curvePanel(host,context,sourceId,targetId,onDirty,onCancel,onSaved,init
     const card=el('article',{class:'shape-card','data-shape-panel':panel.id});
     const first=panel.templates.find(t=>t.encodingEnabled);
     card.append(el('button',{class:'shape-preview',type:'button','aria-label':'选择'+panel.label+'图形',disabled:!first,onclick:()=>{if(first)selectTemplate(first.id);}},thumbnail(panel.id)),el('p',{class:'shape-label'},panel.label));
-    if(expert)card.append(el('p',{class:'muted'},panel.description));
+    if(expert)card.append();
     const list=el('div',{class:'shape-lines'});
     for(const t of panel.templates){
       const button=el('button',{class:'button shape-line',type:'button','aria-pressed':'false',disabled:!t.encodingEnabled,
@@ -10838,16 +10789,9 @@ function curvePanel(host,context,sourceId,targetId,onDirty,onCancel,onSaved,init
     const saved=confirmCurve(prepared);const result=context.actions.replaceProject(saved.project);if(!result.ok)throw new Error(result.error.message);onSaved(saved.judgment.id);
   }catch(e){notice.textContent=e.message;}}},'保存已确认编码草案'),el('button',{class:'button',onclick:onCancel},'取消编码'));
 
-  // ---- mentor reference (collapsed, after the whole encoding flow) --------
-  // mentorBlock() is itself a collapsed <details>, and it is appended only after
-  // the paper picker, the state binding, the four-cell preview and the save
-  // actions, so picking a paper line type flows straight into encoding. It stays
-  // display-only: it writes no judgment, no four-cell score and no selection.
-  box.append(el('hr',{class:'section-divider'}),el('p',{class:'muted'},'以下是与上方论文模板分开的导师原型参考，来源和可声称的结论都不同。'),mentorBlock());
   const children=[...box.children], split=children.indexOf(shapeState);
   const gallery=el('div',{class:'curve-gallery'}),work=el('div',{class:'curve-work'});
   children.forEach((n,i)=>(i<split?gallery:work).append(n));box.append(gallery,work);
-  gallery.append(mentorAtlas());
   renderShape();
   if(initialTemplate)selectTemplate(initialTemplate);
 }
@@ -10855,7 +10799,7 @@ function curvePanel(host,context,sourceId,targetId,onDirty,onCancel,onSaved,init
 Object.assign(__exports, { curvePanel });
 },
 "src/modules/relationships/shape-catalog.mjs": (__require, __exports) => {
-// H2 pure-display helper: thumbnails, axis notes and the mentor reference list.
+// 纯展示辅助：缩略图、坐标轴说明与趋势大类示意图。
 // It renders shapes only. It never produces a score, never writes a judgment and
 // never decides whether a template is usable -- that stays in curve.mjs.
 const { curveData } = __require("src/modules/relationships/curve-data.mjs");
@@ -10881,7 +10825,6 @@ const PANEL_GLYPHS={
 
 const AXIS_NOTE='横轴为源因素水平，纵轴为目标因素水平；两轴都不是公历年，也不是CIB分值坐标。';
 const SKETCH_NOTE='缩略图只示意图形方向，不是数值拟合，也不能从像素斜率推分数；实际分数严格查原论文Table 1。';
-const MENTOR_SECTION_TITLE='导师原型参考图形（待核，仅供浏览）';
 
 // The line-type vocabulary is transcribed from the paper, so it can be stated as
 // fact; the low/high source-segment wording for K/L is the paper's own split.
@@ -10921,20 +10864,8 @@ function thumbnail(panelId,{width=132,emphasis=null}={}) {
   return svg;
 }
 
-// ---- mentor reference -------------------------------------------------------
-// Everything here is display-only reference. Selecting one of these shapes must
-// not write a judgment, must not generate a four-cell score and must not change
-// the current template selection. The recorded evidence for the only located
-// mentor figure is a generated prototype image, not a paper figure, so each entry
-// keeps its own provenance line and an explicit 待核 marker.
-//
-// The eight sketches below are drawn from the trend classes that the page-18
-// pixels do support (rising / falling / late steep rise / steep then flat /
-// symmetric U / inverted U / concave-up / concave-down). They are deliberately
-// dashed, never numbered and never bound to a template: precise coordinates and
-// any encoding basis stay 待核, and no paper template is claimed to be the match.
+// 八个趋势大类：只用于逐行判断时作参考，不参与编码、不生成分数、不改选型。
 
-const MENTOR_SKETCH_NOTE='原型示意，仅供参考：形状只按原图可辨认的趋势手绘，不是原图像素坐标，也不代表已核实的编码依据。';
 
 const MENTOR_GLYPHS={
   'mentor-1':'M25 105L170 25',
@@ -10956,121 +10887,17 @@ const MENTOR_SHAPES=[
   {id:'mentor-6',label:'倒U型关系',parenthetical:'先升后降',glyphClass:'倒U形'},
   {id:'mentor-7',label:'非线性增强',parenthetical:'加速上升',glyphClass:'下凸折线'},
   {id:'mentor-8',label:'非线性抑制',parenthetical:'加速下降',glyphClass:'上凸折线'}
-].map(shape=>({...shape,evidence:'PPT第18页原型图标签与括注',status:'待核'}));
-
-const MENTOR_BOUNDARIES=[
-  '该图不是论文原图，是对话中生成的界面原型图；同页说明自称“原型效果图”“演示性假设”，并声明“不是已经实现功能的可运行软件”。该图与源 PPTX 内的 ppt/media/image9.png 逐字节相同，出处已闭合，但“出处明确”不等于“内容经导师确认”。',
-  '整套 PPT 里没有任何一页把八类并列写出来：第18页本身没有任何文本，八个名称只以像素形式存在于嵌图里；第17页的正文列4类，第19页列5类。“4 / 5 / 8”三个数字互不相同，不能任选其一当作定论，也不能把 12 个论文图形当成第九说。',
-  '导师本人没有逐条列名：会议记录里只有“八种关系类型”“这八个关系”“那八个八个状态”这类零散词（相关索引 376/390/392/394/402/410/484），从未把八项念出来，也从没说过“形状”或“曲线”。',
-  '会议全程没有出现任何论文题录；把导师所指等同于 Stankov 2021 只是既有归属推断，不是会上确认的事实。整理稿自身也写着“演示八张通用曲线不应被宣称为原论文固定八分类”。',
-  '八张卡片各自都画了一条折线，形状大类可由像素确认（上升／下降／后段陡升／先陡后平／对称U／倒U／下凸／上凸），但精确坐标与转折点未经人工目视复核；因此这里只按趋势大类手绘虚线示意，不冒充原图像素坐标，也不给出任何编码依据。',
-  '因此本组图形只作为可浏览参考：不参与编码、不生成四格分数、不改变当前选型，也不代表导师八类已经实现。'
 ];
 
-function mentorBlock() {
-  const items=MENTOR_SHAPES.map(shape=>{
-    const cell=document.createElement('article');
-    cell.className='mentor-shape';
-    cell.dataset.mentorShape=shape.id;
-    const head=document.createElement('p');
-    head.className='mentor-shape-head';
-    const label=document.createElement('strong');
-    label.textContent=shape.label;
-    head.append(label);
-    const badge=document.createElement('span');
-    badge.className='mentor-badge';
-    badge.textContent='待核 · 仅供参考';
-    head.append(badge);
-    cell.append(head);
-    const d=MENTOR_GLYPHS[shape.id];
-    const svg=svgNode('svg',{viewBox:'0 0 200 145',width:132,'aria-hidden':'true',focusable:'false',class:'shape-thumb mentor-sketch'});
-    svg.style.maxWidth='100%';
-    svg.append(svgNode('path',{d,fill:'none',stroke:'var(--tx3)','stroke-width':2,'stroke-linecap':'round','stroke-dasharray':'6 4'}));
-    cell.append(svg);
-    const note=document.createElement('p');
-    note.className='mentor-shape-note';
-    note.textContent=MENTOR_SKETCH_NOTE;
-    cell.append(note);
-    const prov=document.createElement('p');
-    prov.className='mentor-shape-source';
-    prov.textContent='形状大类：'+shape.glyphClass+'；原图括注：'+shape.parenthetical+'；出处：'+shape.evidence+'；状态：'+shape.status+'（精确坐标与编码依据待核）。';
-    cell.append(prov);
-    return cell;
-  });
-  const wrap=document.createElement('div');
-  wrap.className='mentor-shapes';
-  wrap.append(...items);
-  const boundaries=document.createElement('details');
-  boundaries.className='mentor-boundaries';
-  const summary=document.createElement('summary');
-  summary.textContent='为什么这些图形只能作参考（证据边界）';
-  boundaries.append(summary);
-  for(const text of MENTOR_BOUNDARIES){
-    const p=document.createElement('p');
-    p.textContent=text;
-    boundaries.append(p);
-  }
-  const host=document.createElement('details');
-  host.className='mentor-reference mentor-details';
-  host.dataset.mentorReference='';
-  const title=document.createElement('summary');
-  title.textContent=MENTOR_SECTION_TITLE;
-  const body=document.createElement('div');
-  body.className='mentor-reference-body';
-  const lead=document.createElement('p');
-  lead.textContent='这一组不是可计算模板，与上方论文图形不是同一来源，也不能互相折算。参考图形只按原图可辨认的趋势手绘，形状与编码依据都待核。';
-  const provenance=document.createElement('p');
-  provenance.className='mentor-source-line';
-  provenance.textContent='原图：PPT第18页嵌图 ppt-slide-18-image9.png（sha256 F94B3B42…7FD57B1，1797591 字节），与源 PPTX 内 ppt/media/image9.png 逐字节相同；同屏画面见录屏 demo-165541.mp4 约 165 秒处。第18页本身没有任何文本。精确坐标未目视复核。';
-  body.append(lead,provenance,wrap,boundaries);
-  host.append(title,body);
-  return host;
-}
 
-Object.assign(__exports, { PANEL_GLYPHS, AXIS_NOTE, SKETCH_NOTE, MENTOR_SECTION_TITLE, lineTypeText, panels, panelById, thumbnail, MENTOR_SKETCH_NOTE, MENTOR_GLYPHS, MENTOR_SHAPES, MENTOR_BOUNDARIES, mentorBlock });
-},
-"src/modules/relationships/trend-atlas.mjs": (__require, __exports) => {
-const { el } = __require("src/core/ui.mjs");
-const { panels, thumbnail, MENTOR_SHAPES, MENTOR_GLYPHS } = __require("src/modules/relationships/shape-catalog.mjs");
-const { curveData } = __require("src/modules/relationships/curve-data.mjs");
-function trendAtlas({onSelect=()=>{},onEncode=null,selected=null}={}){
- const root=el('section',{class:'trend-atlas','aria-label':'关系图形图册'},el('h3',{},'选一种关系趋势作参考'),el('span',{class:'trend-badge'},'12 类论文图形 · 编号在图下方'),);
- const grid=el('div',{class:'trend-atlas-grid'}),choice=el('p',{class:'trend-atlas-choice',role:'status'}),buttons=new Map();
- function choose(panel){selected=panel.id;for(const[id,b]of buttons)b.setAttribute('aria-pressed',String(id===selected));choice.textContent='已选：'+panel.label;onSelect(panel);}
- for(const panel of panels()){
-  const button=el('button',{type:'button',class:'trend-card','data-atlas-panel':panel.id,'aria-label':'选择趋势：'+panel.label,'aria-pressed':String(panel.id===selected),onclick:()=>choose(panel)},thumbnail(panel.id),el('strong',{},panel.label),el('span',{class:'trend-ids'},panel.templates.map(t=>t.id+(t.encodingEnabled?'':' 停用')).join(' · ')));
-  buttons.set(panel.id,button);grid.append(button);
- }
- root.append(grid,choice);
- if(onEncode)root.append(el('button',{class:'button',onclick:()=>onEncode(selected)},'按所选图形新建评分预览'));
- else root.append(el('p',{class:'trend-atlas-note'},'选图帮助表达趋势；在评分区核对各状态之间的影响。'));
- root.append(el('details',{class:'trend-atlas-source'},el('summary',{},'图形出处与评分规则'),el('p',{},curveData.source.citation+' · Fig.2 / Table 1。图形可浏览、选择；三档及更多状态不自动外推论文分数。双方完整二档时，仍需核对高低绑定、直接影响、依据和四格分数后明确确认。')));
- root.append(mentorAtlas());
- if(selected){const panel=panels().find(p=>p.id===selected);if(panel)choice.textContent='已选：'+panel.label;}
- return root;
-}
-function mentorAtlas(){
- const mentors=el('section',{class:'atlas-mentors'},el('h3',{},'导师演示的八类趋势'),el('p',{class:'trend-atlas-note'},'原型示意 · 仅供参考 · 不生成评分，与论文模板分开'));
- const mentorGrid=el('div',{class:'atlas-mentor-grid'});
- for(const shape of MENTOR_SHAPES){
-  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 200 145');svg.setAttribute('aria-hidden','true');
-  const line=document.createElementNS(svg.namespaceURI,'path');line.setAttribute('d',MENTOR_GLYPHS[shape.id]);line.setAttribute('fill','none');line.setAttribute('stroke','#606973');line.setAttribute('stroke-width','2');line.setAttribute('stroke-dasharray','6 4');svg.append(line);
-  mentorGrid.append(el('button',{class:'atlas-mentor-card',type:'button','aria-label':'放大查看导师示意：'+shape.label,onclick:()=>{
-    const dialog=el('dialog',{class:'mentor-zoom','aria-label':shape.label},el('h3',{},shape.label),svg.cloneNode(true),el('p',{},'导师原型的趋势示意，仅供参考，不生成评分。'));
-    dialog.append(el('button',{class:'button',onclick:()=>dialog.close()},'关闭大图'));dialog.addEventListener('close',()=>dialog.remove());mentors.append(dialog);dialog.showModal();
-  }},svg,el('span',{},shape.label)));
- }
- mentors.append(mentorGrid);return mentors;
-}
-
-Object.assign(__exports, { trendAtlas, mentorAtlas });
+Object.assign(__exports, { PANEL_GLYPHS, AXIS_NOTE, SKETCH_NOTE, lineTypeText, panels, panelById, thumbnail, MENTOR_GLYPHS, MENTOR_SHAPES });
 },
 "src/modules/relationships/row-guide.mjs": (__require, __exports) => {
 // H3 纯展示辅助：三档对三档时的逐行判断视图。
 // 硬纪律：只读写调用方传入的同一份 draft.entries，不生成分数、不补零、不写证据或修改记录、
 // 不改反向关系、不从状态名称猜低/中/高，也不重排传入的状态顺序。
 const { el } = __require("src/core/ui.mjs");
-const { MENTOR_GLYPHS, MENTOR_SHAPES, MENTOR_SKETCH_NOTE } = __require("src/modules/relationships/shape-catalog.mjs");
+const { MENTOR_GLYPHS, MENTOR_SHAPES } = __require("src/modules/relationships/shape-catalog.mjs");
 const ROW_GUIDE_NOTE='逐行判断与直接填表使用同一份未保存草稿：这里填的分数就是表格里的分数，切换显示方式不会清空。参考图形只用于当前展示，不填分数、不补零，也不写入证据或修改记录。';
 const ROW_GUIDE_SCORE_NOTE='−3…−1抑制，+1…+3促进；0=明确判断没有直接影响，空白=尚未判断，两者不同。';
 const ROW_GUIDE_ORDER_NOTE='有序趋势辅助是可选的：只有你先确认两侧三档具有顺序，并逐档标出低、中、高对应状态，它才会显示。它只按你已填的分数读出顺序，不替你生成分数，也不改变录入顺序。';
@@ -11103,7 +10930,7 @@ function rowGuide({draft,sources,targets,sourceLabel='源',targetLabel='目标',
   const cells=new Map();          // aId\0bId -> {row:label节点, table:td节点, input, entry}
   const readoutLines=new Map();   // sourceStateId -> p节点
 
-  root.append(el('p',{class:'muted'},ROW_GUIDE_NOTE),el('p',{class:'muted'},ROW_GUIDE_SCORE_NOTE));
+  root.append();
 
   function paintOne(key){
     const item=cells.get(key);
@@ -11138,8 +10965,7 @@ function rowGuide({draft,sources,targets,sourceLabel='源',targetLabel='目标',
     if(!shape)return;
     graphicHost.append(el('article',{class:'row-guide-sketch','data-row-guide-sketch':shape.id},
       sketchNode(shape.id),
-      el('p',{class:'row-guide-sketch-note'},shape.label+(shape.glyphClass?'：'+shape.glyphClass:'')),
-      el('p',{class:'row-guide-sketch-note'},MENTOR_SKETCH_NOTE)));
+      el('p',{class:'row-guide-sketch-note'},shape.label+(shape.glyphClass?'：'+shape.glyphClass:''))));
   }
   graphicSelect.addEventListener('change',renderGraphic);
   root.append(el('div',{class:'row-guide-graphic'},el('label',{},'参考趋势图形（仅供参考，不填分数）',graphicSelect),graphicHost));
@@ -11172,7 +10998,7 @@ function rowGuide({draft,sources,targets,sourceLabel='源',targetLabel='目标',
         select.value=order[side].map[state.id]||'';
         fields.append(el('label',{},'「'+state.label+'」对应',select));
       }
-      orderHost.append(el('p',{class:'muted'},'请逐档标明低、中、高；同名或同位置的档位不会被自动推断。'),fields);
+      orderHost.append(fields);
     }
     readoutLines.clear();
     const orderedSource=orderedStates('source',sources),orderedTarget=orderedStates('target',targets);
@@ -11234,6 +11060,28 @@ function rowGuide({draft,sources,targets,sourceLabel='源',targetLabel='目标',
 }
 
 Object.assign(__exports, { ROW_GUIDE_NOTE, ROW_GUIDE_SCORE_NOTE, ROW_GUIDE_ORDER_NOTE, sketchNode, readRowValue, rowGuide });
+},
+"src/modules/relationships/trend-atlas.mjs": (__require, __exports) => {
+const { el } = __require("src/core/ui.mjs");
+const { panels, thumbnail } = __require("src/modules/relationships/shape-catalog.mjs");
+const { curveData } = __require("src/modules/relationships/curve-data.mjs");
+function trendAtlas({onSelect=()=>{},onEncode=null,selected=null}={}){
+ const root=el('section',{class:'trend-atlas','aria-label':'关系图形图册'},el('h3',{},'选一种关系趋势作参考'),el('span',{class:'trend-badge'},'12 类论文图形 · 编号在图下方'),);
+ const grid=el('div',{class:'trend-atlas-grid'}),choice=el('p',{class:'trend-atlas-choice',role:'status'}),buttons=new Map();
+ function choose(panel){selected=panel.id;for(const[id,b]of buttons)b.setAttribute('aria-pressed',String(id===selected));choice.textContent='已选：'+panel.label;onSelect(panel);}
+ for(const panel of panels()){
+  const button=el('button',{type:'button',class:'trend-card','data-atlas-panel':panel.id,'aria-label':'选择趋势：'+panel.label,'aria-pressed':String(panel.id===selected),onclick:()=>choose(panel)},thumbnail(panel.id),el('strong',{},panel.label),el('span',{class:'trend-ids'},panel.templates.map(t=>t.id+(t.encodingEnabled?'':' 停用')).join(' · ')));
+  buttons.set(panel.id,button);grid.append(button);
+ }
+ root.append(grid,choice);
+ if(onEncode)root.append(el('button',{class:'button',onclick:()=>onEncode(selected)},'按所选图形新建评分预览'));
+ else root.append();
+ root.append(el('details',{class:'trend-atlas-source'},el('summary',{},'图形出处与评分规则'),el('p',{},curveData.source.citation+' · Fig.2 / Table 1。图形可浏览、选择；三档及更多状态不自动外推论文分数。双方完整二档时，仍需核对高低绑定、直接影响、依据和四格分数后明确确认。')));
+ if(selected){const panel=panels().find(p=>p.id===selected);if(panel)choice.textContent='已选：'+panel.label;}
+ return root;
+}
+
+Object.assign(__exports, { trendAtlas });
 },
 "src/modules/relationships/reference.mjs": (__require, __exports) => {
 // 参考评分：把“规则/案例”翻译成本项目里可核对的判断草稿。
@@ -11560,17 +11408,13 @@ function saveStatusStrip(page, context) {
     const persisted = context.persistenceState();
     root.replaceChildren(
       el('div', { class: 'save-chip ' + (persisted.ok ? 'ok' : 'bad') },
-        el('b', {}, persisted.ok ? '本机自动保存 · 正常' : '本机自动保存 · 失败'),
-        el('span', {}, persisted.ok ? '当前编辑内容每次改动即写入本浏览器；不是云同步。' : '修改只在当前页面，请下载项目备份。')),
+        el('b', {}, persisted.ok ? '本机自动保存 · 正常' : '本机自动保存 · 失败')),
       el('div', { class: 'save-chip' + (plans ? ' ok' : '') },
-        el('b', {}, '命名方案 ' + plans + ' 份'),
-        el('span', {}, '含因素、评分与按年状态；不含检验结果。' + (libraryOk ? '' : ' 本地库暂不可读。'))),
+        el('b', {}, '命名方案 ' + plans + ' 份')),
       el('div', { class: 'save-chip' + (runs ? ' ok' : '') },
-        el('b', {}, '检验记录 ' + runs + ' 份'),
-        el('span', {}, '冻结输入与结果，历史不复算。')),
+        el('b', {}, '检验记录 ' + runs + ' 份')),
       el('div', { class: 'save-chip' },
-        el('b', {}, '备份文件'),
-        el('span', {}, '只在你点「下载」时生成；自动保存不等于已下载备份。')));
+        el('b', {}, '备份文件')));
   }
   render();
   const offStore = context.store.subscribe(render);
@@ -11597,7 +11441,7 @@ function mountExports(container, context) {
   page.append(
     el('div', { class: 'v5-head' },
       el('h1', {}, '保存与导出'),
-      el('p', { class: 'lead' }, '左边保存当前方案；右边保存或导出检验结果。历史记录在下面分区查看。')),
+      ),
     grid);
 
   const switchBar = el('div', { class: 'exports-switch', role: 'tablist', 'aria-label': '保存与导出分区' });
@@ -11670,18 +11514,15 @@ function archiveOptions(context) {
 
 function reportBody(report) {
   const blocks = [];
-  blocks.push(el('p', { class: 'exports-note' },
-    report.stale === true ? '过期提示：' + report.staleNote
-      : report.stale === false ? '这份结果与当前项目一致。'
-        : '无法判断是否过期：' + report.staleNote));
-  blocks.push(el('p', { class: 'exports-note' }, '生成时间：' + (report.generatedAt || '未记录（归档没有时间戳）')));
+  blocks.push();
+  blocks.push();
   for (const part of report.sections) {
     blocks.push(el('h3', {}, part.heading));
     for (const line of part.lines) blocks.push(el('p', {}, line));
     if (part.table) blocks.push(el('table', { class: 'exports-table' },
       el('thead', {}, el('tr', {}, ...part.table.head.map(cell => el('th', { scope: 'col' }, cell)))),
       el('tbody', {}, ...part.table.rows.map(cells => el('tr', {}, ...cells.map(cell => el('td', {}, cell)))))));
-    blocks.push(el('p', { class: 'exports-source' }, '来源：' + part.source));
+    blocks.push();
   }
   blocks.push(el('h3', {}, '本次没有核到的东西'));
   if (!report.gaps.length) blocks.push(el('p', {}, '没有记录到缺项。这不等于报告已经过核对。'));
@@ -11733,9 +11574,8 @@ function reportPanel(container, context) {
     });
 
     body.replaceChildren(
-      el('label', { class: 'save-field' }, '结果来源', select),
-      el('p', { class: 'save-hint' }, '报告只读冻结结果；不读取正在编辑的草稿。'),
-      el('div', { class: 'save-actions' }, preview, download),
+      
+            el('div', { class: 'save-actions' }, preview, download),
       message);
   }
 
@@ -12141,7 +11981,7 @@ function comparePanel(container, context) {
         return;
       }
       const blocks = [];
-      blocks.push(el('p', { class: 'exports-note' }, result.summary));
+      blocks.push();
       if (kind === 'run' && result.historicallyNotRecomputed) {
         blocks.push(el('p', { class: 'exports-gaps' },
           '注意：这里比的是两份历史归档当时算出的结论，不是平台用当前规则重新复算过的结果。旧归档不会被自动重算。'));
@@ -12531,7 +12371,7 @@ function modelInputPanel(container, context) {
   const statusLine = el('p', {'data-model-input-status': ''}, MAPPING_PROVENANCE.label);
   const statusNote = el('p', {},
     '这份映射是平台侧逐条打开真实模型文件比对出来的：确实核对过文件是否存在、单位是否如此，'
-    + '但没有导师或同学确认过，也没有核对过「状态档位如何换算成模型取值」。'
+    + '但没有核对过「状态档位如何换算成模型取值」。'
     + '请不要把它当作已核对的参数表引用；样例里每一处都写着「' + MAPPING_PROVENANCE.label + '」。');
 
   const mappingSelect = el('select', {
@@ -12644,7 +12484,7 @@ Object.assign(__exports, { modelInputPanel });
 },
 "src/modules/exports/model-mapping.mjs": (__require, __exports) => {
 // P9 模型输入样例：把本平台的描述符接到下游模型（GCAM-China / CHEER）的真实文件上。
-// 这份映射的性质是唯一的重点：本机没有任何导师确认过的参数表，现有映射是平台侧逐条打开
+// 这份映射的性质是唯一的重点：本机没有任何经确认的参数表，现有映射是平台侧逐条打开
 // 真实模型文件比对出来的（见 docs/research/model-export/mapping-evidence.json 与 EVIDENCE.md）。
 // 因此本模块只提供两件事：
 // 1. 忠实转写证据文件里的描述符映射与未核到项，一个字都不补、不改写、不把 null 填成别的值；
@@ -12674,7 +12514,7 @@ const MAPPING_PROVENANCE = {
   evidenceWriteup: EVIDENCE_WRITEUP,
   // 证据文件自己声明了它核过什么、没核什么，这里原样带上，便于样例被单独打开时仍能自证范围。
   verifiedAgainst: '本会话用真实命令列目录/统计数量/读取 CSV 头部得到：gcam-china-release/exe/ 下 configuration*.xml 共 7 个；input/gcamdata/xml/ 304 个 XML；input/gcamdata/inst/extdata/ 1112 个 CSV（合计 384221209 字节）；input/gcamdata/inst/extdata/gcam-china/ 157 个 CSV；input/policy/ 55 个文件；input/extra/ 5 个文件；cheer/CHEER-Clean 39 个文件。所有 sourceFile 字段均已由 os.walk 命中并记录 os.path.getsize 字节数。',
-  note: '本映射由平台侧逐条打开真实模型文件比对得出，核过的是「文件是否存在、单位是否如此」，未核「状态档位如何换算成模型取值」。未经导师或同学确认，不得以「已核对」的表述提交或引用。'
+  note: '本映射由平台侧逐条打开真实模型文件比对得出，核过的是「文件是否存在、单位是否如此」，未核「状态档位如何换算成模型取值」。未经确认，不得以「已核对」的表述提交或引用。'
 };
 
 // 逐条转写 mapping-evidence.json 的 descriptors（顺序、用词、标点、null 一律保留）。
@@ -12867,7 +12707,7 @@ const MAPPING_GAPS = [
   'extdata 下单位核实仅限于本会话打开头部的那批 CSV；未逐个打开全部 1112 个 CSV 的单位行。',
   'CHEER-P-demo 的 trend.gms 不存在（实际为 trend.gdx 等数据文件），CHEER-P 侧的 TFP/劳动力趋势字段只核到 parshock.gms 中的 tfp0。',
   'USDA_GDP_MER.csv（源 docx 4.1 节列出的关键文件）在 extdata 下未找到，只核到 Maddison_population.csv、UN_popTot.csv、pwt91.csv、SSP_database_2024.csv.gz。',
-  '本映射为平台侧推断并逐条比对真实文件所得，未经导师确认，不得以「已核对」表述提交给导师。'
+  '本映射为平台侧推断并逐条比对真实文件所得，未经确认，不得以「已核对」表述提交。'
 ];
 
 // 可下载样例的基名；扩展名由调用方决定（.json / .csv）。
@@ -13007,7 +12847,6 @@ const CSV_COLUMNS = [
   ['参数取值', sample => (sample?.value === null || sample?.value === undefined ? null : sample.value)],
   ['备注', sample => sample?.note],
   ['映射状态', sample => sample?.provenance?.label],
-  ['导师已核对', sample => (sample?.provenance?.reviewedByMentor === true ? '是' : '否')],
   ['证据文件', sample => sample?.provenance?.evidenceFile],
   ['换算说明', sample => sample?.conversionNote],
   ['适用边界', sample => sample?.boundary]
@@ -13074,10 +12913,7 @@ function aiDraftPanel(container, context) {
     };
     material.addEventListener('input', buildPrompt);
 
-    const serviceNote = el('p', { class: 'exports-source', 'data-draft-service': '' },
-      '本轮不自动调用。若要自己接：本机唯一实测可用的是 Ollama，地址 ' + OLLAMA_DEFAULT_BASE_URL +
-      '，模型 ' + DEFAULT_DRAFT_MODEL + '。该模型默认开启思考，回复正文会落在 thinking 里、content 为空串，' +
-      '所以请求体必须显式带 think:false。本项目不保存任何密钥，也没有配置任何云端密钥。');
+    const serviceNote = el('p', { class: 'exports-source', 'data-draft-service': '' });
 
     const checkButton = el('button', { class: 'button secondary', type: 'button', 'data-draft-check': '' }, '检查本地模型服务（只列模型，不生成）');
     const checkResult = el('p', { class: 'exports-source', 'data-draft-models': '' });
@@ -13126,8 +12962,7 @@ function aiDraftPanel(container, context) {
       parsed = result.length ? { items: result } : null;
       if (!parsed) { listBox.replaceChildren(el('p', { class: 'exports-gaps' }, '没有解析出候选条目。')); adoptButton.disabled = true; status.textContent = ''; return; }
       listBox.replaceChildren(
-        el('p', { class: 'exports-note' }, '共 ' + result.length + ' 条候选。标「' + REVIEW_MARK + '」的是没能追到材料原文的条目，仍可勾选采用，但要按待核对待。'),
-        ...result.map(item => {
+                ...result.map(item => {
           const box = el('input', { type: 'checkbox', value: item.id, id: 'draft-' + item.id });
           return el('div', { class: 'exports-draft-item', 'data-draft-item': item.needsReview ? 'review' : 'grounded' },
             box,
@@ -13580,7 +13415,6 @@ function mount(container, context) {
     const explainAt = run?.createdAt || null;
     const contextBar = el('div', { class: 'v5-card chain-context' }, el('div', { class: 'bd' },
       el('p', {}, '解释对象：' + p.title + ' · ' + (explainYear === null ? '尚未计算（下面是已有输入与缺口）' : explainYear + ' 年检验结果')),
-      el('p', { class: 'v5-hint' }, explainAt ? ('检验时间：' + explainAt + (fresh ? ' · 与当前输入一致' : ' · 输入已变化，这份解释已过期')) : '还没有完成过检验：节点 7 之后是空的，不是“零解”。'),
       el('div', { class: 'chain-context-actions' },
         archive ? el('button', { class: 'button', onclick: () => context.navigate('solver') }, '返回对应的检验结果') : el('button', { class: 'button', onclick: () => context.navigate('solver') }, '去检验与结果'),
         el('button', { class: 'button text', onclick: () => context.navigate('robustness') }, '稳健性检验'))));
@@ -13602,7 +13436,7 @@ function mount(container, context) {
         stat(judged, '个状态对格子'),
         stat(run?.count ?? '—', '个自洽配置'),
         stat(run?.checked ?? '—', '个已检查配置')),
-      el('p', { class: 'v5-hint' }, run ? '求解来源：' + run.id + (fresh ? '（当前输入）' : '（输入已变化，节点 6–8 标为过期）') : '还没有完成过检算：节点 7 之后是空的，不是“零解”。'))));
+      )));
 
     const grid = el('div', { class: 'v5-grid' });
     const main = el('div', { class: 'v5-main' });
@@ -13670,7 +13504,7 @@ function mount(container, context) {
     function paint() {
       const config = run.scenarios[Number(pick.value) || 0];
       const trace = explain(archive.RunInput, config);
-      out.replaceChildren(el('p', { class: 'v5-hint' }, '下表每一行的分数都能回到一条具体判断记录；点“去关系页”按方向核对。'));
+      out.replaceChildren();
       const table = el('table', { class: 'v5-table' },
         el('thead', {}, el('tr', {}, el('th', {}, '因素'), el('th', {}, '所选'), el('th', {}, '所选支持'), el('th', {}, '最大支持'), el('th', {}, '差距'), el('th', {}, '来源判断'))));
       const body = el('tbody');
@@ -13684,7 +13518,7 @@ function mount(container, context) {
       table.append(body);
       out.append(table);
       const ev = archive.RunInput.matrix.evidenceRefs.map(id => p.data.evidence.find(e => e.id === id)).filter(Boolean);
-      out.append(el('p', { class: 'v5-hint' }, '本次矩阵引用的依据：' + (ev.length ? ev.map(e => e.kind + ' · ' + e.sourceId).join('；') : '没有（只有判断记录本身）')));
+      out.append();
     }
     pick.addEventListener('change', paint);
     paint();
@@ -14194,9 +14028,7 @@ function mount(container, context) {
             el('div', {}, el('b', {}, '+ ' + added), el('span', {}, '新增')),
             el('div', {}, el('b', {}, '− ' + removed), el('span', {}, '消失'))),
           el('p', {}, planNote),
-          el('p', { class: 'v5-hint' }, '扰动范围：' + name(group.from) + ' → ' + name(group.to) + ' 的 ' + changed + ' 格，每格 ' + (step > 0 ? '+' : '') + step + '（夹在 −3…+3）。基线结果没有被覆盖。'),
-          ...[(base.truncated || variant.truncated) ? el('p', { class: 'v5-hint' }, '注意：基线或扰动后的结果只保留了前 100 个自洽组合，集合差异是这 100 个之间的比较，不是全量集合差异。') : null,
-            el('p', { class: 'v5-hint' }, '这里只说明“改这一处，自洽集合怎么变”，不是稳健性概率，也不证明某个评分正确。')].filter(Boolean));
+                    );
         message.textContent = '已重算完成；比较基于两次完整枚举。';
       } catch (error) {
         out.replaceChildren();
@@ -14214,7 +14046,7 @@ function mount(container, context) {
           el('label', { class: 'robust-field' }, '扰动量', delta),
           el('div', { class: 'robust-actions' }, el('button', { class: 'button primary-action', onclick: run }, '重算并比较')),
           message, out)),
-      el('p', { class: 'v5-hint' }, '尚未接入：多参数联合扰动、随机轮次与置信度加权（旧平台 v1.5 的实现基于描述符级矩阵，口径不同，未直接搬用）。'));
+      );
   }
 
   const off = context.store.subscribe(render);

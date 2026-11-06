@@ -33,7 +33,7 @@ try {
 const actions = createActions(store);
 const steps = [['workspace', '项目与研究范围'], ['elements', '描述符与状态'], ['timeline', '政策实施路径'], ['relationships', '关系与依据'], ['solver', '检验与解释']];
 const routes = { workspace: mountWorkspace, elements: mountElements, timeline: mountTimeline, relationships: mountRelationships, solver: mountSolver, exports: mountExports, 'ai-draft': mountAiDraft, chain: mountChain, robustness: mountRobustness };
-const header = el('header', { class: 'topbar' }, el('div', {}, el('span', { class: 'brand' }, '情景研判平台'), el('span', { class: 'version' }, '京津冀简明版 · 图册直显')));
+const header = el('header', { class: 'topbar' }, el('div', {}, el('span', { class: 'brand' }, '京津冀政策情景快速评估平台')));
 const perspectiveSelect = el('select', { id: 'perspective-select' }, el('option', { value: 'public' }, '普通用户 · 简洁界面'), el('option', { value: 'expert' }, '专家用户 · 完整工作台'));
 const viewSwitch = el('div', { class: 'view-dropdown' }, el('label', { for: 'perspective-select' }, '界面视角'), perspectiveSelect);
 perspectiveSelect.addEventListener('change', () => {
@@ -118,7 +118,7 @@ function renderContext() {
   const sourceText = !records.length ? '还没有载入政策、分类或关系依据。' : fixtureCount === records.length ? '当前全部数据为软件机制示例，不代表真实政策。' : fixtureCount ? '当前包含机制示例及其他来源记录，请分别核对；证据尚未验证。' : '当前包含用户或导入记录；出处可追踪，但证据尚未验证。';
   const trace = el('section', { class: 'side-section' }, el('h2', {}, '这份方案来自哪里'), el('p', { class: 'muted' }, sourceText),
     el('ol', { class: 'trace' }, el('li', {}, '研究范围：当前项目中的设定'), el('li', {}, '已有数据：' + p.data.descriptors.length + ' 个变量，' + p.data.paths.length + ' 条路径'), el('li', {}, p.data.judgments.length ? '影响判断：' + p.data.judgments.length + ' 条；检验范围以选用记录及冻结归档为准' : '影响判断：尚未提供'), el('li', { 'data-cib-trace': '' }, 'CIB检验：' + runText)));
-  if (p.view.perspective === 'expert') trace.append(el('p', { class: 'muted' }, '契约 ' + CONTRACT_VERSION + ' · 科学修订 ' + p.revision), el('p', { class: 'muted' }, '项目ID：' + p.id));
+  if (p.view.perspective === 'expert') trace.append();
   if (snapshot) {
     const current = store.isCurrent(snapshot);
     const details = el('details', { class: 'snapshot', id: 'snapshot-details' }, el('summary', {}, current ? '基础快照：当前输入，未检验' : '基础快照：输入已改变，已过期'), el('p', {}, '这只是输入归档，不包含CIB求解结果。刷新后请重新记录。'));
@@ -183,7 +183,7 @@ function mountAbout(container, navigate) {
         ['多专家评分、分歧与聚合', '尚未实现', '旧平台 v1.5 有 Ensemble 模式；新版未迁移，旧数据不能直接当专家记录'],
         ['情景地图（簇 + 热力图）', '尚未实现', '需要真实冻结结果与稳定聚类口径；不用随机点充数'],
         ['AHP、加权 CIB、知识库、模型真实运行', '尚未实现', '方法未核实或缺少外部资源（如 GAMS），不挂假按钮'],
-        ['四种参数输出与模型映射', '部分可用', '报告与 JSON 可用；映射仍为平台推断，未经导师核对']
+        ['四种参数输出与模型映射', '部分可用', '报告与 JSON 可用；映射仍为平台推断，未经核对']
       ].map(row => el('tr', {}, ...row.map(cell => el('td', {}, cell)))))),
     el('h3', {}, '版本'),
     el('p', {}, '2026-11-06 · 本轮：新增一键参考评分（关系评分与矩阵核对两个入口）、参考采用后直通检验、稳健性单点重算、白箱链移入工具区并从结果直达。'),

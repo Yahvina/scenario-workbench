@@ -1,8 +1,7 @@
 import {el} from '../../core/ui.mjs';
 import {curveData} from './curve-data.mjs';
 import {definitions,prepareCurve,confirmCurve,scaleWarning} from './curve.mjs';
-import {AXIS_NOTE,SKETCH_NOTE,lineTypeText,mentorBlock,panels,thumbnail} from './shape-catalog.mjs';
-import {mentorAtlas} from './trend-atlas.mjs';
+import {AXIS_NOTE,SKETCH_NOTE,lineTypeText,panels,thumbnail} from './shape-catalog.mjs';
 export function curvePanel(host,context,sourceId,targetId,onDirty,onCancel,onSaved,initialTemplate='') {
   const project=context.store.read(),baseline=context.store.snapshot();
   const expert=project.view.perspective==='expert';
@@ -19,11 +18,11 @@ export function curvePanel(host,context,sourceId,targetId,onDirty,onCancel,onSav
   // ---- shape-first picker -------------------------------------------------
   // Thumbnails come first so the user compares shapes before reading codes. Every
   // tile is built from the reviewed paper data; nothing here can score or save.
-  box.append(el('p',{class:'muted'},'选一张图，再核对两侧的高低状态。横轴为 A 水平，纵轴为 B 水平。'));
+  box.append();
   const panelIds=panels();
   const grid=el('div',{class:'shape-grid',role:'group','aria-label':'论文图形与线型选择'});
   const shapeState=el('div',{class:'shape-state'});
-  const templateSelect=el('select',{'aria-label':'编码模板','aria-hidden':'false',onchange:event=>{selectTemplate(event.target.value);}},el('option',{value:''},'尚未选择线型'));
+  const templateSelect=el('select',{'aria-label':'编码模板','aria-hidden':'false',onchange:event=>{selectTemplate(event.target.value);}});
   for(const t of curveData.templates)templateSelect.append(el('option',{value:t.id,disabled:!t.encodingEnabled},t.id+' · '+curveData.panels.find(p=>p.id===t.panel).label+(!t.encodingEnabled?'（停用，项目暂不采用）':'')));
   let template='';
   const templateButtons=new Map();
@@ -38,7 +37,7 @@ export function curvePanel(host,context,sourceId,targetId,onDirty,onCancel,onSav
   function renderShape() {
     const entry=curveData.templates.find(t=>t.id===template);
     shapeState.replaceChildren();
-    if(!entry){shapeState.append(el('p',{class:'muted'},'尚未选择线型：请点选上方任一缩略图。'));return;}
+    if(!entry){shapeState.append();return;}
     const panel=curveData.panels.find(p=>p.id===entry.panel);
     const body=el('div',{},
       el('p',{class:'shape-claim'},panel.label+'：'+panel.description),
@@ -73,7 +72,7 @@ export function curvePanel(host,context,sourceId,targetId,onDirty,onCancel,onSav
         t.append(el('tbody',{},
           el('tr',{},el('th',{},aHigh.label),el('td',{},String(entry.matrix[0][0])),el('td',{},String(entry.matrix[0][1]))),
           el('tr',{},el('th',{},aLow.label),el('td',{},String(entry.matrix[1][0])),el('td',{},String(entry.matrix[1][1])))));
-        body.append(t,el('p',{class:'muted'},'高低两档按状态顺序预置，可改；点下面「保存已确认编码草案」才写进项目。'));
+        body.append(t);
       }
     }catch{}
     shapeState.append(el('div',{class:'shape-detail'},thumbnail(panel.id,{width:168}),body));
@@ -82,7 +81,7 @@ export function curvePanel(host,context,sourceId,targetId,onDirty,onCancel,onSav
     const card=el('article',{class:'shape-card','data-shape-panel':panel.id});
     const first=panel.templates.find(t=>t.encodingEnabled);
     card.append(el('button',{class:'shape-preview',type:'button','aria-label':'选择'+panel.label+'图形',disabled:!first,onclick:()=>{if(first)selectTemplate(first.id);}},thumbnail(panel.id)),el('p',{class:'shape-label'},panel.label));
-    if(expert)card.append(el('p',{class:'muted'},panel.description));
+    if(expert)card.append();
     const list=el('div',{class:'shape-lines'});
     for(const t of panel.templates){
       const button=el('button',{class:'button shape-line',type:'button','aria-pressed':'false',disabled:!t.encodingEnabled,
@@ -132,16 +131,9 @@ export function curvePanel(host,context,sourceId,targetId,onDirty,onCancel,onSav
     const saved=confirmCurve(prepared);const result=context.actions.replaceProject(saved.project);if(!result.ok)throw new Error(result.error.message);onSaved(saved.judgment.id);
   }catch(e){notice.textContent=e.message;}}},'保存已确认编码草案'),el('button',{class:'button',onclick:onCancel},'取消编码'));
 
-  // ---- mentor reference (collapsed, after the whole encoding flow) --------
-  // mentorBlock() is itself a collapsed <details>, and it is appended only after
-  // the paper picker, the state binding, the four-cell preview and the save
-  // actions, so picking a paper line type flows straight into encoding. It stays
-  // display-only: it writes no judgment, no four-cell score and no selection.
-  box.append(el('hr',{class:'section-divider'}),el('p',{class:'muted'},'以下是与上方论文模板分开的导师原型参考，来源和可声称的结论都不同。'),mentorBlock());
   const children=[...box.children], split=children.indexOf(shapeState);
   const gallery=el('div',{class:'curve-gallery'}),work=el('div',{class:'curve-work'});
   children.forEach((n,i)=>(i<split?gallery:work).append(n));box.append(gallery,work);
-  gallery.append(mentorAtlas());
   renderShape();
   if(initialTemplate)selectTemplate(initialTemplate);
 }

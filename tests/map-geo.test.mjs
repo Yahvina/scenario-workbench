@@ -1,10 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createProjectStore } from '../src/core/project-store.mjs';
-import { PROVINCES, REGIONS } from '../src/modules/workspace/regions.mjs';
-import { MAP_REGIONS, MAP_BY_SCOPE, clauseRegion, regionMatches, regionCoverage, coverageLabel, regionImpact, DEEPER_LEVELS, GEO_SOURCE } from '../src/modules/map/geo.mjs';
+import { PROVINCES, REGIONS, CITIES } from '../src/modules/workspace/regions.mjs';
+import { MAP_REGIONS, MAP_AREAS, CITY_SCOPE_AREAS, MAP_BY_SCOPE, clauseRegion, regionMatches, regionCoverage, coverageLabel, regionImpact, DEEPER_LEVELS, GEO_SOURCE } from '../src/modules/map/geo.mjs';
 import { POLICY_PILOT_CLAUSES } from '../src/modules/elements/policy-pilot.mjs';
-import { toolsForDescriptor } from '../src/modules/map/library.mjs';
+import { toolsFor, toolsForDescriptor } from '../src/modules/map/library.mjs';
 import { joinBaseline } from '../src/modules/elements/baseline.mjs';
 
 const storeWithScore = () => {
@@ -32,6 +32,31 @@ test('地图只开放京津冀整体与三地，取值与地区清单一致', ()
   assert.equal(MAP_BY_SCOPE.get('北京市').id, '北京');
   assert.equal(MAP_BY_SCOPE.get('天津市').id, '天津');
   assert.equal(MAP_BY_SCOPE.get('河北省').id, '河北');
+});
+
+test('河北 11 个设区市直接可选，口径与地区清单一致', () => {
+  assert.equal(CITY_SCOPE_AREAS.length, 11);
+  assert.deepEqual([...CITY_SCOPE_AREAS.map(city => city.scopeValue)].sort(), [...CITIES['河北省']].sort());
+  for (const city of CITY_SCOPE_AREAS) {
+    assert.equal(city.level, 'city');
+    assert.equal(city.parent, '河北省');
+    assert.ok(city.path.startsWith('M '), city.id + ' 要有可点形状');
+    assert.equal(MAP_BY_SCOPE.get(city.scopeValue)?.id, city.id, city.scopeValue + ' 要能在合并表里查到');
+    assert.equal(MAP_BY_SCOPE.get(city.scopeValue)?.level, 'city', city.scopeValue + ' 不能回落到省级口径');
+  }
+  assert.equal(MAP_AREAS.length, 15, '4 个省级范围 + 11 个设区市');
+});
+
+test('市级政策记录只按管辖地统计，省级记录不摊到市里', () => {
+  for (const city of CITY_SCOPE_AREAS) {
+    for (const row of toolsFor(city.scopeValue)) {
+      assert.equal(row[3], city.scopeValue, city.scopeValue + ' 不该收进管辖地为 ' + row[3] + ' 的记录');
+    }
+  }
+  const shijiazhuang = toolsFor('石家庄市').length;
+  const hebei = toolsFor('河北省').length;
+  assert.ok(shijiazhuang > 0, '石家庄市在政策库里有记录');
+  assert.ok(shijiazhuang < hebei, '市级口径必须比省级口径窄');
 });
 
 test('市／区县与园区明确未开放，不放空按钮', () => {

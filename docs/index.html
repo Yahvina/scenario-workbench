@@ -597,16 +597,36 @@
 /* 地理入口：灰底白卡，地图只做范围选择，不做装饰性大屏 */
 .geo-panel{margin:0 0 14px}
 .geo-panel>h3{font-size:16px;margin:0 0 2px}
-.geo-panel>.geo-lead{margin:0 0 8px;font-size:12px;color:var(--tx3)}
 .geo-shell{position:relative}
 .geo-map{background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);padding:6px}
 .geo-map svg{display:block;width:100%;height:380px}
 .geo-shape{fill:var(--pri-s);stroke:var(--panel);stroke-width:2.5;cursor:pointer;transition:fill .15s var(--ease)}
+/* 河北底块：只作为 11 个市的背景，不接鼠标也不高亮。 */
+.geo-shape.is-backdrop{pointer-events:none}
 .geo-shape:hover,.geo-shape.is-active{fill:var(--pri-b)}
 .geo-shape.is-current{fill:var(--pri)}
 .geo-shape:focus-visible{outline:2px solid var(--pri-d);outline-offset:2px}
-.geo-label{font-size:14px;fill:var(--tx2);pointer-events:none;font-weight:600}
-.geo-shape.is-current+.geo-label,.geo-shape.is-active~.geo-label{fill:var(--tx)}
+.geo-label{font-size:14px;fill:var(--tx2);pointer-events:none;font-weight:600}
+/* 河北 11 个设区市：只描示意分界，默认透明、不抢省域颜色；悬停或选中才亮。 */
+.geo-city{fill:transparent;stroke:var(--panel);stroke-width:1.2;cursor:pointer;transition:fill .15s var(--ease)}
+.geo-city:hover,.geo-city.is-active{fill:var(--pri-b)}
+.geo-city.is-current{fill:var(--pri)}
+.geo-city:focus-visible{outline:2px solid var(--pri-d);outline-offset:1px}
+/* 河北省名常显：地图上得看得出哪一块是河北。 */
+.geo-province-label{font-size:13px;fill:var(--tx3);pointer-events:none;font-weight:600;letter-spacing:.08em}
+/* 市名默认隐藏：鼠标移到某个市、或它被选中时才出现，地图上不堆字。 */
+.geo-city-label{font-size:10px;fill:var(--tx2);pointer-events:none;opacity:0;transition:opacity .15s var(--ease)}
+.geo-city-label.is-shown{opacity:1;fill:var(--tx)}
+/* 选中或悬停时，地图文字对比度提上来。 */
+.geo-label.is-active{fill:var(--tx)}
+/* 地图下方那排省级快捷按钮：京津冀整体、北京、天津、河北。 */
+.geo-quick{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 0}
+.geo-quick-cap{font-size:12px;color:var(--tx3)}
+.geo-quick-btn{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:3px 14px;font-size:13px;color:var(--tx2);margin:0;min-height:28px}
+.geo-quick-btn:hover{border-color:var(--pri-b);color:var(--tx)}
+.geo-quick-btn.is-active{border-color:var(--pri-b);background:var(--pri-s)}
+.geo-quick-btn.is-current{background:var(--pri);border-color:var(--pri);color:#fff;font-weight:600}
+.geo-quick-btn[tabindex]:focus-visible{outline:2px solid var(--pri-d);outline-offset:2px}
 .geo-card{position:absolute;width:min(330px,40%);background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);padding:12px 14px;box-shadow:0 6px 24px rgba(0,0,0,.10);pointer-events:none;max-height:calc(100% - 20px);overflow:auto}
 .geo-card.at-left{left:10px}.geo-card.at-right{right:10px}
 .geo-card.at-top{top:10px}.geo-card.at-bottom{bottom:10px}
@@ -617,13 +637,11 @@
 .geo-card-hd{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .geo-card-hd h3{margin:0;font-size:16px}
 .geo-level{font-size:12px;color:var(--tx3);border:1px solid var(--line2);border-radius:var(--r);padding:0 6px}
-.geo-area{margin:4px 0 8px;font-size:12px;color:var(--tx3)}
 .geo-facts{display:grid;grid-template-columns:1fr;gap:3px 12px;margin:0 0 8px}
 .geo-facts>div{display:grid;grid-template-columns:6.5em minmax(0,1fr);gap:10px;align-items:baseline}
 .geo-facts dt{font-size:12px;color:var(--tx3);white-space:nowrap}
 .geo-facts dd{margin:0;font-size:13px;color:var(--tx2);overflow-wrap:anywhere}
 .geo-gap{border-left:3px solid var(--wn-b);background:var(--wn-s);color:var(--wn);padding:6px 10px;font-size:12px;margin:8px 0}
-.geo-current{font-size:12px;color:var(--tx3);margin:8px 0}
 .geo-impact{border:1px solid var(--line2);border-radius:var(--r2);background:var(--bg);padding:8px 10px;margin:8px 0}
 .geo-impact p{margin:2px 0;font-size:12px;color:var(--tx2)}
 .geo-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 4px}
@@ -634,10 +652,6 @@
 .geo-clauses li{font-size:12px;color:var(--tx2);margin:3px 0}
 .geo-levels li{font-size:12px;color:var(--tx2);margin:3px 0}
 .geo-clause-note{font-size:12px;color:var(--tx3);margin-left:6px}
-.geo-chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0 0}
-.geo-chips-cap{font-size:12px;color:var(--tx3)}
-.geo-chip{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:3px 12px;font-size:13px;color:var(--tx2);margin:0}
-.geo-chip[aria-pressed=true]{background:var(--pri);border-color:var(--pri);color:#fff}
 .geo-status{font-size:12px;color:var(--tx3);margin:8px 0 0;min-height:18px}
 
 /* 因素页的地区资料提示 */
@@ -663,7 +677,6 @@
 /* 首页左栏较窄：地图在上、地区卡片在下，避免两栏互相挤压 */
 .geo-panel{container-type:inline-size}
 
-.geo-source{font-size:12px;color:var(--tx3);margin:6px 0 0;max-width:70ch}
 /* 首页年份区：默认只显示 chip，其余收进「调整年份」 */
 .years-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 6px}
 .years-cap{font-size:12px;color:var(--tx3);flex:none}
@@ -678,7 +691,6 @@
 .geo-tool{margin:4px 0;font-size:12px;color:var(--tx2)}
 .geo-tool b{font-weight:600;color:var(--tx)}
 /* 地图卡片：默认紧凑，统计与来源收进“查看政策资料” */
-.geo-card .geo-brief{margin:0 0 8px;font-size:13px;color:var(--tx2)}
 .geo-card .geo-preview-cap{margin:0 0 4px;font-weight:600;font-size:13px;color:var(--pri-d)}
 .geo-card .geo-current-static{margin:0 0 8px;font-size:13px;font-weight:600;color:var(--pri-d)}
 .geo-card .geo-material{margin:0 0 6px}
@@ -742,9 +754,6 @@ input[aria-invalid=true]{border-color:var(--danger);background:var(--rd-s)}
 .home-choice{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:8px}
 .home-choice small{flex:0 1 auto;color:var(--tx3);font-size:12px}
 #module-content>form#home-start-form{margin-top:12px}
-#home-catalog-source{margin-top:6px}
-#home-catalog-source summary{font-size:12px;color:var(--tx3);cursor:pointer}
-#home-catalog-source p{margin-top:6px}
 .chips-wrap{margin-top:16px;display:flex;flex-direction:column;gap:8px}
 .chips-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -752,10 +761,6 @@ input[aria-invalid=true]{border-color:var(--danger);background:var(--rd-s)}
 .chip:hover{background:var(--bg);border-color:var(--pri-b)}
 .chip:active{background:var(--panel2);border-color:var(--focus)}
 .chip>span{color:var(--tx3)}
-#home-more .field{margin-top:16px}
-#home-more .actions{margin-top:14px}
-#home-library .library-host{min-width:0}
-#home-library .library-host>section{margin-top:12px}
 /* A drafted new scenario has to state what it replaces and how to keep the original
    project before it is submitted, so that notice sits above the form; while it is
    shown the decorative progress strip yields its space and the one primary action
@@ -4924,9 +4929,11 @@ Object.assign(__exports, { newScenarioProject });
 },
 "src/modules/map/index.mjs": (__require, __exports) => {
 const { el, infoTip } = __require("src/core/ui.mjs");
-const { GEO_SOURCE, MAP_REGIONS, MAP_VIEW, MAP_BY_SCOPE, DEEPER_LEVELS, regionCoverage, coverageLabel, projectClauses, regionImpact, regionForScope } = __require("src/modules/map/geo.mjs");
+const { GEO_SOURCE, MAP_REGIONS, MAP_AREAS, CITY_SCOPE_AREAS, MAP_VIEW, MAP_BY_SCOPE, DEEPER_LEVELS, regionCoverage, coverageLabel, projectClauses, regionImpact, regionForScope } = __require("src/modules/map/geo.mjs");
 const { toolsFor, libraryMeta, ROW } = __require("src/modules/map/library.mjs");
 const NS = 'http://www.w3.org/2000/svg';
+// 北京、天津的名字是地图底图的一部分，永远显示；市名只在悬停或选中时出现。
+const PERMANENT_LABELS = new Set(['北京', '天津']);
 const svgNode = (tag, attrs = {}, text = '') => {
   const node = document.createElementNS(NS, tag);
   Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, String(value)));
@@ -4943,54 +4950,135 @@ function mountMap(host, context, options) {
   const cardBox = el('div', { class: 'geo-card', 'aria-live': 'polite' });
   const status = el('p', { class: 'geo-status', role: 'status' });
 
-  const svg = svgNode('svg', { viewBox: `${MAP_VIEW.x} ${MAP_VIEW.y} ${MAP_VIEW.width} ${MAP_VIEW.height}`, role: 'img', 'aria-label': '京津冀示意图：可选中京津冀整体、北京、天津、河北' });
+  const svg = svgNode('svg', { viewBox: `${MAP_VIEW.x} ${MAP_VIEW.y} ${MAP_VIEW.width} ${MAP_VIEW.height}`, role: 'img', 'aria-label': '京津冀示意图：可选北京、天津与河北 11 个设区市' });
+
+  // 一个范围可能对应多个图形（河北有底色和小标签两处），所以一个 id 存一组节点。
   const shapes = new Map();
-  // 河北最大、包住京津，先画它，北京与天津后画在上层，点击才不会被河北挡住。
-  for (const region of [...MAP_REGIONS].reverse()) {
-    if (!region.path) continue;
-    const path = svgNode('path', {
-      d: region.path, class: 'geo-shape', tabindex: '0', role: 'button',
-      'aria-label': region.label + '（' + region.area + '）', 'data-geo': region.id
-    });
-    const focus = () => { hovered = region.id; renderCard(); };
-    const blur = () => { if (hovered === region.id) { hovered = null; renderCard(); } };
-    path.addEventListener('mouseenter', focus);
-    path.addEventListener('mouseleave', blur);
-    path.addEventListener('focus', focus);
-    path.addEventListener('blur', blur);
-    path.addEventListener('click', () => pick(region.id));
-    path.addEventListener('keydown', event => {
-      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); pick(region.id); }
+  const register = (id, node) => {
+    if (!shapes.has(id)) shapes.set(id, []);
+    shapes.get(id).push(node);
+  };
+  // 地图色块与整块按钮分开点亮：地图只在选中单块时上色，按钮负责表示整块范围。
+  const isButton = node => String(node.tagName).toLowerCase() === 'button';
+  const markShapes = (id, on, kind = 'path') => {
+    for (const node of shapes.get(id) || []) {
+      if (isButton(node) === (kind === 'button')) node.classList.toggle('is-current', on);
+    }
+  };
+  const names = new Map();
+
+  // 河北设区市的分界只该出现在河北境内。北京、天津挖成孔：被剪掉的地方
+  // 既不画线也不接鼠标，点京津不会被某个市的分区抢走。
+  const clipId = 'geo-city-clip';
+  const clip = svgNode('clipPath', { id: clipId, clipPathUnits: 'userSpaceOnUse' });
+  clip.append(svgNode('path', {
+    d: ['河北', '北京', '天津'].map(cut => MAP_REGIONS.find(item => item.id === cut)?.path).filter(Boolean).join(' '),
+    'clip-rule': 'evenodd'
+  }));
+  const defs = svgNode('defs');
+  defs.append(clip);
+  svg.append(defs);
+
+  // 三层，自下而上：省域底色 → 河北设区市分界 → 名称。名称在最上层，
+  // 所以地图上的小标签不会被任何色块或市分区挡住。
+  const regionLayer = svgNode('g', { class: 'geo-layer-region' });
+  const cityLayer = svgNode('g', { class: 'geo-layer-city', 'clip-path': 'url(#' + clipId + ')' });
+  const labelLayer = svgNode('g', { class: 'geo-layer-label' });
+  svg.append(regionLayer, cityLayer, labelLayer);
+
+  const bind = (id, node, caption) => {
+    node.setAttribute('tabindex', '0');
+    node.setAttribute('role', 'button');
+    node.setAttribute('aria-label', caption);
+    node.setAttribute('data-geo', id);
+    node.addEventListener('mouseenter', () => { hovered = id; renderCard(); });
+    node.addEventListener('mouseleave', () => { if (hovered === id) { hovered = null; renderCard(); } });
+    node.addEventListener('focus', () => { hovered = id; renderCard(); });
+    node.addEventListener('blur', () => { if (hovered === id) { hovered = null; renderCard(); } });
+    node.addEventListener('click', () => pick(id));
+    node.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); pick(id); }
       if (event.key === 'Escape') { pinned = null; renderCard(); }
     });
-    shapes.set(region.id, path);
-    svg.append(path);
-    if (region.labelAt) svg.append(svgNode('text', { x: region.labelAt.x, y: region.labelAt.y, class: 'geo-label', 'aria-hidden': 'true' }, region.label));
+    register(id, node);
+    return node;
+  };
+
+  // 省域：河北在最底、北京天津压在上面，京津的点选稳定命中京津自己。
+  // 河北整块会被 11 个市完全盖住，所以它只当底色、不接鼠标。
+  for (const region of [...MAP_REGIONS].reverse()) {
+    if (!region.path) continue;
+    const node = svgNode('path', { d: region.path, class: 'geo-shape' });
+    regionLayer.append(node);
+    if (region.id === '河北') { node.classList.add('is-backdrop'); register(region.id, node); continue; }
+    bind(region.id, node, region.label + '（' + region.area + '）');
   }
-  mapBox.append(svg);
-  host.append(el('div', { class: 'geo-shell' }, mapBox, cardBox),
-    status);
+
+  // 河北 11 个设区市：只描示意分界，默认透明，悬停或选中才上色。
+  for (const city of CITY_SCOPE_AREAS) {
+    const node = svgNode('path', { d: city.path, class: 'geo-city' });
+    cityLayer.append(node);
+    bind(city.id, node, city.scopeValue + '（地级市示意分区）');
+  }
+
+  // 名称：北京、天津常显；河北写在地图上；市名默认隐藏，悬停或选中才出现。
+  for (const area of MAP_REGIONS) {
+    if (area.id === '河北' || !area.labelAt) continue;
+    const text = svgNode('text', { x: area.labelAt.x, y: area.labelAt.y, class: 'geo-label', 'data-label-for': area.id, 'aria-hidden': 'true' }, area.label);
+    labelLayer.append(text);
+    names.set(area.id, text);
+  }
+  labelLayer.append(svgNode('text', { x: 154, y: 258, class: 'geo-province-label', 'aria-hidden': 'true' }, '河北'));
+  for (const city of CITY_SCOPE_AREAS) {
+    if (!city.labelAt) continue;
+    const text = svgNode('text', { x: city.labelAt.x, y: city.labelAt.y, class: 'geo-city-label', 'data-label-for': city.id, 'aria-hidden': 'true' }, city.label);
+    labelLayer.append(text);
+    names.set(city.id, text);
+  }
+
+  // 地图下方这排只放"整块"范围：京津冀是三地合计、河北被 11 个市盖住，两者都没有
+  // 能直接点的整块形状；小块（京津与各市）在地图上点，整块的入口放在这里，两条路都通。
+  const wholeRow = el('div', { class: 'geo-quick', role: 'group', 'aria-label': '整体范围' });
+  wholeRow.append(
+    el('span', { class: 'geo-quick-cap' }, '整体范围'),
+    ...MAP_REGIONS
+      .filter(region => region.id === '京津冀' || region.id === '河北')
+      .map(region => {
+        const button = el('button', { class: 'geo-quick-btn', type: 'button', 'data-geo': region.id }, region.label);
+        bind(region.id, button, region.label + '（' + region.area + '）');
+        return button;
+      }));
+  mapBox.append(svg, wholeRow);
+
+  host.append(el('div', { class: 'geo-shell' }, mapBox, cardBox), status);
 
   function pick(id) {
     pinned = id;
     renderCard();
-    const button = cardBox.querySelector('[data-geo-apply]');
-    button?.focus();
+    cardBox.querySelector('[data-geo-apply]')?.focus();
   }
 
   function renderCard() {
     // 卡片默认收起，鼠标移到某个区域或点击固定后才出现，让地图占满主区。
     const showCard = Boolean(hovered || pinned);
     cardBox.hidden = !showCard;
-    // 收起卡片时只撤掉悬停高亮，保留“当前研究地区”的描边。
-    if (!showCard) { shapes.forEach(path => path.classList.remove('is-active')); return; }
     const scope = getScope();
-    const region = MAP_BY_SCOPE.get(scope) || null;
-    const shown = MAP_BY_SCOPE.get(MAP_REGIONS.find(item => item.id === (pinned || hovered || region?.id || '京津冀'))?.scopeValue) || MAP_REGIONS[0];
-    shapes.forEach((path, id) => {
-      path.classList.toggle('is-active', id === shown.id);
-      path.classList.toggle('is-current', region?.id === id);
-    });
+    const current = MAP_BY_SCOPE.get(scope) || null;
+    if (!showCard) {
+      // 收起卡片时清掉悬停高亮；市名也收回，只留当前范围那一个。
+      for (const id of shapes.keys()) markShapes(id, false, 'path');
+      for (const [id, text] of names) {
+        text.classList.toggle('is-active', false);
+        if (!PERMANENT_LABELS.has(id)) text.classList.toggle('is-shown', id === current?.id);
+      }
+      return;
+    }
+    // 在合并后的区域表里查找：省与市共用同一条查找链，市级不会回落到「京津冀整体」。
+    const shown = MAP_BY_SCOPE.get(MAP_AREAS.find(item => item.id === (pinned || hovered || current?.id || '京津冀'))?.scopeValue) || MAP_AREAS[0];
+    for (const [id, text] of names) {
+      text.classList.toggle('is-active', id === shown.id);
+      if (!PERMANENT_LABELS.has(id)) text.classList.toggle('is-shown', id === shown.id || id === current?.id);
+    }
     // 卡片放到被看区域的反侧，避免压住用户正在看的形状。
     // 依据标注点相对 viewBox 中心的位置判断左上/右下；没有标注点的（京津冀整体）放左上。
     const at = shown.labelAt;
@@ -5013,21 +5101,21 @@ function mountMap(host, context, options) {
         el('div', {}, el('dt', {}, '年份'), el('dd', {}, '生效年份未知 ' + coverage.yearsUnknown + ' 条；已知不等于适用于 2030/2035，平台不做前向填充')),
         el('div', {}, el('dt', {}, '覆盖'), el('dd', {}, coverageLabel(coverage) + (coverage.total ? '；46 项中 ' + coverage.covered + ' 项有条款' : ''))),
         el('div', {}, el('dt', {}, '背景数据'), el('dd', {}, '暂无已核数据，不展示'))),
-            el('details', { class: 'geo-clauses' }, el('summary', {}, '本地区条款（' + (tools.length + clauses.length) + ' 条，列前 8 条）'),
+      el('details', { class: 'geo-clauses' }, el('summary', {}, '本地区条款（' + (tools.length + clauses.length) + ' 条，列前 8 条）'),
         (tools.length + clauses.length) ? el('div', {},
           ...clauses.map(clause => el('p', { class: 'geo-tool' }, el('b', {}, clause.clauseId), ' ', clause.excerpt, el('span', { class: 'geo-clause-note' }, '本项目录入'))),
           ...tools.slice(0, 8).map(row => el('p', { class: 'geo-tool' },
             el('b', {}, row[ROW.path]), ' · ', row[ROW.name] || row[ROW.doc],
             el('span', { class: 'geo-clause-note' }, (row[ROW.start] ? row[ROW.start] + ' 年' : '年份未知') + ' · ' + row[ROW.jurisdiction] + (row[ROW.id] ? ' · ' + row[ROW.id] : '')))))
           : el('p', { class: 'geo-gap' }, '本地区暂无条款。')),
-      el('details', { class: 'geo-levels' }, el('summary', {}, '更细层级（市／区县、园区）'),
+      el('details', { class: 'geo-levels' }, el('summary', {}, '还能细到哪一级'),
         el('ul', {}, ...DEEPER_LEVELS.map(level => el('li', {}, el('strong', {}, level.label + '：' + level.status), ' ', level.reason))))];
     const facts = el('details', { class: 'geo-material' }, el('summary', {}, '查看政策资料'),
       ...materialChildren.slice(1).filter(Boolean));
     facts.prepend(materialChildren[0]);
 
     cardBox.replaceChildren(...[
-      el('div', { class: 'geo-card-hd' }, el('h3', {}, shown.label), el('span', { class: 'geo-level' }, shown.level === 'region' ? '区域口径' : '省级行政区')),
+      el('div', { class: 'geo-card-hd' }, el('h3', {}, shown.label), el('span', { class: 'geo-level' }, shown.level === 'region' ? '区域口径' : shown.level === 'city' ? '地级市' : '省级行政区')),
       previewing ? el('div', { class: 'geo-impact' }, el('p', { class: 'geo-preview-cap' }, '预览：尚未应用到项目。'), ...impact.lines.map(line => el('p', {}, line))) : null,
       previewing ? null : el('p', { class: 'geo-current-static' }, '✓ 当前研究地区'),
       previewing ? el('div', { class: 'geo-actions' },
@@ -5042,22 +5130,26 @@ function mountMap(host, context, options) {
     // 保留卡片：用户刚做完选择，需要看到「当前研究地区」的确认。
     pinned = region.id; hovered = null;
     status.textContent = '已将研究地区设为「' + region.scopeValue + '」。';
+    syncCurrent();
     renderCard();
-    // 应用后把当前地区描亮，用户知道刚才选的是哪一块。
-    const path = shapes.get(region.id);
-    path?.classList.add('is-current');
   }
 
-  renderCard();
-  // 打开页面时把已选地区描亮（卡片仍然收起，鼠标移上去才弹）。
-  {
+  // 当前研究范围一眼看得出来：选哪块就点亮哪块。京津冀是三地合计，没有单独形状，
+  // 所以点亮那枚整块按钮，地图保持浅色。
+  function syncCurrent() {
     const scopeNow = getScope();
-    const regionNow = MAP_BY_SCOPE.get(scopeNow);
-    if (regionNow) shapes.get(regionNow.id)?.classList.add('is-current');
+    const id = scopeNow === '京津冀' ? '京津冀' : (MAP_BY_SCOPE.get(scopeNow)?.id || null);
+    for (const key of shapes.keys()) {
+      markShapes(key, key === id && key !== '京津冀', 'path');
+      markShapes(key, key === id, 'button');
+    }
   }
+
+  syncCurrent();
+  renderCard();
   return {
-    setActive() { renderCard(); },
-    render() { renderCard(); },
+    setActive() { syncCurrent(); renderCard(); },
+    render() { syncCurrent(); renderCard(); },
     dispose() { host.replaceChildren(); }
   };
 }
@@ -5104,16 +5196,55 @@ const MAP_REGIONS = [
   }
 ];
 
-const MAP_BY_SCOPE = new Map(MAP_REGIONS.map(region => [region.scopeValue, region]));
-const MAP_BY_ID = new Map(MAP_REGIONS.map(region => [region.id, region]));
+// 河北省 11 个设区市的示意分区：按真实相对方位手工分块，共享边界、拼满省域。
+// 这不是测绘边界，也不用于测距或边界判定；只用于在图上选择研究范围。
+// 名称与政策库里「地级市级」的管辖地一致（秦皇岛在库中暂无记录，界面会如实显示 0 条）。
+const HEBEI_CITY_AREAS = [
+  { id: '张家口市', label: '张家口', path: 'M 118 296 L 132 232 L 158 178 L 208 132 L 250 138 L 252 232 L 236 268 L 170 300 L 128 330 Z',
+    labelAt: { x: 186, y: 218 } },
+  { id: '承德市', label: '承德', path: 'M 250 138 L 258 96 L 300 84 L 344 100 L 366 132 L 352 180 L 252 232 Z',
+    labelAt: { x: 300, y: 152 } },
+  { id: '秦皇岛市', label: '秦皇岛', path: 'M 352 180 L 366 132 L 392 142 L 424 168 L 440 208 L 415 225 L 372 200 Z',
+    labelAt: { x: 396, y: 180 } },
+  { id: '唐山市', label: '唐山', path: 'M 372 200 L 415 225 L 440 208 L 466 240 L 452 268 L 430 282 L 400 290 L 352 250 Z',
+    labelAt: { x: 410, y: 250 } },
+  { id: '廊坊市', label: '廊坊', path: 'M 252 232 L 352 180 L 372 200 L 352 250 L 252 290 Z',
+    labelAt: { x: 306, y: 236 } },
+  { id: '保定市', label: '保定', path: 'M 170 300 L 236 268 L 252 232 L 252 290 L 252 350 L 165 355 L 128 330 Z',
+    labelAt: { x: 198, y: 302 } },
+  { id: '沧州市', label: '沧州', path: 'M 352 250 L 400 290 L 430 282 L 462 300 L 446 332 L 414 354 L 386 388 L 360 350 Z',
+    labelAt: { x: 400, y: 322 } },
+  { id: '石家庄市', label: '石家庄', path: 'M 165 355 L 252 350 L 252 290 L 170 300 L 128 330 L 150 360 Z',
+    labelAt: { x: 202, y: 336 } },
+  { id: '衡水市', label: '衡水', path: 'M 252 350 L 360 350 L 386 388 L 344 404 L 296 420 L 250 400 Z',
+    labelAt: { x: 304, y: 384 } },
+  { id: '邢台市', label: '邢台', path: 'M 150 360 L 165 355 L 252 350 L 250 400 L 206 424 L 176 396 Z',
+    labelAt: { x: 202, y: 388 } },
+  { id: '邯郸市', label: '邯郸', path: 'M 250 400 L 296 420 L 250 432 L 206 424 Z',
+    labelAt: { x: 246, y: 424 } },
+];
+
+// 市级区域与省级区域统一成一张选择表：地图、卡片、下拉三处口径一致。
+const CITY_SCOPE_AREAS = HEBEI_CITY_AREAS.map(city => ({
+  id: city.id, label: city.label, scopeValue: city.id, short: city.label,
+  level: 'city', parent: '河北省', path: city.path, labelAt: city.labelAt,
+  area: city.id + '全域（示意分区）',
+  note: '地级市示意分区，不是测绘边界；政策库记录按管辖地统计，只算正好属于「' + city.id + '」的部分。'
+}));
+
+const MAP_AREAS = [...MAP_REGIONS, ...CITY_SCOPE_AREAS];
+
+const MAP_BY_SCOPE = new Map(MAP_AREAS.map(region => [region.scopeValue, region]));
+const MAP_BY_ID = new Map(MAP_AREAS.map(region => [region.id, region]));
 
 function regionForScope(scopeValue) {
   return MAP_BY_SCOPE.get(scopeValue) || null;
 }
 
-// 更细层级（市/区县/园区）没有离线真实边界与数据，明确不开放，而不是放空按钮。
+// 更细层级：河北 11 个设区市已可直接在地图上点选（示意分区，不是测绘边界）；
+// 区县与园区没有离线真实边界与逐区县政策数据，明确不开放，而不是放空按钮。
 const DEEPER_LEVELS = [
-  { id: 'city', label: '市 / 区县', status: '未开放', reason: '缺少离线真实边界与逐区县政策数据；开放会变成虚构地图。' },
+  { id: 'district', label: '区县', status: '未开放', reason: '缺少离线真实边界与逐区县政策数据；开放会变成虚构地图。' },
   { id: 'park', label: '园区', status: '未开放', reason: '园区不是行政区，且离线包没有任何园区边界或清单；自定义园区名称请到「园区或自定义」填写。' }
 ];
 
@@ -5191,7 +5322,7 @@ function regionImpact(project, nextScopeValue, { hasResults = false } = {}) {
   return { changed: true, lines, judgments: judgments.length, plans: plans.length };
 }
 
-Object.assign(__exports, { GEO_SOURCE, MAP_VIEW, MAP_REGIONS, MAP_BY_SCOPE, MAP_BY_ID, regionForScope, DEEPER_LEVELS, clauseRegion, regionMatches, projectClauses, libraryClauses, regionCoverage, coverageLabel, regionImpact });
+Object.assign(__exports, { GEO_SOURCE, MAP_VIEW, MAP_REGIONS, HEBEI_CITY_AREAS, CITY_SCOPE_AREAS, MAP_AREAS, MAP_BY_SCOPE, MAP_BY_ID, regionForScope, DEEPER_LEVELS, clauseRegion, regionMatches, projectClauses, libraryClauses, regionCoverage, coverageLabel, regionImpact });
 },
 "src/modules/elements/policy-pilot.mjs": (__require, __exports) => {
 const { createProjectStore } = __require("src/core/project-store.mjs");
@@ -5366,7 +5497,10 @@ function toolsFor(scopeValue, { includeNational = false } = {}) {
     const province = provinceOf(row);
     if (!province) return includeNational;
     if (scopeValue === '京津冀') return true;
-    return province === scopeValue;
+    // 省级口径：该省下的记录都算（含区县与功能区）。
+    if (province === scopeValue) return true;
+    // 市级口径：只认管辖地正好是这个市的记录；省级记录不摊到市里。
+    return row[ROW.jurisdiction] === scopeValue;
   });
 }
 

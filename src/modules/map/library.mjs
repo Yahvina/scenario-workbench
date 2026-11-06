@@ -25,7 +25,10 @@ export function toolsFor(scopeValue, { includeNational = false } = {}) {
     const province = provinceOf(row);
     if (!province) return includeNational;
     if (scopeValue === '京津冀') return true;
-    return province === scopeValue;
+    // 省级口径：该省下的记录都算（含区县与功能区）。
+    if (province === scopeValue) return true;
+    // 市级口径：只认管辖地正好是这个市的记录；省级记录不摊到市里。
+    return row[ROW.jurisdiction] === scopeValue;
   });
 }
 

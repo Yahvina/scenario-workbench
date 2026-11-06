@@ -35,16 +35,55 @@ export const MAP_REGIONS = [
   }
 ];
 
-export const MAP_BY_SCOPE = new Map(MAP_REGIONS.map(region => [region.scopeValue, region]));
-export const MAP_BY_ID = new Map(MAP_REGIONS.map(region => [region.id, region]));
+// 河北省 11 个设区市的示意分区：按真实相对方位手工分块，共享边界、拼满省域。
+// 这不是测绘边界，也不用于测距或边界判定；只用于在图上选择研究范围。
+// 名称与政策库里「地级市级」的管辖地一致（秦皇岛在库中暂无记录，界面会如实显示 0 条）。
+export const HEBEI_CITY_AREAS = [
+  { id: '张家口市', label: '张家口', path: 'M 118 296 L 132 232 L 158 178 L 208 132 L 250 138 L 252 232 L 236 268 L 170 300 L 128 330 Z',
+    labelAt: { x: 186, y: 218 } },
+  { id: '承德市', label: '承德', path: 'M 250 138 L 258 96 L 300 84 L 344 100 L 366 132 L 352 180 L 252 232 Z',
+    labelAt: { x: 300, y: 152 } },
+  { id: '秦皇岛市', label: '秦皇岛', path: 'M 352 180 L 366 132 L 392 142 L 424 168 L 440 208 L 415 225 L 372 200 Z',
+    labelAt: { x: 396, y: 180 } },
+  { id: '唐山市', label: '唐山', path: 'M 372 200 L 415 225 L 440 208 L 466 240 L 452 268 L 430 282 L 400 290 L 352 250 Z',
+    labelAt: { x: 410, y: 250 } },
+  { id: '廊坊市', label: '廊坊', path: 'M 252 232 L 352 180 L 372 200 L 352 250 L 252 290 Z',
+    labelAt: { x: 306, y: 236 } },
+  { id: '保定市', label: '保定', path: 'M 170 300 L 236 268 L 252 232 L 252 290 L 252 350 L 165 355 L 128 330 Z',
+    labelAt: { x: 198, y: 302 } },
+  { id: '沧州市', label: '沧州', path: 'M 352 250 L 400 290 L 430 282 L 462 300 L 446 332 L 414 354 L 386 388 L 360 350 Z',
+    labelAt: { x: 400, y: 322 } },
+  { id: '石家庄市', label: '石家庄', path: 'M 165 355 L 252 350 L 252 290 L 170 300 L 128 330 L 150 360 Z',
+    labelAt: { x: 202, y: 336 } },
+  { id: '衡水市', label: '衡水', path: 'M 252 350 L 360 350 L 386 388 L 344 404 L 296 420 L 250 400 Z',
+    labelAt: { x: 304, y: 384 } },
+  { id: '邢台市', label: '邢台', path: 'M 150 360 L 165 355 L 252 350 L 250 400 L 206 424 L 176 396 Z',
+    labelAt: { x: 202, y: 388 } },
+  { id: '邯郸市', label: '邯郸', path: 'M 250 400 L 296 420 L 250 432 L 206 424 Z',
+    labelAt: { x: 246, y: 424 } },
+];
+
+// 市级区域与省级区域统一成一张选择表：地图、卡片、下拉三处口径一致。
+export const CITY_SCOPE_AREAS = HEBEI_CITY_AREAS.map(city => ({
+  id: city.id, label: city.label, scopeValue: city.id, short: city.label,
+  level: 'city', parent: '河北省', path: city.path, labelAt: city.labelAt,
+  area: city.id + '全域（示意分区）',
+  note: '地级市示意分区，不是测绘边界；政策库记录按管辖地统计，只算正好属于「' + city.id + '」的部分。'
+}));
+
+export const MAP_AREAS = [...MAP_REGIONS, ...CITY_SCOPE_AREAS];
+
+export const MAP_BY_SCOPE = new Map(MAP_AREAS.map(region => [region.scopeValue, region]));
+export const MAP_BY_ID = new Map(MAP_AREAS.map(region => [region.id, region]));
 
 export function regionForScope(scopeValue) {
   return MAP_BY_SCOPE.get(scopeValue) || null;
 }
 
-// 更细层级（市/区县/园区）没有离线真实边界与数据，明确不开放，而不是放空按钮。
+// 更细层级：河北 11 个设区市已可直接在地图上点选（示意分区，不是测绘边界）；
+// 区县与园区没有离线真实边界与逐区县政策数据，明确不开放，而不是放空按钮。
 export const DEEPER_LEVELS = [
-  { id: 'city', label: '市 / 区县', status: '未开放', reason: '缺少离线真实边界与逐区县政策数据；开放会变成虚构地图。' },
+  { id: 'district', label: '区县', status: '未开放', reason: '缺少离线真实边界与逐区县政策数据；开放会变成虚构地图。' },
   { id: 'park', label: '园区', status: '未开放', reason: '园区不是行政区，且离线包没有任何园区边界或清单；自定义园区名称请到「园区或自定义」填写。' }
 ];
 

@@ -53,9 +53,6 @@ input[aria-invalid=true]{border-color:var(--danger);background:var(--rd-s)}
 .home-choice{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:8px}
 .home-choice small{flex:0 1 auto;color:var(--tx3);font-size:12px}
 #module-content>form#home-start-form{margin-top:12px}
-#home-catalog-source{margin-top:6px}
-#home-catalog-source summary{font-size:12px;color:var(--tx3);cursor:pointer}
-#home-catalog-source p{margin-top:6px}
 .chips-wrap{margin-top:16px;display:flex;flex-direction:column;gap:8px}
 .chips-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -63,10 +60,6 @@ input[aria-invalid=true]{border-color:var(--danger);background:var(--rd-s)}
 .chip:hover{background:var(--bg);border-color:var(--pri-b)}
 .chip:active{background:var(--panel2);border-color:var(--focus)}
 .chip>span{color:var(--tx3)}
-#home-more .field{margin-top:16px}
-#home-more .actions{margin-top:14px}
-#home-library .library-host{min-width:0}
-#home-library .library-host>section{margin-top:12px}
 /* A drafted new scenario has to state what it replaces and how to keep the original
    project before it is submitted, so that notice sits above the form; while it is
    shown the decorative progress strip yields its space and the one primary action

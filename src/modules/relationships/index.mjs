@@ -377,9 +377,11 @@ export function mount(container, context) {
     if(!sources.length||!targets.length){body.append(el('p',{class:'warning-text'},'变量缺少状态定义，不能生成状态对；请回描述符页核对已有定义。'),button('返回描述符选择',()=>context.navigate('elements')));showAtlas();return;}
     const region=el('input',{'aria-label':'判断适用地区',value:draft.region,placeholder:'',oninput:e=>{draft.region=e.target.value;}});
     const years=el('input',{'aria-label':'判断适用年份',value:draft.years,placeholder:'',oninput:e=>{draft.years=e.target.value;}});
-    const directness=el('select',{'aria-label':'直接性说明',onchange:e=>{draft.directness=e.target.value;}},el('option',{value:'unknown'},'直接性待核'),el('option',{value:'direct'},'记录为直接影响'),el('option',{value:'indirect'},'记录为间接影响'));
+    const directness=el('select',{'aria-label':'直接性说明',onchange:e=>{draft.directness=e.target.value;}},el('option',{value:'unknown'},'待定'),el('option',{value:'direct'},'直接影响'),el('option',{value:'indirect'},'间接影响'));
     directness.value=draft.directness;
-    body.append(el('div',{class:'relationships-controls'},el('label',{},'判断适用地区',region),el('label',{},'判断适用年份',years),el('label',{},'直接性说明',directness)),el('p',{class:'muted'},'0＝没关系；空白＝未判断；−3…−1 抑制，+1…+3 促进。地区和年份默认取当前研究范围，可在此修改。'));
+    // 一句话说清分数含义；适用范围已按研究范围默认填好，只在这条评分需要例外时才动。
+    body.append(el('p',{class:'muted'},'0＝没关系；空白＝未判断；−3…−1 抑制，+1…+3 促进。'),
+      el('div',{class:'relationships-controls'},el('label',{},'判断适用地区',region),el('label',{},'判断适用年份',years),el('label',{},'直接性说明',directness)));
     // H3：只有源与目标各有三个状态时，才提供可选的「逐行判断」视图。
     // 两种视图共用同一个 draft 对象，切换只重建界面，不清空判断、来源或理由。
     const hasTernaryGuide=sources.length===3&&targets.length===3;

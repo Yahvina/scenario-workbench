@@ -1,20 +1,31 @@
-// Shared adapters for the H1 start page. Old browser scripts use these so they keep
-// driving the real new controls (scale + range selection, collapsed secondary
-// entries) instead of a hidden field pretending the interaction was verified.
-const MORE = '#home-more';
-
-async function openMore(page) {
-  const more = page.locator(MORE);
-  if ((await more.count()) && !(await more.evaluate(node => node.open))) await more.locator('> summary').click();
-}
+// Shared adapters for the start page. Browser scripts drive the real controls
+// (scale + range selection, collapsed secondary entries) rather than a hidden field.
+//
+// 2026-11-06 首页精简后的位置变化：
+//   - 年份文本输入在首页「调整年份」折叠里
+//   - 项目备份、恢复、示例载入搬到「保存与导出 → 导出、备份与恢复」
+const YEARS_DETAILS = '.home-years-adjust';
 
 async function openDetails(page, selector) {
   const details = page.locator(selector);
   if ((await details.count()) && !(await details.evaluate(node => node.open))) await details.locator('> summary').click();
 }
 
-// Choose the region through the real scale control: pick the scale that can express
-// the requested value, then set the single 研究地区 control (select or custom input).
+async function openYears(page) {
+  await openDetails(page, YEARS_DETAILS);
+}
+
+// 进入保存与导出页的第三个页签（导出、备份与恢复）
+async function openBackupTab(page) {
+  const tab = page.locator('.exports-switch [data-tab="advanced"]');
+  if (!(await tab.count())) {
+    await page.locator('nav [data-route="exports"]').first().click();
+    await page.waitForTimeout(400);
+  }
+  const current = page.locator('.exports-switch [data-tab="advanced"]');
+  if (await current.count()) { await current.click(); await page.waitForTimeout(300); }
+}
+
 async function setRegion(page, value) {
   const scale = page.locator('#region-scale');
   for (const scaleId of ['region', 'province', 'city', 'custom']) {
@@ -41,34 +52,39 @@ async function selectHas(locator, value) {
 }
 
 async function setYears(page, text) {
-  await openMore(page);
+  await openYears(page);
   await page.getByLabel('研究年份', { exact: true }).fill(text);
+  const apply = page.getByRole('button', { name: '应用文本年份', exact: true });
+  if (await apply.count()) { await apply.click(); await page.waitForTimeout(200); }
 }
 
+// 首页只有一个主动作：保存范围并进入因素页。
 async function saveScope(page) {
-  await openMore(page);
-  await page.getByRole('button', { name: '保存项目范围', exact: true }).click();
+  await page.locator('[data-home-primary]').first().click();
+  await page.waitForTimeout(400);
 }
 
 async function snapshot(page) {
-  await openMore(page);
+  await openBackupTab(page);
   await page.getByRole('button', { name: '记录未检验快照', exact: true }).click();
 }
 
 async function downloadBackup(page) {
-  await openMore(page);
+  await openBackupTab(page);
   await page.getByRole('button', { name: '下载项目备份', exact: true }).click();
 }
 
 async function restore(page, value, name = 'backup.json') {
-  await openMore(page);
+  await openBackupTab(page);
   const buffer = Buffer.isBuffer(value) ? value : Buffer.from(typeof value === 'string' ? value : JSON.stringify(value));
-  await page.getByLabel('从JSON备份恢复').setInputFiles({ name, mimeType: 'application/json', buffer });
+  await page.getByLabel('从 JSON 备份恢复').setInputFiles({ name, mimeType: 'application/json', buffer });
+  await page.waitForTimeout(300);
 }
 
 async function loadDemo(page) {
-  await openMore(page);
+  await openBackupTab(page);
   await page.getByRole('button', { name: '载入机制示例', exact: true }).click();
+  await page.waitForTimeout(500);
 }
 
-module.exports = { openMore, openDetails, setRegion, setYears, saveScope, snapshot, downloadBackup, restore, loadDemo };
+module.exports = { openDetails, openYears, openBackupTab, setRegion, setYears, saveScope, snapshot, downloadBackup, restore, loadDemo };

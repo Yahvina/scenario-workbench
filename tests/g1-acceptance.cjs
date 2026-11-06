@@ -35,7 +35,8 @@ const APP=pathToFileURL(path.resolve(__dirname,'../dist/scenario-workbench.html'
   await page.goto(APP);await page.evaluate(()=>{localStorage.clear();sessionStorage.clear();});await page.reload();await page.waitForTimeout(700);
 
   await step('载入机制示例，2030 与 2035 选不同状态',async()=>{
-    await page.locator('#home-more summary').click();await page.waitForTimeout(200);
+    await page.locator('nav [data-route="exports"]').first().click();await page.waitForTimeout(400);
+    await page.locator('.exports-switch [data-tab="advanced"]').click();await page.waitForTimeout(300);
     await page.locator('button',{hasText:'载入机制示例'}).first().click();await page.waitForTimeout(700);
     await nav('因素与年度方案');
     const switchTo=async label=>{await page.locator('.preview-switch button',{hasText:label}).first().click();await page.waitForTimeout(250);};

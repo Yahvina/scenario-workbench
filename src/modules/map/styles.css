@@ -2,17 +2,22 @@
 .geo-panel{margin:0 0 14px}
 .geo-panel>h3{font-size:16px;margin:0 0 2px}
 .geo-panel>.geo-lead{margin:0 0 8px;font-size:12px;color:var(--tx3)}
-.geo-shell{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
-@media(max-width:980px){.geo-shell{grid-template-columns:minmax(0,1fr)}}
+.geo-shell{position:relative}
 .geo-map{background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);padding:6px}
-.geo-map svg{display:block;width:100%;height:250px}
+.geo-map svg{display:block;width:100%;height:380px}
 .geo-shape{fill:var(--pri-s);stroke:var(--panel);stroke-width:2.5;cursor:pointer;transition:fill .15s var(--ease)}
 .geo-shape:hover,.geo-shape.is-active{fill:var(--pri-b)}
 .geo-shape.is-current{fill:var(--pri)}
 .geo-shape:focus-visible{outline:2px solid var(--pri-d);outline-offset:2px}
 .geo-label{font-size:14px;fill:var(--tx2);pointer-events:none;font-weight:600}
 .geo-shape.is-current+.geo-label,.geo-shape.is-active~.geo-label{fill:var(--tx)}
-.geo-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);padding:12px 14px;min-width:0}
+.geo-card{position:absolute;width:min(330px,40%);background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);padding:12px 14px;box-shadow:0 6px 24px rgba(0,0,0,.10);pointer-events:none;max-height:calc(100% - 20px);overflow:auto}
+.geo-card.at-left{left:10px}.geo-card.at-right{right:10px}
+.geo-card.at-top{top:10px}.geo-card.at-bottom{bottom:10px}
+/* 卡片本身不截获鼠标：划过它时事件穿透到下面的地图，被它压住的地区照样能选。*/
+.geo-card button,.geo-card a,.geo-card summary,.geo-card input,.geo-card select{pointer-events:auto}
+.geo-card[hidden]{display:none}
+@media(max-width:760px){.geo-card{position:static;width:auto;max-height:none;margin-top:10px}}
 .geo-card-hd{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .geo-card-hd h3{margin:0;font-size:16px}
 .geo-level{font-size:12px;color:var(--tx3);border:1px solid var(--line2);border-radius:var(--r);padding:0 6px}
@@ -56,12 +61,11 @@
 .legacy-map .rel-unmatched{color:var(--tx3)}
 
 /* 首页：地图与范围表单并排，主动作留在首屏 */
-.home-start-grid{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,0.98fr);gap:20px;align-items:start;margin:12px 0 0}
+.home-start-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:20px;align-items:start;margin:12px 0 0}
 .home-start-grid>.geo-panel{margin:0}
 @media(max-width:1080px){.home-start-grid{grid-template-columns:minmax(0,1fr)}}
 /* 首页左栏较窄：地图在上、地区卡片在下，避免两栏互相挤压 */
 .geo-panel{container-type:inline-size}
-@container (max-width:760px){.geo-shell{grid-template-columns:minmax(0,1fr)}}
 
 .geo-source{font-size:12px;color:var(--tx3);margin:6px 0 0;max-width:70ch}
 /* 首页年份区：默认只显示 chip，其余收进「调整年份」 */

@@ -55,6 +55,11 @@ export function mountMap(host, context, options) {
   }
 
   function renderCard() {
+    // 卡片默认收起，鼠标移到某个区域或点击固定后才出现，让地图占满主区。
+    const showCard = Boolean(hovered || pinned);
+    cardBox.hidden = !showCard;
+    // 收起卡片时只撤掉悬停高亮，保留“当前研究地区”的描边。
+    if (!showCard) { shapes.forEach(path => path.classList.remove('is-active')); return; }
     const scope = getScope();
     const region = MAP_BY_SCOPE.get(scope) || null;
     const shown = MAP_BY_SCOPE.get(MAP_REGIONS.find(item => item.id === (pinned || hovered || region?.id || '京津冀'))?.scopeValue) || MAP_REGIONS[0];
@@ -62,6 +67,14 @@ export function mountMap(host, context, options) {
       path.classList.toggle('is-active', id === shown.id);
       path.classList.toggle('is-current', region?.id === id);
     });
+    // 卡片放到被看区域的反侧，避免压住用户正在看的形状。
+    // 依据标注点相对 viewBox 中心的位置判断左上/右下；没有标注点的（京津冀整体）放左上。
+    const at = shown.labelAt;
+    const cx = MAP_VIEW.x + MAP_VIEW.width / 2, cy = MAP_VIEW.y + MAP_VIEW.height / 2;
+    const side = !at ? 'left' : (at.x > cx ? 'left' : 'right');
+    const vert = !at ? 'top' : (at.y > cy ? 'top' : 'bottom');
+    cardBox.classList.remove('at-left', 'at-right', 'at-top', 'at-bottom');
+    cardBox.classList.add('at-' + side, 'at-' + vert);
     const coverage = regionCoverage(context.store.read(), shown.scopeValue);
     const clauses = projectClauses(context.store.read(), shown.scopeValue);
     const tools = toolsFor(shown.scopeValue);
@@ -102,12 +115,22 @@ export function mountMap(host, context, options) {
     const result = onApply(region.scopeValue);
     if (!result?.ok) { status.textContent = result?.message || '地区未应用。'; return; }
     applied = region.id;
-    pinned = null; hovered = null;
+    // 保留卡片：用户刚做完选择，需要看到「当前研究地区」的确认。
+    pinned = region.id; hovered = null;
     status.textContent = '已将研究地区设为「' + region.scopeValue + '」。';
     renderCard();
+    // 应用后把当前地区描亮，用户知道刚才选的是哪一块。
+    const path = shapes.get(region.id);
+    path?.classList.add('is-current');
   }
 
   renderCard();
+  // 打开页面时把已选地区描亮（卡片仍然收起，鼠标移上去才弹）。
+  {
+    const scopeNow = getScope();
+    const regionNow = MAP_BY_SCOPE.get(scopeNow);
+    if (regionNow) shapes.get(regionNow.id)?.classList.add('is-current');
+  }
   return {
     setActive() { renderCard(); },
     render() { renderCard(); },

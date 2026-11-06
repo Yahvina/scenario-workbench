@@ -63,9 +63,11 @@ const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Applic
     await page.waitForTimeout(400);
     const dialog = await text('.reference-dialog');
     assert.match(dialog, /演示参考，可修改，非实时AI生成/);
-    assert.match(dialog, /将填 27 格/);
-    assert.match(dialog, /写入年份 2030、2035/);
+    assert.match(dialog, /这份参考是哪来的/, '参考来源可查');
     assert.match(dialog, /确认保存并使用/);
+    // 覆盖范围：能覆盖的方向逐条列出；没覆盖的方向在"以下方向没有填入"里说明。
+    assert.equal(await page.locator('.reference-table tbody tr').count(), 3, '列出的方向数应与覆盖数一致');
+    // 未覆盖的方向不在表里；下一步的回执会说明还剩几个方向没有参考规则。
   });
 
   await step('确认保存并使用：一次完成保存与选用，并给出四类回执', async () => {
@@ -74,7 +76,7 @@ const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Applic
     const receipt = await text('[data-rev-refill]');
     assert.match(receipt, /已填入：?27 格，涉及 3 个方向；还缺 27 格/, '回执实际是：' + receipt.slice(0, 120));
     assert.match(receipt, /待保存 0（已写入项目）/);
-    assert.match(receipt, /待选用 0/);
+    assert.match(receipt, /有多条评分待选 0/);
     assert.match(receipt, /没有参考规则 3 个方向/);
     const p = await project();
     assert.equal(p.data.judgments.length, 3);
@@ -110,11 +112,11 @@ const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Applic
       await page.locator('button', { hasText: '保存这一对的评分' }).first().click();
       await page.waitForTimeout(900);
     }
-    assert.match(await text('.rev-stats'), /6 \/ 6/);
-    assert.match(await text('.rev-stats'), /0 .*还缺评分格/);
-    const adopt = page.locator('button', { hasText: '使用这些评分，继续检验' });
-    assert.ok(await adopt.count(), '应有“采用并继续”的入口');
-    await adopt.first().click();
+    // 保存即采用：六个方向填完就是齐全态，不再要求重复点一次「采用」。
+    assert.match(await text('[data-rev-done]'), /评分已齐：6 个方向/, '六个方向齐全');
+    const adopt = page.locator('button', { hasText: '继续：检验方案' }).first();
+    assert.equal(await adopt.isEnabled(), true, '齐全后主按钮可用');
+    await adopt.click();
     await page.waitForTimeout(900);
     assert.ok(await page.locator('.solver-module').count());
   });

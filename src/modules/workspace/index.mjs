@@ -1,22 +1,10 @@
-import {savedWorkPanel} from './saved-work-panel.mjs';
-import {statusLabel} from '../solver/presentation.mjs';
 import { el } from '../../core/ui.mjs';
-import {readRunSummary,readRunArchive,subscribeRunSummary} from '../solver/index.mjs';
-import {REGION_CATALOG,REGION_SCALES,PROVINCES,TARGET_YEARS,YEAR_MIN,YEAR_MAX,optionsForScale,provinceForRegion,scaleForRegion} from './regions.mjs';
+import {readRunSummary} from '../solver/index.mjs';
+import {REGION_SCALES,PROVINCES,TARGET_YEARS,YEAR_MIN,YEAR_MAX,optionsForScale,provinceForRegion,scaleForRegion} from './regions.mjs';
 import {DEFAULT_NAME,DEFAULT_TITLE,addYears,checkYear,displayTitle,parseYearList,rangePreview,rangeSummary,removeYear,suggestTitle} from './start-range.mjs';
 import {newScenarioProject} from './new-project.mjs';
 import {mountMap} from '../map/index.mjs';
 import {regionImpact} from '../map/geo.mjs';
-
-function createRunSave(context){
-  const runSave=el('section',{'data-flow-save':''});
-  function renderRunSave(){
-    const summary=readRunSummary(context.store),archive=readRunArchive(context.store);
-    const download=el('button',{class:'button secondary',type:'button',disabled:!archive,onclick:()=>{const current=readRunArchive(context.store);if(!current)return;const url=URL.createObjectURL(new Blob([JSON.stringify(current,null,2)],{type:'application/json'})),a=el('a',{href:url,download:'cib-archive.json'});a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}},'下载当前查看的检算JSON归档');
-    runSave.replaceChildren(el('h3',{},'检算结果单独保存'),el('p',{},summary?'本会话当前查看的检算归档：'+statusLabel(summary.status)+'；年份 '+(summary.year??'尚无合法输入')+'；冻结修订 '+summary.revision+'；成立数 '+(summary.count===null?'未定':summary.count)+(summary.stale?'；旧输入已过期，归档仍可保存。':'；归档保留冻结输入。'):'本会话还没有检算归档。'),el('p',{},'项目备份保存范围、数据和选择，不包含检算结果或矩阵交接候选。检算页JSON包含冻结矩阵、结果与诊断；可在检算页选择旧归档，下载目标随之切换。刷新后本会话归档丢失，请先下载。'),download,el('button',{class:'button secondary',type:'button',onclick:()=>context.navigate('solver')},'前往检算页查看与保存'));
-  }
-  return {runSave,renderRunSave};
-}
 
 // The start page only chooses where and when to study, then hands over to the factors
 // step. The stored scope contract is unchanged: scope.regionId remains the single
@@ -35,8 +23,15 @@ export function mount(container, context) {
   const markDirty = () => { dirty = true; setStatus('有未保存的修改', 'dirty'); geo?.setActive(); };
   const field = (label, input, extra = null, wide = false) => el('div', { class: 'field' + (wide ? ' wide' : '') }, el('label', { for: input.id }, label), input, extra);
 
-  const title = el('input', { id: 'project-title', maxlength: 120, value: displayTitle(project.title), 'aria-describedby': 'title-help' });
-  title.addEventListener('input', markDirty);
+  // 首页不再让用户手填项目名称：范围定完自动命名，之后可在「保存与导出」里改方案名。
+  const title = el('input', { id: 'project-title', type: 'hidden', value: displayTitle(project.title) });
+
+  // 新情景草稿的名字随研究范围自动生成；已有项目一律保持原名，绝不自动改写。
+  // 用户想改名字，到「保存与导出 → 导出、备份与恢复」里改。
+  function syncDraftName() {
+    if (!pendingNew) return;
+    title.value = suggestTitle(regionId, years) || DEFAULT_NAME;
+  }
 
   const regionBlock = el('div', { class: 'form-grid' });
   function renderRegion() {
@@ -69,6 +64,7 @@ export function mount(container, context) {
       nodes.push(field('研究地区', select));
     }
     regionBlock.replaceChildren(...nodes);
+    syncDraftName();
     geo?.setActive();
   }
 
@@ -108,15 +104,20 @@ export function mount(container, context) {
     } }, '添加年份');
     const chips = el('div', { class: 'chips' }, ...(years.length ? years.map(year => el('button', { class: 'chip', type: 'button', 'aria-label': '移除年份 ' + year, onclick: () => { years = removeYear(years, year); renderYears(); markDirty(); } }, String(year), el('span', { 'aria-hidden': 'true' }, ' ×'))) : [el('span', { class: 'muted' }, '尚未选择年份')]));
     // 首屏只留年份 chip；目标年、其他年份与多时点都收进「调整年份」。
+    // 年份文本快捷输入也移进「调整年份」：首页只留 chip 与一个折叠入口。
     const adjust = el('details', { class: 'home-years-adjust' }, el('summary', {}, '调整年份'),
       el('div', { class: 'form-grid' }, field('目标年', target), field('其他年份', other)),
-      el('div', { class: 'actions' }, add), rangeDetails);
+      el('div', { class: 'actions' }, add),
+      el('div', { class: 'form-grid' }, field('研究年份', yearsText)),
+      el('div', { class: 'actions' }, el('button', { class: 'button secondary', type: 'button', onclick: applyText }, '应用文本年份')),
+      rangeDetails);
     yearsBlock.replaceChildren(
       el('div', { class: 'years-row' },
         el('span', { class: 'years-cap' }, '研究年份'), chips,
         defaultYears ? el('span', { class: 'muted' }, '默认 2030 / 2035') : null),
       adjust);
     if (document.activeElement !== yearsText && !textEdited) { yearsText.value = years.join(', '); yearsText.removeAttribute('aria-invalid'); }
+    syncDraftName();
   }
 
   // Load the draft from a stored project. Used at mount and whenever a new-scenario
@@ -169,7 +170,10 @@ export function mount(container, context) {
       nextYears = parsed.years;
     }
     const nextRegion = (regionId || '').trim() || null;
-    const nextTitle = title.value.trim() || DEFAULT_NAME;
+    // 首页不再改名：项目名保持原值，改名入口在「保存与导出」。
+    const nextTitle = pendingNew
+      ? (suggestTitle(nextRegion, nextYears) || title.value.trim() || DEFAULT_NAME)
+      : (title.value.trim() || current.title);
     if (pendingNew) return commitNewScenario({ title: nextTitle, scope: { regionId: nextRegion, years: nextYears } });
     const result = context.actions.updateProjectDetails({ title: nextTitle, scope: { regionId: nextRegion, years: nextYears } });
     if (!result.ok) { setStatus(result.error.message, 'error'); return false; }
@@ -222,7 +226,7 @@ export function mount(container, context) {
     if ((dirty || hasSavedWork()) && !confirm('开始一个新情景会先在当前页面填写一个空白草稿。提交会替换当前的活动项目：本项目只保留一个活动项目槽位，被替换的项目不会自动留在任何地方。如需以后恢复当前项目，请先保存为命名方案或下载备份。提交之前，当前项目与草稿都不会被改动。继续吗？')) return false;
     dirty = false; textEdited = false; pendingNew = true;
     years = [2030,2035]; regionId = '京津冀'; scale = 'region'; provinceId = PROVINCES[2]; storedUnknownRegion = false;
-    title.value = DEFAULT_NAME; yearsText.value = ''; yearsText.removeAttribute('aria-invalid');
+    yearsText.value = ''; yearsText.removeAttribute('aria-invalid');
     renderRegion(); renderYears(); renderNewState();
     setStatus('正在填写新情景草稿。选好地区与年份后点主动作提交；提交前当前项目不会被改动。', '');
     return true;
@@ -272,51 +276,6 @@ export function mount(container, context) {
     if (!persisted.ok) setStatus('地区已更新到当前页面，但浏览器保存失败，请下载项目备份。', 'error');
     return { ok: true };
   }
-
-  function backupInput() {
-    const backup = el('input', { type: 'file', id: 'project-import', accept: '.json,application/json', class: 'inline-file' });
-    backup.addEventListener('change', async () => {
-      const file = backup.files[0];
-      if (!file) return;
-      if (file.size > 5 * 1024 * 1024) { setStatus('备份超过5MB，本轮暂不支持载入。', 'error'); return; }
-      if (!confirm('恢复备份会替换当前项目。继续恢复吗？')) { backup.value = ''; return; }
-      try {
-        const value = JSON.parse(await file.text());
-        const result = context.actions.replaceProject(value);
-        if (!result.ok) throw new Error(result.error.message);
-        dirty = false;
-        context.refresh();
-        context.notify('项目备份已恢复');
-      } catch (error) { setStatus('备份未载入：' + error.message, 'error'); }
-    });
-    return backup;
-  }
-
-  function loadMechanism() {
-    const current = context.store.read();
-    if ((dirty || current.data.taxonomy.length || current.scope.years.length || current.title !== '未命名情景项目') && !confirm('载入机制演示会替换当前项目。需要保留时，请先下载项目备份。继续吗？')) return;
-    dirty = false;
-    context.loadMechanism();
-  }
-
-  function loadDemo() {
-    const current = context.store.read();
-    if ((dirty || current.data.taxonomy.length || current.scope.years.length || current.title !== '未命名情景项目') && !confirm('载入机制示例会替换当前项目。需要保留时，请先下载项目备份。继续载入吗？')) return;
-    dirty = false;
-    context.loadDemo();
-  }
-
-  const {runSave,renderRunSave}=createRunSave(context);
-  const moreDetails = el('details', { id: 'home-more' }, el('summary', {}, '更多设置与操作'),
-    field('研究年份', yearsText),
-    el('div', { class: 'actions' }, el('button', { class: 'button secondary', type: 'button', onclick: applyText }, '应用文本年份'), el('button', { class: 'button secondary', type: 'button', onclick: saveScope }, '保存项目范围')),
-    el('hr', { class: 'section-divider' }),
-    el('div', { class: 'actions' }, el('button', { class: 'button secondary', type: 'button', onclick: context.exportProject }, '下载项目备份'), el('button', { class: 'button secondary', type: 'button', onclick: context.captureSnapshot }, '记录未检验快照')),
-    el('div', { class: 'field', style: 'margin-top:16px' }, el('label', { for: 'project-import' }, '从JSON备份恢复'), backupInput(), ),
-    el('div', { class: 'actions' },
-      el('button', { class: 'button text', type: 'button', onclick: loadDemo }, '载入机制示例'),
-      el('button', { class: 'button text', type: 'button', onclick: loadMechanism }, '载入机制演示（状态有差异、含冲突）')),
-    el('hr', { class: 'section-divider' }));
 
   // 首屏两条明确路径：自己的研究走 46 项目录由用户做主；示例体验是机制演示，载入前先讲清替换范围。
   const pathHost = el('div', { class: 'home-paths', 'aria-label': '开始方式' });
@@ -399,18 +358,6 @@ export function mount(container, context) {
     regionBlock, yearsBlock,
     el('div', { class: 'actions' }, primaryButton), status);
 
-  // Provenance, the editable name and everything else that is secondary sits after the
-  // one primary action, so the choice of where and when keeps the first screen.
-  const catalogDetails = el('details', { id: 'home-catalog-source' }, el('summary', {}, '清单来源'),
-    el('p', {}, REGION_CATALOG.source));
-
-  const nameBlock = el('div', { class: 'name-block' },
-    el('div', { class: 'form-grid' },
-      field('项目名称', title, el('small', { id: 'title-help' }, '可留空，默认使用「' + DEFAULT_NAME + '」；手工改名后不会被自动覆盖。'), true)),
-    el('div', { class: 'actions name-actions' }, el('button', { class: 'button text', type: 'button', onclick: () => { title.value = suggestTitle(regionId, years); markDirty(); } }, '按范围建议名称'),
-      el('button', { class: 'button text', type: 'button', onclick: () => context.navigate('exports') }, '打开我的方案与历史')));
-
-  const libraryHost = el('div', { class: 'library-host' });
   const geoSection = el('section', { class: 'geo-panel', 'aria-labelledby': 'geo-title' },
     el('h3', { id: 'geo-title' }, '在地图上选地区'),
     );
@@ -419,21 +366,15 @@ export function mount(container, context) {
     hasResults: Boolean(readRunSummary(context.store)),
     onApply: applyRegionToProject
   });
-  // 首屏只做一件事：定哪里、哪一年。地图与范围表单并排，主动作落在首屏内。
+  // 首屏只做一件事：定哪里、哪一年。地图占主区，范围表单在右侧窄栏。
   container.append(
     pathHost,
     choiceBlock,
     newDraftBlock,
     el('div', { class: 'home-start-grid' }, geoSection, form),
-    catalogDetails,
-    nameBlock,
-    moreDetails,
-    el('details', { id: 'home-flow' }, el('summary', {}, '检算结果保存（本会话）'), runSave),
-    el('details', { id: 'home-library' }, el('summary', {}, '方案与历史库（显式保存，可跨刷新读取）'), libraryHost));
-  const offLibrary = savedWorkPanel(libraryHost, context);
-  const offStore = context.store.subscribe(renderRunSave), offRun = subscribeRunSummary(renderRunSave);
+    title);
 
-  applyDraft(project); renderNewState(); renderPaths(); renderRunSave();
+  applyDraft(project); renderNewState(); renderPaths();
 
   form.addEventListener('submit', event => {
     event.preventDefault();
@@ -443,5 +384,5 @@ export function mount(container, context) {
 
   const unload = event => { if (dirty) { event.preventDefault(); event.returnValue = ''; } };
   window.addEventListener('beforeunload', unload);
-  return { dispose: () => {window.removeEventListener('beforeunload', unload);offStore();offRun();offLibrary();}, canLeave: () => !dirty || confirm('有未保存的范围修改。离开并放弃这些修改吗？') };
+  return { dispose: () => {window.removeEventListener('beforeunload', unload);}, canLeave: () => !dirty || confirm('有未保存的范围修改。离开并放弃这些修改吗？') };
 }

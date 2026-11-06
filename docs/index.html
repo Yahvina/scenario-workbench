@@ -598,17 +598,22 @@
 .geo-panel{margin:0 0 14px}
 .geo-panel>h3{font-size:16px;margin:0 0 2px}
 .geo-panel>.geo-lead{margin:0 0 8px;font-size:12px;color:var(--tx3)}
-.geo-shell{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
-@media(max-width:980px){.geo-shell{grid-template-columns:minmax(0,1fr)}}
+.geo-shell{position:relative}
 .geo-map{background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);padding:6px}
-.geo-map svg{display:block;width:100%;height:250px}
+.geo-map svg{display:block;width:100%;height:380px}
 .geo-shape{fill:var(--pri-s);stroke:var(--panel);stroke-width:2.5;cursor:pointer;transition:fill .15s var(--ease)}
 .geo-shape:hover,.geo-shape.is-active{fill:var(--pri-b)}
 .geo-shape.is-current{fill:var(--pri)}
 .geo-shape:focus-visible{outline:2px solid var(--pri-d);outline-offset:2px}
 .geo-label{font-size:14px;fill:var(--tx2);pointer-events:none;font-weight:600}
 .geo-shape.is-current+.geo-label,.geo-shape.is-active~.geo-label{fill:var(--tx)}
-.geo-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);padding:12px 14px;min-width:0}
+.geo-card{position:absolute;width:min(330px,40%);background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);padding:12px 14px;box-shadow:0 6px 24px rgba(0,0,0,.10);pointer-events:none;max-height:calc(100% - 20px);overflow:auto}
+.geo-card.at-left{left:10px}.geo-card.at-right{right:10px}
+.geo-card.at-top{top:10px}.geo-card.at-bottom{bottom:10px}
+/* 卡片本身不截获鼠标：划过它时事件穿透到下面的地图，被它压住的地区照样能选。*/
+.geo-card button,.geo-card a,.geo-card summary,.geo-card input,.geo-card select{pointer-events:auto}
+.geo-card[hidden]{display:none}
+@media(max-width:760px){.geo-card{position:static;width:auto;max-height:none;margin-top:10px}}
 .geo-card-hd{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .geo-card-hd h3{margin:0;font-size:16px}
 .geo-level{font-size:12px;color:var(--tx3);border:1px solid var(--line2);border-radius:var(--r);padding:0 6px}
@@ -652,12 +657,11 @@
 .legacy-map .rel-unmatched{color:var(--tx3)}
 
 /* 首页：地图与范围表单并排，主动作留在首屏 */
-.home-start-grid{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,0.98fr);gap:20px;align-items:start;margin:12px 0 0}
+.home-start-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:20px;align-items:start;margin:12px 0 0}
 .home-start-grid>.geo-panel{margin:0}
 @media(max-width:1080px){.home-start-grid{grid-template-columns:minmax(0,1fr)}}
 /* 首页左栏较窄：地图在上、地区卡片在下，避免两栏互相挤压 */
 .geo-panel{container-type:inline-size}
-@container (max-width:760px){.geo-shell{grid-template-columns:minmax(0,1fr)}}
 
 .geo-source{font-size:12px;color:var(--tx3);margin:6px 0 0;max-width:70ch}
 /* 首页年份区：默认只显示 chip，其余收进「调整年份」 */
@@ -3247,25 +3251,13 @@ const curveData = {
 Object.assign(__exports, { curveData });
 },
 "src/modules/workspace/index.mjs": (__require, __exports) => {
-const { savedWorkPanel } = __require("src/modules/workspace/saved-work-panel.mjs");
-const { statusLabel } = __require("src/modules/solver/presentation.mjs");
 const { el } = __require("src/core/ui.mjs");
-const { readRunSummary, readRunArchive, subscribeRunSummary } = __require("src/modules/solver/index.mjs");
-const { REGION_CATALOG, REGION_SCALES, PROVINCES, TARGET_YEARS, YEAR_MIN, YEAR_MAX, optionsForScale, provinceForRegion, scaleForRegion } = __require("src/modules/workspace/regions.mjs");
+const { readRunSummary } = __require("src/modules/solver/index.mjs");
+const { REGION_SCALES, PROVINCES, TARGET_YEARS, YEAR_MIN, YEAR_MAX, optionsForScale, provinceForRegion, scaleForRegion } = __require("src/modules/workspace/regions.mjs");
 const { DEFAULT_NAME, DEFAULT_TITLE, addYears, checkYear, displayTitle, parseYearList, rangePreview, rangeSummary, removeYear, suggestTitle } = __require("src/modules/workspace/start-range.mjs");
 const { newScenarioProject } = __require("src/modules/workspace/new-project.mjs");
 const { mountMap } = __require("src/modules/map/index.mjs");
 const { regionImpact } = __require("src/modules/map/geo.mjs");
-function createRunSave(context){
-  const runSave=el('section',{'data-flow-save':''});
-  function renderRunSave(){
-    const summary=readRunSummary(context.store),archive=readRunArchive(context.store);
-    const download=el('button',{class:'button secondary',type:'button',disabled:!archive,onclick:()=>{const current=readRunArchive(context.store);if(!current)return;const url=URL.createObjectURL(new Blob([JSON.stringify(current,null,2)],{type:'application/json'})),a=el('a',{href:url,download:'cib-archive.json'});a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}},'下载当前查看的检算JSON归档');
-    runSave.replaceChildren(el('h3',{},'检算结果单独保存'),el('p',{},summary?'本会话当前查看的检算归档：'+statusLabel(summary.status)+'；年份 '+(summary.year??'尚无合法输入')+'；冻结修订 '+summary.revision+'；成立数 '+(summary.count===null?'未定':summary.count)+(summary.stale?'；旧输入已过期，归档仍可保存。':'；归档保留冻结输入。'):'本会话还没有检算归档。'),el('p',{},'项目备份保存范围、数据和选择，不包含检算结果或矩阵交接候选。检算页JSON包含冻结矩阵、结果与诊断；可在检算页选择旧归档，下载目标随之切换。刷新后本会话归档丢失，请先下载。'),download,el('button',{class:'button secondary',type:'button',onclick:()=>context.navigate('solver')},'前往检算页查看与保存'));
-  }
-  return {runSave,renderRunSave};
-}
-
 // The start page only chooses where and when to study, then hands over to the factors
 // step. The stored scope contract is unchanged: scope.regionId remains the single
 // stable value, and a stored value outside the offline list is preserved as-is.
@@ -3283,8 +3275,15 @@ function mount(container, context) {
   const markDirty = () => { dirty = true; setStatus('有未保存的修改', 'dirty'); geo?.setActive(); };
   const field = (label, input, extra = null, wide = false) => el('div', { class: 'field' + (wide ? ' wide' : '') }, el('label', { for: input.id }, label), input, extra);
 
-  const title = el('input', { id: 'project-title', maxlength: 120, value: displayTitle(project.title), 'aria-describedby': 'title-help' });
-  title.addEventListener('input', markDirty);
+  // 首页不再让用户手填项目名称：范围定完自动命名，之后可在「保存与导出」里改方案名。
+  const title = el('input', { id: 'project-title', type: 'hidden', value: displayTitle(project.title) });
+
+  // 新情景草稿的名字随研究范围自动生成；已有项目一律保持原名，绝不自动改写。
+  // 用户想改名字，到「保存与导出 → 导出、备份与恢复」里改。
+  function syncDraftName() {
+    if (!pendingNew) return;
+    title.value = suggestTitle(regionId, years) || DEFAULT_NAME;
+  }
 
   const regionBlock = el('div', { class: 'form-grid' });
   function renderRegion() {
@@ -3317,6 +3316,7 @@ function mount(container, context) {
       nodes.push(field('研究地区', select));
     }
     regionBlock.replaceChildren(...nodes);
+    syncDraftName();
     geo?.setActive();
   }
 
@@ -3356,15 +3356,20 @@ function mount(container, context) {
     } }, '添加年份');
     const chips = el('div', { class: 'chips' }, ...(years.length ? years.map(year => el('button', { class: 'chip', type: 'button', 'aria-label': '移除年份 ' + year, onclick: () => { years = removeYear(years, year); renderYears(); markDirty(); } }, String(year), el('span', { 'aria-hidden': 'true' }, ' ×'))) : [el('span', { class: 'muted' }, '尚未选择年份')]));
     // 首屏只留年份 chip；目标年、其他年份与多时点都收进「调整年份」。
+    // 年份文本快捷输入也移进「调整年份」：首页只留 chip 与一个折叠入口。
     const adjust = el('details', { class: 'home-years-adjust' }, el('summary', {}, '调整年份'),
       el('div', { class: 'form-grid' }, field('目标年', target), field('其他年份', other)),
-      el('div', { class: 'actions' }, add), rangeDetails);
+      el('div', { class: 'actions' }, add),
+      el('div', { class: 'form-grid' }, field('研究年份', yearsText)),
+      el('div', { class: 'actions' }, el('button', { class: 'button secondary', type: 'button', onclick: applyText }, '应用文本年份')),
+      rangeDetails);
     yearsBlock.replaceChildren(
       el('div', { class: 'years-row' },
         el('span', { class: 'years-cap' }, '研究年份'), chips,
         defaultYears ? el('span', { class: 'muted' }, '默认 2030 / 2035') : null),
       adjust);
     if (document.activeElement !== yearsText && !textEdited) { yearsText.value = years.join(', '); yearsText.removeAttribute('aria-invalid'); }
+    syncDraftName();
   }
 
   // Load the draft from a stored project. Used at mount and whenever a new-scenario
@@ -3417,7 +3422,10 @@ function mount(container, context) {
       nextYears = parsed.years;
     }
     const nextRegion = (regionId || '').trim() || null;
-    const nextTitle = title.value.trim() || DEFAULT_NAME;
+    // 首页不再改名：项目名保持原值，改名入口在「保存与导出」。
+    const nextTitle = pendingNew
+      ? (suggestTitle(nextRegion, nextYears) || title.value.trim() || DEFAULT_NAME)
+      : (title.value.trim() || current.title);
     if (pendingNew) return commitNewScenario({ title: nextTitle, scope: { regionId: nextRegion, years: nextYears } });
     const result = context.actions.updateProjectDetails({ title: nextTitle, scope: { regionId: nextRegion, years: nextYears } });
     if (!result.ok) { setStatus(result.error.message, 'error'); return false; }
@@ -3470,7 +3478,7 @@ function mount(container, context) {
     if ((dirty || hasSavedWork()) && !confirm('开始一个新情景会先在当前页面填写一个空白草稿。提交会替换当前的活动项目：本项目只保留一个活动项目槽位，被替换的项目不会自动留在任何地方。如需以后恢复当前项目，请先保存为命名方案或下载备份。提交之前，当前项目与草稿都不会被改动。继续吗？')) return false;
     dirty = false; textEdited = false; pendingNew = true;
     years = [2030,2035]; regionId = '京津冀'; scale = 'region'; provinceId = PROVINCES[2]; storedUnknownRegion = false;
-    title.value = DEFAULT_NAME; yearsText.value = ''; yearsText.removeAttribute('aria-invalid');
+    yearsText.value = ''; yearsText.removeAttribute('aria-invalid');
     renderRegion(); renderYears(); renderNewState();
     setStatus('正在填写新情景草稿。选好地区与年份后点主动作提交；提交前当前项目不会被改动。', '');
     return true;
@@ -3520,51 +3528,6 @@ function mount(container, context) {
     if (!persisted.ok) setStatus('地区已更新到当前页面，但浏览器保存失败，请下载项目备份。', 'error');
     return { ok: true };
   }
-
-  function backupInput() {
-    const backup = el('input', { type: 'file', id: 'project-import', accept: '.json,application/json', class: 'inline-file' });
-    backup.addEventListener('change', async () => {
-      const file = backup.files[0];
-      if (!file) return;
-      if (file.size > 5 * 1024 * 1024) { setStatus('备份超过5MB，本轮暂不支持载入。', 'error'); return; }
-      if (!confirm('恢复备份会替换当前项目。继续恢复吗？')) { backup.value = ''; return; }
-      try {
-        const value = JSON.parse(await file.text());
-        const result = context.actions.replaceProject(value);
-        if (!result.ok) throw new Error(result.error.message);
-        dirty = false;
-        context.refresh();
-        context.notify('项目备份已恢复');
-      } catch (error) { setStatus('备份未载入：' + error.message, 'error'); }
-    });
-    return backup;
-  }
-
-  function loadMechanism() {
-    const current = context.store.read();
-    if ((dirty || current.data.taxonomy.length || current.scope.years.length || current.title !== '未命名情景项目') && !confirm('载入机制演示会替换当前项目。需要保留时，请先下载项目备份。继续吗？')) return;
-    dirty = false;
-    context.loadMechanism();
-  }
-
-  function loadDemo() {
-    const current = context.store.read();
-    if ((dirty || current.data.taxonomy.length || current.scope.years.length || current.title !== '未命名情景项目') && !confirm('载入机制示例会替换当前项目。需要保留时，请先下载项目备份。继续载入吗？')) return;
-    dirty = false;
-    context.loadDemo();
-  }
-
-  const {runSave,renderRunSave}=createRunSave(context);
-  const moreDetails = el('details', { id: 'home-more' }, el('summary', {}, '更多设置与操作'),
-    field('研究年份', yearsText),
-    el('div', { class: 'actions' }, el('button', { class: 'button secondary', type: 'button', onclick: applyText }, '应用文本年份'), el('button', { class: 'button secondary', type: 'button', onclick: saveScope }, '保存项目范围')),
-    el('hr', { class: 'section-divider' }),
-    el('div', { class: 'actions' }, el('button', { class: 'button secondary', type: 'button', onclick: context.exportProject }, '下载项目备份'), el('button', { class: 'button secondary', type: 'button', onclick: context.captureSnapshot }, '记录未检验快照')),
-    el('div', { class: 'field', style: 'margin-top:16px' }, el('label', { for: 'project-import' }, '从JSON备份恢复'), backupInput(), ),
-    el('div', { class: 'actions' },
-      el('button', { class: 'button text', type: 'button', onclick: loadDemo }, '载入机制示例'),
-      el('button', { class: 'button text', type: 'button', onclick: loadMechanism }, '载入机制演示（状态有差异、含冲突）')),
-    el('hr', { class: 'section-divider' }));
 
   // 首屏两条明确路径：自己的研究走 46 项目录由用户做主；示例体验是机制演示，载入前先讲清替换范围。
   const pathHost = el('div', { class: 'home-paths', 'aria-label': '开始方式' });
@@ -3647,18 +3610,6 @@ function mount(container, context) {
     regionBlock, yearsBlock,
     el('div', { class: 'actions' }, primaryButton), status);
 
-  // Provenance, the editable name and everything else that is secondary sits after the
-  // one primary action, so the choice of where and when keeps the first screen.
-  const catalogDetails = el('details', { id: 'home-catalog-source' }, el('summary', {}, '清单来源'),
-    el('p', {}, REGION_CATALOG.source));
-
-  const nameBlock = el('div', { class: 'name-block' },
-    el('div', { class: 'form-grid' },
-      field('项目名称', title, el('small', { id: 'title-help' }, '可留空，默认使用「' + DEFAULT_NAME + '」；手工改名后不会被自动覆盖。'), true)),
-    el('div', { class: 'actions name-actions' }, el('button', { class: 'button text', type: 'button', onclick: () => { title.value = suggestTitle(regionId, years); markDirty(); } }, '按范围建议名称'),
-      el('button', { class: 'button text', type: 'button', onclick: () => context.navigate('exports') }, '打开我的方案与历史')));
-
-  const libraryHost = el('div', { class: 'library-host' });
   const geoSection = el('section', { class: 'geo-panel', 'aria-labelledby': 'geo-title' },
     el('h3', { id: 'geo-title' }, '在地图上选地区'),
     );
@@ -3667,21 +3618,15 @@ function mount(container, context) {
     hasResults: Boolean(readRunSummary(context.store)),
     onApply: applyRegionToProject
   });
-  // 首屏只做一件事：定哪里、哪一年。地图与范围表单并排，主动作落在首屏内。
+  // 首屏只做一件事：定哪里、哪一年。地图占主区，范围表单在右侧窄栏。
   container.append(
     pathHost,
     choiceBlock,
     newDraftBlock,
     el('div', { class: 'home-start-grid' }, geoSection, form),
-    catalogDetails,
-    nameBlock,
-    moreDetails,
-    el('details', { id: 'home-flow' }, el('summary', {}, '检算结果保存（本会话）'), runSave),
-    el('details', { id: 'home-library' }, el('summary', {}, '方案与历史库（显式保存，可跨刷新读取）'), libraryHost));
-  const offLibrary = savedWorkPanel(libraryHost, context);
-  const offStore = context.store.subscribe(renderRunSave), offRun = subscribeRunSummary(renderRunSave);
+    title);
 
-  applyDraft(project); renderNewState(); renderPaths(); renderRunSave();
+  applyDraft(project); renderNewState(); renderPaths();
 
   form.addEventListener('submit', event => {
     event.preventDefault();
@@ -3691,271 +3636,10 @@ function mount(container, context) {
 
   const unload = event => { if (dirty) { event.preventDefault(); event.returnValue = ''; } };
   window.addEventListener('beforeunload', unload);
-  return { dispose: () => {window.removeEventListener('beforeunload', unload);offStore();offRun();offLibrary();}, canLeave: () => !dirty || confirm('有未保存的范围修改。离开并放弃这些修改吗？') };
+  return { dispose: () => {window.removeEventListener('beforeunload', unload);}, canLeave: () => !dirty || confirm('有未保存的范围修改。离开并放弃这些修改吗？') };
 }
 
 Object.assign(__exports, { mount });
-},
-"src/modules/workspace/saved-work-panel.mjs": (__require, __exports) => {
-const { el, infoTip } = __require("src/core/ui.mjs");
-const { readRunArchive, readRunSummary } = __require("src/modules/solver/index.mjs");
-const { statusLabel } = __require("src/modules/solver/presentation.mjs");
-const { planAtYear } = __require("src/modules/elements/state-plan.mjs");
-const { createLibrary, emptyBundle, namedPlan, savedRun, parseImport, mergeBundle, MAX_BYTES } = __require("src/modules/workspace/saved-work.mjs");
-// 本地库分两块用：首屏只放“保存当前方案”，列表与检验记录放在可切换区域。
-// 校验、合并、恢复确认都沿用 saved-work.mjs，不在这里改数据语义。
-
-function readLibrary() {
-  let storage;
-  try { storage = localStorage; } catch {}
-  return createLibrary(storage || { getItem() { throw new Error('浏览器存储不可访问'); } });
-}
-
-function download(name, value, raw = false) {
-  const url = URL.createObjectURL(new Blob([raw ? value : JSON.stringify(value)], { type: 'application/json' }));
-  const a = el('a', { href: url, download: name });
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-// 方案摘要三态：未选因素 / 已选但年度状态未选齐 / 状态齐全。
-// 缺项数量为 0 不等于方案完整：没有因素就明说没有。
-function planState(project) {
-  if (!project.selection.descriptorIds.length) return 'empty';
-  return (project.scope.years || []).every(y => planAtYear(project, y).complete) ? 'ready' : 'partial';
-}
-function planSummary(project) {
-  const name = id => project.data.descriptors.find(d => d.id === id)?.label || id;
-  if (planState(project) === 'empty') return [];
-  return (project.scope.years || []).map(y => {
-    const plan = planAtYear(project, y);
-    if (!plan.complete) {
-      const missing = plan.missing.map(d => name(d)).join('、');
-      return y + '：已选 ' + project.selection.descriptorIds.length + ' 个因素，年度状态未选齐（缺 ' + missing + '）';
-    }
-    return y + '：' + plan.descriptors.map(d => name(d.descriptorId) + '=' + (d.stateId ? stateLabel(project, d.stateId) : '未选')).join('、');
-  });
-}
-function stateLabel(project, id) {
-  return project.data.states.find(s => s.id === id)?.label || id;
-}
-
-/* 首屏第一块：保存当前方案（不含检验结果） */
-function savePlanPanel(container, context) {
-  const root = el('section', { class: 'exports-card save-task', 'data-save-plan': '' });
-  const message = el('p', { class: 'save-msg', role: 'status', 'aria-live': 'polite' });
-  const library = readLibrary();
-  const name = el('input', { class: 'save-name', 'aria-label': '方案名称', maxlength: '120' });
-  const summary = el('div', { class: 'save-summary' });
-  const advanced = el('details', { class: 'save-advanced' }, el('summary', {}, '高级选项：方案关注状态'));
-  const focusHost = el('div');
-  let focusValues = Object.create(null);
-
-  function defaultName() {
-    const p = context.store.read();
-    const state = library.load();
-    const used = state.ok ? state.bundle.plans.map(x => x.name) : [];
-    const base = (p.scope.regionId || '情景') + '情景方案';
-    let i = 1;
-    while (used.includes(base + ' ' + i)) i++;
-    return base + ' ' + i;
-  }
-
-  function render() {
-    const p = context.store.read();
-    const years = planSummary(p);
-    const empty = planState(p) === 'empty';
-    summary.replaceChildren(...[
-      el('p', {}, (p.scope.regionId || '地区未定') + ' · ' + ((p.scope.years || []).join('/') || '年份未定') + ' · ' + p.selection.descriptorIds.length + ' 个因素'),
-      ...(empty ? [] : years.map(line => el('p', { class: 'save-summary-line' }, line))),
-      ...(empty ? [el('button', { class: 'button text', type: 'button', onclick: () => context.navigate('elements') }, '去选择因素')] : [])]);
-    save.textContent = empty ? '保存为草稿（还没有因素与评分）' : '保存这个方案';
-    focusValues = Object.create(null);
-    focusHost.replaceChildren();
-    for (const id of p.selection.descriptorIds) {
-      const d = p.data.descriptors.find(x => x.id === id);
-      if (!d) continue;
-      const select = el('select', { 'aria-label': '方案关注 ' + d.label },
-        el('option', { value: '' }, '不设关注'),
-        ...d.stateIds.map(sid => el('option', { value: sid }, stateLabel(p, sid))));
-      select.addEventListener('change', () => { focusValues[id] = select.value; });
-      focusHost.append(el('label', { class: 'save-focus' }, d.label, select));
-    }
-    if (!name.value.trim()) name.value = defaultName();
-  }
-
-  const save = el('button', { class: 'button primary-action', type: 'button' }, '保存这个方案');
-  save.addEventListener('click', () => {
-    try {
-      const p = context.store.read();
-      const value = name.value.trim();
-      if (!value) throw new Error('请填写方案名称');
-      const state = library.load();
-      if (!state.ok) throw new Error('本地库无法读取，方案未保存：' + state.error);
-      if (state.bundle.plans.some(x => x.name === value)) throw new Error('已有同名方案“' + value + '”，请换一个名称；不会覆盖原方案');
-      const focus = Object.fromEntries(Object.entries(focusValues).filter(([, v]) => v));
-      library.merge({ ...emptyBundle(), plans: [namedPlan(p, value, focus)] });
-      message.textContent = '方案“' + value + '”已保存到本地库。检验结果尚未保存；需要时到「我的方案与历史」另存为检验记录。';
-      window.dispatchEvent(new CustomEvent(LIBRARY_EVENT));
-      name.value = defaultName();
-    } catch (error) {
-      message.textContent = '方案未保存：' + error.message;
-    }
-  });
-
-  root.append(
-        el('label', { class: 'save-field' }, '方案名称', name),
-    summary,
-    advanced, message,
-    el('div', { class: 'save-actions' }, save));
-  advanced.append(focusHost);
-  render();
-  const off = context.store.subscribe(render);
-  container.append(root);
-  return () => { off(); root.remove(); };
-}
-
-/* 首屏第二块：保存或导出检验结果（只在有结果时出现表单；无结果给空态+去检验） */
-function runSavePanel(container, context) {
-  const root = el('section', { class: 'exports-card', 'data-run-save': '' });
-  const message = el('p', { class: 'save-msg', role: 'status', 'aria-live': 'polite' });
-  const library = readLibrary();
-  const runName = el('input', { 'aria-label': '检验记录名称', maxlength: '120', class: 'save-name' });
-  const body = el('div');
-
-  function render() {
-    const s = readRunSummary(context.store), archive = readRunArchive(context.store);
-    if (!archive || !s) {
-      runName.remove();
-      body.replaceChildren(
-                el('button', { class: 'button', type: 'button', onclick: () => context.navigate('solver') }, '去检验'));
-      message.textContent = '';
-      return;
-    }
-    if (!runName.isConnected) root.insertBefore(el('label', { class: 'save-field' }, '检验记录名称', runName), message);
-    if (!runName.value.trim()) runName.value = (context.store.read().scope.regionId || '情景') + (s.year ? s.year : '') + '检验记录';
-    const done = s.status === 'completed';
-    body.replaceChildren(
-      el('p', {}, '本次检验：' + statusLabel(s.status) + ' · 年份 ' + (s.year ?? '无有效输入') + ' · 自洽组合 ' + (s.count === null ? '未定（不是 0）' : s.count) + (s.stale ? ' · 旧输入已过期' : '')),
-      done ? null :       el('div', { class: 'save-actions' },
-        el('button', { class: 'button primary-action', type: 'button', onclick: () => {
-          try {
-            const cur = library.load();
-            if (!cur.ok) throw new Error('本地库无法读取：' + (cur.error || '未知错误'));
-            const value = runName.value.trim();
-            if (!value) throw new Error('请填写检验记录名称');
-            if (cur.bundle.runs.some(x => x.name === value)) throw new Error('已有同名检验记录“' + value + '”，请换一个名称');
-            const a = readRunArchive(context.store);
-            library.merge({ ...emptyBundle(), runs: [savedRun(a, value)] });
-            message.textContent = '已保存检验记录“' + value + '”（' + statusLabel(s.status) + '）。可在「我的方案与历史」查看或下载；历史记录不会在本次会话复算。';
-            window.dispatchEvent(new CustomEvent(LIBRARY_EVENT));
-          } catch (error) { message.textContent = '未保存：' + error.message; }
-        } }, '保存为检验记录')));
-  }
-  root.append(el('h3', {}, '保存或导出检验结果'), body, message);
-  render();
-  const off = context.store.subscribe(render);
-  container.append(root);
-  return () => { off(); root.remove(); };
-}
-
-const LIBRARY_EVENT = 'scenario-workbench:library-changed';
-
-function savedWorkPanel(container, context) {
-  const root = el('section', { 'data-saved-work': '', class: 'library' });
-  const message = el('p', { role: 'status', 'aria-live': 'polite', class: 'save-msg' });
-  const list = el('div');
-  const preview = el('div', { class: 'library-preview' });
-  const library = readLibrary();
-  let state = library.load();
-  let pending = null;
-  const button = (name, fn) => el('button', { class: 'button secondary', type: 'button', onclick: fn }, name);
-
-  function attempt(fn) { try { fn(); } catch (error) { message.textContent = '未完成：' + error.message; } }
-  function committed(bundle, text) { state = { ok: true, bundle, raw: JSON.stringify(bundle) }; pending = null; preview.replaceChildren(); renderList(); message.textContent = text; }
-
-  // 检验记录的保存动作在首屏 runSavePanel；这里只负责历史列表与导入导出。
-  const importFile = el('input', { type: 'file', class: 'save-file', accept: '.json,application/json', 'aria-label': '导入历史库或单条检验记录' });
-  importFile.addEventListener('change', async () => {
-    pending = null; preview.replaceChildren();
-    try {
-      const file = importFile.files[0]; if (!file) return;
-      if (file.size > MAX_BYTES) throw new Error('文件超过 5MiB');
-      state = library.load(); renderList();
-      if (!state.ok) throw new Error('原库损坏或不可访问，请先保留原始数据并处理');
-      const incoming = parseImport(await file.text(), state.bundle), merged = mergeBundle(state.bundle, incoming);
-      pending = { incoming, raw: state.raw };
-      preview.append(el('h4', {}, '恢复前预览'),
-        el('p', {}, '文件包含方案：' + (incoming.plans.map(p => p.name).join('、') || '无') + '；检验记录：' + (incoming.runs.map(r => r.name).join('、') || '无')),
-        el('p', {}, '合并后 ' + merged.plans.length + ' 条方案、' + merged.runs.length + ' 条检验记录。不会替换当前项目，也不会复算历史结果。'),
-        button('确认合并历史库', () => attempt(() => {
-          if (!pending) throw new Error('请重新选择文件');
-          if (!confirm('确认合并预览中的历史库？当前项目不变，历史计数未复算。')) return;
-          const current = library.load();
-          if (!current.ok || current.raw !== pending.raw) throw new Error('历史库已变化，请重新预览');
-          committed(library.merge(pending.incoming), '已合并历史库；其中记录仍是未复算的历史声明。');
-        })));
-      message.textContent = '文件校验完成，请核对预览后确认；尚未写入。';
-    } catch (error) { message.textContent = '未导入：' + error.message; }
-  });
-
-  function renderList() {
-    list.replaceChildren();
-    if (!state.ok) {
-      list.append(el('p', { role: 'alert' }, '历史库无法读取或已损坏，原内容未清空：' + state.error));
-      if (state.raw !== null) list.append(button('下载损坏库原始数据', () => download('saved-work-damaged.json', state.raw, true)));
-      list.append(button('确认后重建空历史库', () => attempt(() => {
-        if (confirm('重建会替换损坏的历史库。请先下载原始数据；确认重建空库？')) committed(library.rebuild(), '已按明确确认重建空历史库。');
-      })));
-      return;
-    }
-    const plans = state.bundle.plans, runs = state.bundle.runs;
-    list.append(el('h4', {}, '我的方案（' + plans.length + '）'));
-    if (!plans.length) list.append();
-    for (const plan of plans) {
-      const p = plan.project;
-      list.append(el('details', { class: 'library-row' }, el('summary', {}, plan.name),
-        el('p', {}, (p.scope.regionId || '地区未知') + ' · ' + p.scope.years.join('/') + ' · ' + p.selection.descriptorIds.length + ' 个因素 · 科学修订 ' + p.revision),
-        el('p', { class: 'v5-hint' }, '保存于 ' + plan.createdAt),
-        el('div', { class: 'library-actions' },
-          button('下载方案 ' + plan.name, () => download('named-plan-project.json', p)),
-          button('预览恢复方案 ' + plan.name, () => {
-            preview.replaceChildren(el('h4', {}, '将恢复：' + plan.name),
-              el('p', {}, '完整替换当前项目：' + p.title + '；' + (p.scope.regionId || '未知地区') + '；' + p.scope.years.join('/') + '；' + p.selection.descriptorIds.length + ' 个活动因素。请先下载当前项目备份。'),
-              button('确认替换当前项目为此方案', () => attempt(() => {
-                if (!confirm('恢复命名方案将替换当前项目及未保存界面内容，请先下载现有备份。继续恢复吗？')) return;
-                const result = context.actions.replaceProject(structuredClone(plan.project));
-                if (!result.ok) throw new Error(result.error.message);
-                context.refresh(); context.notify('方案已恢复；没有自动计算或采用历史结果。');
-              })));
-          }))));
-    }
-    list.append(el('h4', {}, '历史检验记录（' + runs.length + '）'));
-    if (!runs.length) list.append();
-    for (const run of runs) {
-      const a = run.archive, r = a.RunResult, input = a.RunInput;
-      list.append(el('details', { class: 'library-row' }, el('summary', {}, run.name),
-        el('p', {}, '历史记录，未在本次会话复算。声明：' + statusLabel(r?.status || 'blocked') + ' · 成立数 ' + (r?.count === null || !r ? '未定' : r.count) + ' · 年份 ' + (input?.year ?? '无有效输入')),
-        el('p', { class: 'v5-hint' }, '保存于 ' + run.createdAt + ' · 地区 ' + (a.projectInputSnapshot.scope.regionId || '未声明')),
-        el('div', { class: 'library-actions' }, button('下载检验记录 ' + run.name, () => download('historical-cib-archive.json', a)))));
-    }
-  }
-
-  root.append(el('h3', {}, '我的方案与历史'), list, preview, message,
-    el('details', { class: 'library-io' }, el('summary', {}, '导入、导出与存储说明'),
-      el('div', { class: 'library-actions' },
-        button('重新读取历史库', () => { state = library.load(); pending = null; preview.replaceChildren(); renderList(); message.textContent = state.ok ? '已重新读取；历史仍未复算。' : '原库无法读取，未清空。'; }),
-        button('导出完整历史库', () => attempt(() => { const current = library.load(); if (!current.ok) throw new Error(current.error); download('saved-work-bundle.json', current.bundle); }))),
-      el('label', { class: 'save-field' }, '导入历史库或单条检验记录', importFile),
-      ));
-  renderList();
-  const reload = () => { state = library.load(); pending = null; preview.replaceChildren(); renderList(); };
-  window.addEventListener(LIBRARY_EVENT, reload);
-  container.append(root);
-  return () => { window.removeEventListener(LIBRARY_EVENT, reload); root.remove(); };
-}
-
-Object.assign(__exports, { savePlanPanel, runSavePanel, LIBRARY_EVENT, savedWorkPanel });
 },
 "src/modules/solver/index.mjs": (__require, __exports) => {
 const { statusLabel, configurationLabel, diagnosticGroups } = __require("src/modules/solver/presentation.mjs");
@@ -5295,6 +4979,11 @@ function mountMap(host, context, options) {
   }
 
   function renderCard() {
+    // 卡片默认收起，鼠标移到某个区域或点击固定后才出现，让地图占满主区。
+    const showCard = Boolean(hovered || pinned);
+    cardBox.hidden = !showCard;
+    // 收起卡片时只撤掉悬停高亮，保留“当前研究地区”的描边。
+    if (!showCard) { shapes.forEach(path => path.classList.remove('is-active')); return; }
     const scope = getScope();
     const region = MAP_BY_SCOPE.get(scope) || null;
     const shown = MAP_BY_SCOPE.get(MAP_REGIONS.find(item => item.id === (pinned || hovered || region?.id || '京津冀'))?.scopeValue) || MAP_REGIONS[0];
@@ -5302,6 +4991,14 @@ function mountMap(host, context, options) {
       path.classList.toggle('is-active', id === shown.id);
       path.classList.toggle('is-current', region?.id === id);
     });
+    // 卡片放到被看区域的反侧，避免压住用户正在看的形状。
+    // 依据标注点相对 viewBox 中心的位置判断左上/右下；没有标注点的（京津冀整体）放左上。
+    const at = shown.labelAt;
+    const cx = MAP_VIEW.x + MAP_VIEW.width / 2, cy = MAP_VIEW.y + MAP_VIEW.height / 2;
+    const side = !at ? 'left' : (at.x > cx ? 'left' : 'right');
+    const vert = !at ? 'top' : (at.y > cy ? 'top' : 'bottom');
+    cardBox.classList.remove('at-left', 'at-right', 'at-top', 'at-bottom');
+    cardBox.classList.add('at-' + side, 'at-' + vert);
     const coverage = regionCoverage(context.store.read(), shown.scopeValue);
     const clauses = projectClauses(context.store.read(), shown.scopeValue);
     const tools = toolsFor(shown.scopeValue);
@@ -5342,12 +5039,22 @@ function mountMap(host, context, options) {
     const result = onApply(region.scopeValue);
     if (!result?.ok) { status.textContent = result?.message || '地区未应用。'; return; }
     applied = region.id;
-    pinned = null; hovered = null;
+    // 保留卡片：用户刚做完选择，需要看到「当前研究地区」的确认。
+    pinned = region.id; hovered = null;
     status.textContent = '已将研究地区设为「' + region.scopeValue + '」。';
     renderCard();
+    // 应用后把当前地区描亮，用户知道刚才选的是哪一块。
+    const path = shapes.get(region.id);
+    path?.classList.add('is-current');
   }
 
   renderCard();
+  // 打开页面时把已选地区描亮（卡片仍然收起，鼠标移上去才弹）。
+  {
+    const scopeNow = getScope();
+    const regionNow = MAP_BY_SCOPE.get(scopeNow);
+    if (regionNow) shapes.get(regionNow.id)?.classList.add('is-current');
+  }
   return {
     setActive() { renderCard(); },
     render() { renderCard(); },
@@ -11393,6 +11100,7 @@ const { reportPanel } = __require("src/modules/exports/report-panel.mjs");
 const { comparePanel } = __require("src/modules/exports/compare-panel.mjs");
 const { modelInputPanel } = __require("src/modules/exports/model-input-panel.mjs");
 const { aiDraftPanel } = __require("src/modules/exports/ai-draft-panel.mjs");
+const { projectBackupPanel } = __require("src/modules/exports/project-backup-panel.mjs");
 // 保存状态四态：本机自动保存 / 命名方案 / 检验记录 / 备份文件。
 // 各说各的事实，不用一个“已保存”混在一起；只在真正写入后显示成功。
 function saveStatusStrip(page, context) {
@@ -11427,7 +11135,7 @@ function saveStatusStrip(page, context) {
 const VIEWS = [
   { id: 'history', label: '我的方案与历史' },
   { id: 'compare', label: '报告与比较' },
-  { id: 'advanced', label: '高级导出与备份' }
+  { id: 'advanced', label: '导出、备份与恢复' }
 ];
 
 function mountExports(container, context) {
@@ -11474,7 +11182,8 @@ function mountExports(container, context) {
     savedWorkPanel(viewHosts.history, context),
     comparePanel(viewHosts.compare, context),
     modelInputPanel(viewHosts.advanced, context),
-    aiDraftPanel(viewHosts.advanced, context)
+    aiDraftPanel(viewHosts.advanced, context),
+    projectBackupPanel(viewHosts.advanced, context)
   ].filter(dispose => typeof dispose === 'function');
 
   select('history');
@@ -11488,6 +11197,267 @@ function mountAiDraft(container, context) {
 }
 
 Object.assign(__exports, { mountExports, mountAiDraft });
+},
+"src/modules/workspace/saved-work-panel.mjs": (__require, __exports) => {
+const { el, infoTip } = __require("src/core/ui.mjs");
+const { readRunArchive, readRunSummary } = __require("src/modules/solver/index.mjs");
+const { statusLabel } = __require("src/modules/solver/presentation.mjs");
+const { planAtYear } = __require("src/modules/elements/state-plan.mjs");
+const { createLibrary, emptyBundle, namedPlan, savedRun, parseImport, mergeBundle, MAX_BYTES } = __require("src/modules/workspace/saved-work.mjs");
+// 本地库分两块用：首屏只放“保存当前方案”，列表与检验记录放在可切换区域。
+// 校验、合并、恢复确认都沿用 saved-work.mjs，不在这里改数据语义。
+
+function readLibrary() {
+  let storage;
+  try { storage = localStorage; } catch {}
+  return createLibrary(storage || { getItem() { throw new Error('浏览器存储不可访问'); } });
+}
+
+function download(name, value, raw = false) {
+  const url = URL.createObjectURL(new Blob([raw ? value : JSON.stringify(value)], { type: 'application/json' }));
+  const a = el('a', { href: url, download: name });
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// 方案摘要三态：未选因素 / 已选但年度状态未选齐 / 状态齐全。
+// 缺项数量为 0 不等于方案完整：没有因素就明说没有。
+function planState(project) {
+  if (!project.selection.descriptorIds.length) return 'empty';
+  return (project.scope.years || []).every(y => planAtYear(project, y).complete) ? 'ready' : 'partial';
+}
+function planSummary(project) {
+  const name = id => project.data.descriptors.find(d => d.id === id)?.label || id;
+  if (planState(project) === 'empty') return [];
+  return (project.scope.years || []).map(y => {
+    const plan = planAtYear(project, y);
+    if (!plan.complete) {
+      const missing = plan.missing.map(d => name(d)).join('、');
+      return y + '：已选 ' + project.selection.descriptorIds.length + ' 个因素，年度状态未选齐（缺 ' + missing + '）';
+    }
+    return y + '：' + plan.descriptors.map(d => name(d.descriptorId) + '=' + (d.stateId ? stateLabel(project, d.stateId) : '未选')).join('、');
+  });
+}
+function stateLabel(project, id) {
+  return project.data.states.find(s => s.id === id)?.label || id;
+}
+
+/* 首屏第一块：保存当前方案（不含检验结果） */
+function savePlanPanel(container, context) {
+  const root = el('section', { class: 'exports-card save-task', 'data-save-plan': '' });
+  const message = el('p', { class: 'save-msg', role: 'status', 'aria-live': 'polite' });
+  const library = readLibrary();
+  const name = el('input', { class: 'save-name', 'aria-label': '方案名称', maxlength: '120' });
+  const summary = el('div', { class: 'save-summary' });
+  const advanced = el('details', { class: 'save-advanced' }, el('summary', {}, '高级选项：方案关注状态'));
+  const focusHost = el('div');
+  let focusValues = Object.create(null);
+
+  function defaultName() {
+    const p = context.store.read();
+    const state = library.load();
+    const used = state.ok ? state.bundle.plans.map(x => x.name) : [];
+    const base = (p.scope.regionId || '情景') + '情景方案';
+    let i = 1;
+    while (used.includes(base + ' ' + i)) i++;
+    return base + ' ' + i;
+  }
+
+  function render() {
+    const p = context.store.read();
+    const years = planSummary(p);
+    const empty = planState(p) === 'empty';
+    summary.replaceChildren(...[
+      el('p', {}, (p.scope.regionId || '地区未定') + ' · ' + ((p.scope.years || []).join('/') || '年份未定') + ' · ' + p.selection.descriptorIds.length + ' 个因素'),
+      ...(empty ? [] : years.map(line => el('p', { class: 'save-summary-line' }, line))),
+      ...(empty ? [el('button', { class: 'button text', type: 'button', onclick: () => context.navigate('elements') }, '去选择因素')] : [])]);
+    save.textContent = empty ? '保存为草稿（还没有因素与评分）' : '保存这个方案';
+    focusValues = Object.create(null);
+    focusHost.replaceChildren();
+    for (const id of p.selection.descriptorIds) {
+      const d = p.data.descriptors.find(x => x.id === id);
+      if (!d) continue;
+      const select = el('select', { 'aria-label': '方案关注 ' + d.label },
+        el('option', { value: '' }, '不设关注'),
+        ...d.stateIds.map(sid => el('option', { value: sid }, stateLabel(p, sid))));
+      select.addEventListener('change', () => { focusValues[id] = select.value; });
+      focusHost.append(el('label', { class: 'save-focus' }, d.label, select));
+    }
+    if (!name.value.trim()) name.value = defaultName();
+  }
+
+  const save = el('button', { class: 'button primary-action', type: 'button' }, '保存这个方案');
+  save.addEventListener('click', () => {
+    try {
+      const p = context.store.read();
+      const value = name.value.trim();
+      if (!value) throw new Error('请填写方案名称');
+      const state = library.load();
+      if (!state.ok) throw new Error('本地库无法读取，方案未保存：' + state.error);
+      if (state.bundle.plans.some(x => x.name === value)) throw new Error('已有同名方案“' + value + '”，请换一个名称；不会覆盖原方案');
+      const focus = Object.fromEntries(Object.entries(focusValues).filter(([, v]) => v));
+      library.merge({ ...emptyBundle(), plans: [namedPlan(p, value, focus)] });
+      message.textContent = '方案“' + value + '”已保存到本地库。检验结果尚未保存；需要时到「我的方案与历史」另存为检验记录。';
+      window.dispatchEvent(new CustomEvent(LIBRARY_EVENT));
+      name.value = defaultName();
+    } catch (error) {
+      message.textContent = '方案未保存：' + error.message;
+    }
+  });
+
+  root.append(
+        el('label', { class: 'save-field' }, '方案名称', name),
+    summary,
+    advanced, message,
+    el('div', { class: 'save-actions' }, save));
+  advanced.append(focusHost);
+  render();
+  const off = context.store.subscribe(render);
+  container.append(root);
+  return () => { off(); root.remove(); };
+}
+
+/* 首屏第二块：保存或导出检验结果（只在有结果时出现表单；无结果给空态+去检验） */
+function runSavePanel(container, context) {
+  const root = el('section', { class: 'exports-card', 'data-run-save': '' });
+  const message = el('p', { class: 'save-msg', role: 'status', 'aria-live': 'polite' });
+  const library = readLibrary();
+  const runName = el('input', { 'aria-label': '检验记录名称', maxlength: '120', class: 'save-name' });
+  const body = el('div');
+
+  function render() {
+    const s = readRunSummary(context.store), archive = readRunArchive(context.store);
+    if (!archive || !s) {
+      runName.remove();
+      body.replaceChildren(
+                el('button', { class: 'button', type: 'button', onclick: () => context.navigate('solver') }, '去检验'));
+      message.textContent = '';
+      return;
+    }
+    if (!runName.isConnected) root.insertBefore(el('label', { class: 'save-field' }, '检验记录名称', runName), message);
+    if (!runName.value.trim()) runName.value = (context.store.read().scope.regionId || '情景') + (s.year ? s.year : '') + '检验记录';
+    const done = s.status === 'completed';
+    body.replaceChildren(
+      el('p', {}, '本次检验：' + statusLabel(s.status) + ' · 年份 ' + (s.year ?? '无有效输入') + ' · 自洽组合 ' + (s.count === null ? '未定（不是 0）' : s.count) + (s.stale ? ' · 旧输入已过期' : '')),
+      done ? null :       el('div', { class: 'save-actions' },
+        el('button', { class: 'button primary-action', type: 'button', onclick: () => {
+          try {
+            const cur = library.load();
+            if (!cur.ok) throw new Error('本地库无法读取：' + (cur.error || '未知错误'));
+            const value = runName.value.trim();
+            if (!value) throw new Error('请填写检验记录名称');
+            if (cur.bundle.runs.some(x => x.name === value)) throw new Error('已有同名检验记录“' + value + '”，请换一个名称');
+            const a = readRunArchive(context.store);
+            library.merge({ ...emptyBundle(), runs: [savedRun(a, value)] });
+            message.textContent = '已保存检验记录“' + value + '”（' + statusLabel(s.status) + '）。可在「我的方案与历史」查看或下载；历史记录不会在本次会话复算。';
+            window.dispatchEvent(new CustomEvent(LIBRARY_EVENT));
+          } catch (error) { message.textContent = '未保存：' + error.message; }
+        } }, '保存为检验记录')));
+  }
+  root.append(el('h3', {}, '保存或导出检验结果'), body, message);
+  render();
+  const off = context.store.subscribe(render);
+  container.append(root);
+  return () => { off(); root.remove(); };
+}
+
+const LIBRARY_EVENT = 'scenario-workbench:library-changed';
+
+function savedWorkPanel(container, context) {
+  const root = el('section', { 'data-saved-work': '', class: 'library' });
+  const message = el('p', { role: 'status', 'aria-live': 'polite', class: 'save-msg' });
+  const list = el('div');
+  const preview = el('div', { class: 'library-preview' });
+  const library = readLibrary();
+  let state = library.load();
+  let pending = null;
+  const button = (name, fn) => el('button', { class: 'button secondary', type: 'button', onclick: fn }, name);
+
+  function attempt(fn) { try { fn(); } catch (error) { message.textContent = '未完成：' + error.message; } }
+  function committed(bundle, text) { state = { ok: true, bundle, raw: JSON.stringify(bundle) }; pending = null; preview.replaceChildren(); renderList(); message.textContent = text; }
+
+  // 检验记录的保存动作在首屏 runSavePanel；这里只负责历史列表与导入导出。
+  const importFile = el('input', { type: 'file', class: 'save-file', accept: '.json,application/json', 'aria-label': '导入历史库或单条检验记录' });
+  importFile.addEventListener('change', async () => {
+    pending = null; preview.replaceChildren();
+    try {
+      const file = importFile.files[0]; if (!file) return;
+      if (file.size > MAX_BYTES) throw new Error('文件超过 5MiB');
+      state = library.load(); renderList();
+      if (!state.ok) throw new Error('原库损坏或不可访问，请先保留原始数据并处理');
+      const incoming = parseImport(await file.text(), state.bundle), merged = mergeBundle(state.bundle, incoming);
+      pending = { incoming, raw: state.raw };
+      preview.append(el('h4', {}, '恢复前预览'),
+        el('p', {}, '文件包含方案：' + (incoming.plans.map(p => p.name).join('、') || '无') + '；检验记录：' + (incoming.runs.map(r => r.name).join('、') || '无')),
+        el('p', {}, '合并后 ' + merged.plans.length + ' 条方案、' + merged.runs.length + ' 条检验记录。不会替换当前项目，也不会复算历史结果。'),
+        button('确认合并历史库', () => attempt(() => {
+          if (!pending) throw new Error('请重新选择文件');
+          if (!confirm('确认合并预览中的历史库？当前项目不变，历史计数未复算。')) return;
+          const current = library.load();
+          if (!current.ok || current.raw !== pending.raw) throw new Error('历史库已变化，请重新预览');
+          committed(library.merge(pending.incoming), '已合并历史库；其中记录仍是未复算的历史声明。');
+        })));
+      message.textContent = '文件校验完成，请核对预览后确认；尚未写入。';
+    } catch (error) { message.textContent = '未导入：' + error.message; }
+  });
+
+  function renderList() {
+    list.replaceChildren();
+    if (!state.ok) {
+      list.append(el('p', { role: 'alert' }, '历史库无法读取或已损坏，原内容未清空：' + state.error));
+      if (state.raw !== null) list.append(button('下载损坏库原始数据', () => download('saved-work-damaged.json', state.raw, true)));
+      list.append(button('确认后重建空历史库', () => attempt(() => {
+        if (confirm('重建会替换损坏的历史库。请先下载原始数据；确认重建空库？')) committed(library.rebuild(), '已按明确确认重建空历史库。');
+      })));
+      return;
+    }
+    const plans = state.bundle.plans, runs = state.bundle.runs;
+    list.append(el('h4', {}, '我的方案（' + plans.length + '）'));
+    if (!plans.length) list.append();
+    for (const plan of plans) {
+      const p = plan.project;
+      list.append(el('details', { class: 'library-row' }, el('summary', {}, plan.name),
+        el('p', {}, (p.scope.regionId || '地区未知') + ' · ' + p.scope.years.join('/') + ' · ' + p.selection.descriptorIds.length + ' 个因素 · 科学修订 ' + p.revision),
+        el('p', { class: 'v5-hint' }, '保存于 ' + plan.createdAt),
+        el('div', { class: 'library-actions' },
+          button('下载方案 ' + plan.name, () => download('named-plan-project.json', p)),
+          button('预览恢复方案 ' + plan.name, () => {
+            preview.replaceChildren(el('h4', {}, '将恢复：' + plan.name),
+              el('p', {}, '完整替换当前项目：' + p.title + '；' + (p.scope.regionId || '未知地区') + '；' + p.scope.years.join('/') + '；' + p.selection.descriptorIds.length + ' 个活动因素。请先下载当前项目备份。'),
+              button('确认替换当前项目为此方案', () => attempt(() => {
+                if (!confirm('恢复命名方案将替换当前项目及未保存界面内容，请先下载现有备份。继续恢复吗？')) return;
+                const result = context.actions.replaceProject(structuredClone(plan.project));
+                if (!result.ok) throw new Error(result.error.message);
+                context.refresh(); context.notify('方案已恢复；没有自动计算或采用历史结果。');
+              })));
+          }))));
+    }
+    list.append(el('h4', {}, '历史检验记录（' + runs.length + '）'));
+    if (!runs.length) list.append();
+    for (const run of runs) {
+      const a = run.archive, r = a.RunResult, input = a.RunInput;
+      list.append(el('details', { class: 'library-row' }, el('summary', {}, run.name),
+        el('p', {}, '历史记录，未在本次会话复算。声明：' + statusLabel(r?.status || 'blocked') + ' · 成立数 ' + (r?.count === null || !r ? '未定' : r.count) + ' · 年份 ' + (input?.year ?? '无有效输入')),
+        el('p', { class: 'v5-hint' }, '保存于 ' + run.createdAt + ' · 地区 ' + (a.projectInputSnapshot.scope.regionId || '未声明')),
+        el('div', { class: 'library-actions' }, button('下载检验记录 ' + run.name, () => download('historical-cib-archive.json', a)))));
+    }
+  }
+
+  root.append(el('h3', {}, '我的方案与历史'), list, preview, message,
+    el('details', { class: 'library-io' }, el('summary', {}, '导入、导出与存储说明'),
+      el('div', { class: 'library-actions' },
+        button('重新读取历史库', () => { state = library.load(); pending = null; preview.replaceChildren(); renderList(); message.textContent = state.ok ? '已重新读取；历史仍未复算。' : '原库无法读取，未清空。'; }),
+        button('导出完整历史库', () => attempt(() => { const current = library.load(); if (!current.ok) throw new Error(current.error); download('saved-work-bundle.json', current.bundle); }))),
+      el('label', { class: 'save-field' }, '导入历史库或单条检验记录', importFile),
+      ));
+  renderList();
+  const reload = () => { state = library.load(); pending = null; preview.replaceChildren(); renderList(); };
+  window.addEventListener(LIBRARY_EVENT, reload);
+  container.append(root);
+  return () => { window.removeEventListener(LIBRARY_EVENT, reload); root.remove(); };
+}
+
+Object.assign(__exports, { savePlanPanel, runSavePanel, LIBRARY_EVENT, savedWorkPanel });
 },
 "src/modules/exports/report-panel.mjs": (__require, __exports) => {
 // 导出结果卡：选一份冻结结果，先预览再下载；报告正文不铺在保存页上。
@@ -13373,6 +13343,85 @@ function adoptDraft({ project, items = [], selectedIds = [], makeId } = {}) {
 }
 
 Object.assign(__exports, { OLLAMA_DEFAULT_BASE_URL, OLLAMA_CHAT_PATH, OLLAMA_TAGS_PATH, DEFAULT_DRAFT_MODEL, REVIEW_MARK, GROUNDED_MARK, DRAFT_ERRORS, materialText, buildDraftPrompt, createOllamaTransport, requestDraft, listModels, parseDraft, itemStatusText, describeSource, adoptDraft });
+},
+"src/modules/exports/project-backup-panel.mjs": (__require, __exports) => {
+// 项目备份与恢复：从首页搬到这里，与命名方案、检验归档同处「保存与导出」。
+// 首页只负责定范围；备份、恢复、示例载入都是保存范畴的动作。
+const { el } = __require("src/core/ui.mjs");
+function projectBackupPanel(host, context) {
+  const root = el('section', { class: 'project-backup', 'data-project-backup': '' });
+  const status = el('p', { class: 'backup-status', role: 'status' });
+  const file = el('input', { type: 'file', id: 'project-import', accept: '.json,application/json', class: 'inline-file' });
+  file.addEventListener('change', async () => {
+    const picked = file.files[0];
+    if (!picked) return;
+    if (picked.size > 5 * 1024 * 1024) { status.textContent = '备份超过5MB，本轮暂不支持载入。'; return; }
+    if (!confirm('恢复备份会替换当前项目。继续恢复吗？')) { file.value = ''; return; }
+    try {
+      const value = JSON.parse(await picked.text());
+      const result = context.actions.replaceProject(value);
+      if (!result.ok) throw new Error(result.error.message);
+      context.refresh();
+      context.notify('项目备份已恢复');
+      status.textContent = '项目备份已恢复。';
+    } catch (error) { status.textContent = '备份未载入：' + error.message; }
+  });
+
+  const loadDemo = () => {
+    const current = context.store.read();
+    const hasWork = current.data.taxonomy.length || current.scope.years.length || current.title !== '未命名情景项目';
+    if (hasWork && !confirm('载入机制示例会替换当前项目。需要保留时，请先下载项目备份。继续载入吗？')) return;
+    context.loadDemo();
+  };
+  const loadMechanism = () => {
+    const current = context.store.read();
+    const hasWork = current.data.taxonomy.length || current.scope.years.length || current.title !== '未命名情景项目';
+    if (hasWork && !confirm('载入机制演示会替换当前项目。需要保留时，请先下载项目备份。继续吗？')) return;
+    context.loadMechanism();
+  };
+
+  // 项目改名：首页不再承担命名，改名在这里。
+  const titleInput = el('input', { id: 'project-title-edit', maxlength: '120', 'aria-label': '项目名称' });
+  titleInput.addEventListener('input', () => { renameMsg.textContent = ''; });
+  const renameMsg = el('p', { class: 'backup-status', role: 'status' });
+  const rename = el('button', { class: 'button secondary', type: 'button' }, '保存项目名称');
+  rename.addEventListener('click', () => {
+    try {
+      const current = context.store.read();
+      const value = titleInput.value.trim();
+      if (!value) throw new Error('项目名称不能为空');
+      if (value === current.title) { renameMsg.textContent = '名称没有变化。'; return; }
+      const result = context.actions.updateProjectDetails({ title: value, scope: current.scope });
+      if (!result.ok) throw new Error(result.error.message);
+      renameMsg.textContent = context.persistenceState().ok
+        ? '项目名称已改为「' + value + '」。'
+        : '名称已改到当前页面，但浏览器保存失败，请先下载备份。';
+    } catch (error) { renameMsg.textContent = '未改名：' + error.message; }
+  });
+  const fillTitle = () => { titleInput.value = context.store.read().title; };
+  fillTitle();
+  const off = context.store.subscribe(fillTitle);
+
+  root.append(
+    el('h3', {}, '项目名称'),
+    el('div', { class: 'field' }, el('label', { for: 'project-title-edit' }, '当前项目名称'), titleInput),
+    el('div', { class: 'actions' }, rename),
+    renameMsg,
+    el('h3', {}, '项目备份与恢复'),
+    el('p', { class: 'v5-hint' }, '备份保存范围、数据与选择，不含检验结果；换电脑或清缓存前先下载一份。'),
+    el('div', { class: 'actions' },
+      el('button', { class: 'button secondary', type: 'button', onclick: context.exportProject }, '下载项目备份'),
+      el('button', { class: 'button secondary', type: 'button', onclick: context.captureSnapshot }, '记录未检验快照')),
+    el('div', { class: 'field' }, el('label', { for: 'project-import' }, '从 JSON 备份恢复'), file),
+    el('div', { class: 'actions' },
+      el('button', { class: 'button text', type: 'button', onclick: loadDemo }, '载入机制示例'),
+      el('button', { class: 'button text', type: 'button', onclick: loadMechanism }, '载入机制演示（含冲突）')),
+    status);
+  host.append(root);
+  return () => { off(); root.remove(); };
+}
+
+Object.assign(__exports, { projectBackupPanel });
 },
 "src/modules/chain/index.mjs": (__require, __exports) => {
 const { el } = __require("src/core/ui.mjs");

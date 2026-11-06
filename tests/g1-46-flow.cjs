@@ -35,10 +35,17 @@ const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Applic
     assert.equal(await page.locator('.geo-shape').count(), 3, '三个省级单元');
     // 底部快捷 chips 已撤：地图形状本身键盘可达（tabindex+Enter），下拉保留同步。
     assert.equal(await page.locator('.geo-chip').count(), 0, '不再有第三套平级入口');
-    assert.match(await page.locator('.geo-card').innerText(), /京津冀整体/);
-    assert.match(await page.locator('.geo-card').innerText(), /政策库收录/);
-    assert.match(await page.locator('.geo-card').innerText(), /查看政策资料/);
-    assert.doesNotMatch(await page.locator('.geo-card').innerText(), /取消预览/);
+    // 卡片默认收起，鼠标移到某个区域才弹出；地图占主区。
+    assert.equal(await page.locator('.geo-card').isVisible(), false, '卡片默认不占版面');
+    await page.locator('.geo-shape[data-geo="北京"]').hover();
+    await page.waitForTimeout(300);
+    assert.equal(await page.locator('.geo-card').isVisible(), true, '悬停后弹出卡片');
+    const hovered = await page.locator('.geo-card').innerText();
+    assert.match(hovered, /北京/);
+    // 移开后收起
+    await page.mouse.move(10, 10);
+    await page.waitForTimeout(300);
+    assert.equal(await page.locator('.geo-card').isVisible(), false, '移开后收起');
   });
 
   await step('点地区先预览，不写项目；卡片可用键盘打开', async () => {
@@ -122,8 +129,8 @@ const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Applic
     await page.waitForTimeout(400);
     const dialog = await page.locator('.reference-dialog').innerText();
     assert.match(dialog, /演示参考，可修改，非实时AI生成/);
-    assert.match(dialog, /将填 18 格/);
-    assert.match(dialog, /旧平台参考规则（已映射到 46 项）/);
+    assert.match(dialog, /确认保存并使用/);
+    assert.match(dialog, /这份参考是哪来的/);
     // 一次确认同时完成“保存判断 + 选用进矩阵”；齐全后只剩一条紧凑状态，不再重复计数。
     await page.locator('.reference-dialog button', { hasText: '确认保存并使用' }).click();
     await page.waitForTimeout(800);
@@ -131,21 +138,21 @@ const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Applic
     assert.equal(await page.locator('[data-rev-refill]').count(), 0, '齐全后收起预填回执');
     assert.equal(await page.locator('.rev-clear').count(), 0, '没有“没有待处理项”空区域');
     const done = (await page.locator('[data-rev-done]').innerText()).replace(/\s+/g, ' ');
-    assert.match(done, /评分已齐：2 个方向、18 格/, '一条紧凑状态：' + done.slice(0, 80));
+    assert.match(done, /评分已齐：2 个方向/, '一条紧凑状态：' + done.slice(0, 80));
     assert.match(done, /演示参考/, '性质标签保留');
     await page.locator('button', { hasText: '查看评分与来源' }).click();
     await page.waitForTimeout(300);
     assert.match((await page.locator('.rev-done-src').innerText()), /依据/, '来源可查');
-    const next = page.locator('button', { hasText: '继续检验' }).first();
+    const next = page.locator('button', { hasText: '继续：检验方案' }).first();
     assert.equal(await next.isEnabled(), true, '齐全后主按钮可用');
     await next.click();
     await page.waitForTimeout(800);
     assert.ok(await page.locator('.solver-module').count());
   });
 
-  await step('检验：假设必须亲手勾选，全空间给出真实自洽组合数', async () => {
-    assert.match(await page.locator('.solver-cannot').first().innerText(), /还不能检验/);
-    // 假设口径已默认接受，界面不再要求勾选；此处不再有对应控件。
+  await step('检验：全空间给出真实自洽组合数', async () => {
+    // 假设口径已默认接受，界面不再要求勾选；勾选框已删除。
+    assert.equal(await page.locator('input[aria-label="按当前草案、依据不足及量表假设检算"]').count(), 0, '不再有假设勾选框');
     await page.locator('[data-plan-check-run]').click();
     await page.waitForTimeout(500);
     assert.match(await page.locator('.plan-check').innerText(), /自洽/);

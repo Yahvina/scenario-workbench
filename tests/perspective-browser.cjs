@@ -13,11 +13,11 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
       page.on('pageerror', error => errors.push(error.message));
       await page.goto(url);
       const view = page.getByRole('combobox', { name: '界面视角', exact: true });
-      await page.getByLabel('项目名称', { exact: true }).fill('未保存的名字');
+      
       page.once('dialog', dialog => dialog.dismiss());
       await view.selectOption('expert');
       assert.equal(await view.inputValue(), 'public');
-      assert.equal(await page.getByLabel('项目名称', { exact: true }).inputValue(), '未保存的名字');
+      assert.ok(await page.locator('#home-start-form').count(), '范围表单仍在');
       page.once('dialog', dialog => dialog.accept());
       await page.locator('[data-route="elements"]').click();
       await page.getByRole('button', { name: '向当前项目加入京津冀框架' }).click();

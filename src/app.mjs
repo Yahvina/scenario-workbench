@@ -7,6 +7,10 @@ import { createDemoProject } from './fixtures/demo.mjs';
 import { createMechanismCaseProject } from './fixtures/mechanism-project.mjs';
 import { createGuidedDemoProject } from './fixtures/guided-demo.mjs';
 import { progressText } from './modules/shared/flow-progress.mjs';
+import { formulaCard } from './modules/shared/formula-card.mjs';
+import { formulaById } from './core/formulas.mjs';
+import { formulaContext } from './modules/chain/index.mjs';
+import { readRunArchive } from './modules/solver/index.mjs';
 import { mount as mountWorkspace } from './modules/workspace/index.mjs';
 import { mount as mountElements } from './modules/elements/index.mjs';
 import { mount as mountTimeline } from './modules/timeline/index.mjs';
@@ -59,7 +63,7 @@ const content = el('section', { class: 'surface', id: 'module-content' });
 const contextPanel = el('aside', { class: 'surface context-panel', 'aria-label': '项目范围与来源' });
 const globalMessage = el('p', { class: 'message', role: 'status', 'aria-live': 'polite', id: 'global-status' });
 const storageMessage = el('p', { class: 'storage-status', role: 'alert', hidden: true });
-main.append(heading, storageMessage, el('div', { class: 'content-grid' }, content), globalMessage, el('p', { class: 'footer' }, '描述符、时间路径、直接评分及受限二档图形编码已接入；精确CIB检验及逐项解释已接入，最多100000组合；三档编码不自动外推，结果刷新不恢复。'));
+main.append(heading, storageMessage, el('div', { class: 'content-grid' }, content), globalMessage, el('p', { class: 'footer' }, '描述符、时间路径、直接评分与受限二档图形编码已接入；精确 CIB 检验与逐项解释已接入，三档编码不自动外推，结果刷新不恢复。'));
 sidebar.append(el('details',{class:'side-context'},el('summary',{},'项目范围与来源'),contextPanel));
 root.append(header, el('div', { class: 'layout' }, sidebar, main));
 function notify(text) { globalMessage.textContent = text; }
@@ -130,17 +134,16 @@ function renderContext() {
 function mountMethods(container, navigate) {
   container.append(
     el('h2', {}, '方法与帮助'),
-    el('p', { class: 'subtitle' }, '这里回答“一般怎么算、符号什么意思、什么情况下不能用”；某一次具体怎么算，去「计算过程与依据」。'),
     el('table', { class: 'method-table' },
-      el('thead', {}, el('tr', {}, el('th', { scope: 'col' }, '环节'), el('th', { scope: 'col' }, '需要明确的内容'), el('th', { scope: 'col' }, '当前状态'))),
+      el('thead', {}, el('tr', {}, el('th', { scope: 'col' }, '环节'), el('th', { scope: 'col' }, '需要明确的内容'))),
       el('tbody', {}, ...[
-        ['项目范围', '地区、年份、输入版本；未知范围不当匹配', '可使用'],
-        ['因素与状态', '所选分类到实际计算变量的直接映射；缺映射保留待配置', '可使用'],
-        ['年度状态', '因素旁按年选状态；只表达你的方案，不锁定枚举', '可使用'],
-        ['关系评分', '逐状态对直接评分；0＝没关系，空白＝未判断；参考评分需显式采用', '可使用'],
-        ['CIB 检验', '逐变量比较所有候选状态；精确枚举上限 100000；锁定不免除比较', '可使用'],
-        ['结果与导出', '冻结结果、自洽组合列表、报告预览与下载', '可使用'],
-        ['多专家、稳健性、AHP', '专家原始意见与聚合、批量扰动、重要性权重', '部分：稳健性单点已接；其余未接']
+        ['项目范围', '地区、年份、输入版本；未知范围不当匹配'],
+        ['因素与状态', '所选分类到实际计算变量的直接映射；缺映射保留待配置'],
+        ['年度状态', '因素旁按年选状态；只表达你的方案，不锁定枚举'],
+        ['关系评分', '逐状态对直接评分；0＝没关系，空白＝未判断；参考评分需显式采用'],
+        ['CIB 检验', '逐变量比较所有候选状态；锁定不免除比较'],
+        ['结果与导出', '冻结结果、自洽组合列表、报告预览与下载'],
+        ['多专家、稳健性、AHP', '专家原始意见与聚合、批量扰动、重要性权重（目前仅稳健性单点可用）']
       ].map(row => el('tr', {}, ...row.map(cell => el('td', {}, cell)))))),
     el('div', { class: 'formula' }, 'Iⱼ(l | s) = Σᵢ≠ⱼ Cᵢⱼ(sᵢ, l)；一致性条件：对每个 j，Iⱼ(sⱼ | s) ≥ Iⱼ(l | s)，对所有候选 l 成立。'),
     el('h3', {}, '符号与语义'),
@@ -163,6 +166,15 @@ function mountMethods(container, navigate) {
     el('ul', {},
       el('li', {}, 'Weimer-Jehle, W. (2009). Properties of Cross-Impact Balance Analysis. 交叉影响平衡的判据与性质。'),
       el('li', {}, 'Stankov et al. (2021), MethodsX 8: 101492. 关系图形与技术模板的来源（图册，仅趋势参考）。')),
+    el('h3', {}, '可信边界'),
+    el('ul', { class: 'v5-list' },
+      el('li', {}, '0 分＝两者没有直接关系；空白＝还没判断。'),
+      el('li', {}, 'CIB 判的是矩阵内自洽，不是发生概率，也不是最优绩效。'),
+      el('li', {}, '政策原文能证明政策事实，不能单独证明因素之间的影响规律。'),
+      el('li', {}, '定性状态排列不是数值曲线，不做插值。'),
+      el('li', {}, '情景频率的分母是全量自洽配置，不是展示截断的列表。')),
+    el('h3', {}, '这条链用到的公式'),
+    ...['space', 'support', 'consistent', 'gap', 'gamma'].map(id => formulaCard(formulaById(id), formulaContext(store.read(), readRunArchive(store)))),
     el('div', { class: 'method-links' },
       el('button', { class: 'button secondary', onclick: () => navigate('chain') }, '看本次结论的计算过程'),
       el('button', { class: 'button secondary', onclick: () => navigate('about') }, '关于平台／版本说明')));

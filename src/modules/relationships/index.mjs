@@ -144,7 +144,7 @@ export function mount(container, context) {
     if(!source)src.value='';if(!target)tgt.value='';
     const sn=sourceId?statesFor(p,sourceId).length:0,tn=targetId?statesFor(p,targetId).length:0;
     const pairOk=sn===2&&tn===2&&sourceId!==targetId;
-    const [stText,stCls]=!sourceId||!targetId?['未选齐 · 图册可先浏览','']:sourceId===targetId?['同一因素 · 请更换','warn']:pairOk?['完整二档 · 可生成四格预览','ok']:['三档/多档 · 逐格或逐行评分',''];
+    const [stText,stCls]=!sourceId||!targetId?['','']:sourceId===targetId?['同一因素 · 请更换','warn']:pairOk?['完整二档 · 可生成四格预览','ok']:['多档因素 · 请逐格评分',''];
     return el('div',{class:'rel-pairbar'},
       el('span',{class:'cap'},'正在判断'),
       el('div',{class:'rel-factor'+(sourceId&&source?'':' empty')},el('span',{class:'role'},'影响方 A（谁影响谁）'),src),
@@ -157,17 +157,21 @@ export function mount(container, context) {
   // 图册卡：趋势参考常驻（v5 ② 区），标题与出处折叠收纳。
   function atlasCard(p,graphEligible){
     // 点一张图就出分（仅完整二档）；不适用时给出原因和下一步，不再点了没反应。
-    const encodeShape=panelId=>{
+    // 同一个形状有强弱两种线型时，图册会把选中的那一种一起传过来。
+    const encodeShape=(panelId,templateId)=>{
       if(!canLeave())return;
       const panel=panels().find(x=>x.id===panelId);
-      const template=panel?.templates.find(t=>t.encodingEnabled);
+      const template=templateId
+        ? panel?.templates.find(t=>t.id===templateId&&t.encodingEnabled)
+        : panel?.templates.find(t=>t.encodingEnabled);
       if(!panel||!template){status.textContent='这张图不能自动生成评分，请在右侧逐格判断。';return;}
       recordId=null;inputMode='graph';encodingTemplate=template.id;load();remember();render();
-      status.textContent='已按「'+panel.label+'」生成四格评分预览；核对无误后保存。';
+      const strength=template.lineChoices.length===1?(template.lineChoices[0]===1?'（较弱）':'（较强）'):'';
+      status.textContent='已按「'+panel.label+'」'+strength+'生成四格评分预览；核对无误后保存。';
     };
-    const atlas=trendAtlas({selected:selectedTrend,onSelect:panel=>{
+    const atlas=trendAtlas({selected:selectedTrend,onSelect:(panel,template)=>{
       selectedTrend=panel.id;
-      if(graphEligible){encodeShape(panel.id);return;}
+      if(graphEligible){encodeShape(panel.id,template?.id);return;}
       const note=body.querySelector('.chosen-trend');
       const sn=statesFor(p,sourceId).length,tn=statesFor(p,targetId).length;
       if(note)note.textContent='趋势参考：'+panel.label+'。当前两个因素各有 '+sn+'、'+tn+' 档，论文图形只覆盖二档，不会自动出分；请在右侧逐格（或逐行）判断。';
@@ -175,8 +179,8 @@ export function mount(container, context) {
     return el('section',{class:'rel-card rel-atlas-card'},atlas);
   }
   function evidenceView(p,record) {
-    return el('details',{class:'relationships-evidence'},el('summary',{},'关联依据、原始值与修改记录'),
-      el('p',{},'方向和强度依据未分别核实；政策原文可说明政策事实，不能单独证明描述符间影响规律。'),
+    return el('details',{class:'relationships-evidence'},el('summary',{},'依据与修改记录'),
+      el('p',{},'政策原文只能说明政策事实；方向与强度仍要你自己判断。'),
       !record?el('p',{},'新判断将作为用户假设草案保存。'):el('p',{},'来源：'+record.provenance.origin+'；版本：'+record.version+'；审核状态：'+(record.reviewStatus||'未知')),
       ...(record?.evidenceRefs||[]).map(id=>{
         const e=p.data.evidence.find(item=>item.id===id);
@@ -277,7 +281,7 @@ export function mount(container, context) {
       status.textContent='当前因素没有可用的参考规则：请逐格手动判断（0＝没关系，空白＝未判断）。';
     }),
     kind==='matrix'?button('体验完整示例',()=>loadGuidedWithConfirm()):null,
-    el('span',{class:'rel-ref-coverage none'},'当前因素暂无参考规则，不给一键填入')].filter(Boolean);
+    el('span',{class:'rel-ref-coverage none'},'这对因素没有参考评分，请手动判断')].filter(Boolean);
   }
   function loadGuidedWithConfirm(){
     const p=context.store.read();
@@ -342,13 +346,13 @@ export function mount(container, context) {
     const records=p.data.judgments.filter(j=>j.sourceDescriptorId===sourceId&&j.targetDescriptorId===targetId);
     const chooser=el('select',{'aria-label':'编辑判断记录',onchange:e=>{if(!canLeave()){e.target.value=recordId||'';return;}recordId=e.target.value||null;inputMode='manual';load();remember();render();}},el('option',{value:''},'新增这一个方向的判断'),...records.map(j=>el('option',{value:j.id},(p.view.perspective==='expert'?j.id:'判断 '+(records.indexOf(j)+1))+' · v'+j.version+' · '+(j.scope?.regionId||'地区未知')+' · '+(Array.isArray(j.validYears)&&j.validYears.length?j.validYears.join('/'):'年份未知/格式待核'))));
     chooser.value=recordId||'';
-    body.append(el('details',{class:'rel-records'},el('summary',{},'查看或修改已有判断（同方向已有记录）'),el('label',{},'选择已有判断',chooser)));
+    body.append(el('details',{class:'rel-records'},el('summary',{},'已有的同方向判断'),el('label',{},'选择已有判断',chooser)));
     const graphEligible=statesFor(p,sourceId).length===2&&statesFor(p,targetId).length===2;
     body.append(el('div',{class:'relationship-modes'},
       graphEligible?button('看图判断',()=>{if(!canLeave())return;inputMode='graph';render();}):null,
       button('直接填写评分',()=>{if(!canLeave())return;inputMode='manual';render();}),
       ...referenceEntry('input'),
-      el('span',{class:'rel-mode-note'},'参考评分可改，非实时AI生成')));
+      el('span',{class:'rel-mode-note'},'参考评分可修改')));
     if(graphEligible&&inputMode==='graph'&&!original){
       curvePanel(body,context,sourceId,targetId,()=>{curveDirty=true;},()=>{curveDirty=false;inputMode='manual';render();},savedId=>{recordId=savedId;curveDirty=false;inputMode='manual';const saved=context.store.read(),adv=nextUngjudgedDirection(saved),cov=directionCoverage(saved);if(adv&&!(adv.source===sourceId&&adv.target===targetId)){sourceId=adv.source;targetId=adv.target;recordId=null;load();remember();render();status.textContent='编码草案已保存；已切到下一未判方向（还剩 '+cov.missing.length+' 个）。';}else{load();render();status.textContent='编码草案已保存。'+(adv?'继续核对评分，或交换方向判断。':' '+cov.need+' 个方向已全部有判断记录。');}},encodingTemplate);
       return;
@@ -372,7 +376,7 @@ export function mount(container, context) {
     // 两种视图共用同一个 draft 对象，切换只重建界面，不清空判断、来源或理由。
     const hasTernaryGuide=sources.length===3&&targets.length===3;
     const counter=el('p',{'data-coverage-draft':'',class:'muted'});
-    function count(){counter.textContent='当前草稿：'+draft.entries.filter(e=>String(e.value).trim()!==''&&Number.isInteger(Number(e.value))&&Math.abs(Number(e.value))<=3).length+' / '+draft.entries.length+' 格已填；允许其余保留未判断。';}
+    function count(){counter.textContent='已填 '+draft.entries.filter(e=>String(e.value).trim()!==''&&Number.isInteger(Number(e.value))&&Math.abs(Number(e.value))<=3).length+' / '+draft.entries.length+' 格';}
     function draftChanged(){count();status.textContent='草稿未保存。';}
     if(hasTernaryGuide){
       const toggle=el('div',{class:'relationships-guide-toggle',role:'group','aria-label':'三档判断显示方式'});
@@ -386,7 +390,7 @@ export function mount(container, context) {
       const guide=rowGuide({draft,sources,targets,sourceLabel:variableLabel(p,sourceId),targetLabel:variableLabel(p,targetId),expert:p.view.perspective==='expert',onChange:draftChanged});
       body.append(guide.root,counter);
     }else{
-    const table=el('table',{class:'relationships-table'},el('caption',{},'源状态 × 目标状态：'+sources.length+'×'+targets.length+'。点格子选分，也可以直接在格子里输入；0＝没关系，空白＝未判断。'));
+    const table=el('table',{class:'relationships-table'},el('caption',{},'点格子选分或直接输入；0＝没关系，空白＝未判断。'));
     // 点格子选分：分数条放在表格下方，不遮挡其它格子，键盘输入照旧可用。
     let activeInput=null,activeEntry=null,activePaint=null;
     const dock=el('div',{class:'score-dock','data-score-dock':'',hidden:''},
@@ -416,14 +420,13 @@ export function mount(container, context) {
     count();
     const rationale=el('textarea',{'aria-label':'判断理由',rows:'3',oninput:e=>{draft.rationale=e.target.value;}});rationale.value=draft.rationale;
     body.append(el('label',{},'判断理由',rationale));
-    const refs=el('details',{},el('summary',{},'引用已有依据（不自动认证方向或强度）'));
+    const refs=el('details',{},el('summary',{},'引用已有依据'));
     for(const e of p.data.evidence){
       const checkbox=el('input',{type:'checkbox','data-evidence-id':e.id,onchange:event=>{draft.evidenceRefs=event.target.checked?[...new Set([...draft.evidenceRefs,e.id])]:draft.evidenceRefs.filter(id=>id!==e.id);}});checkbox.checked=draft.evidenceRefs.includes(e.id);
       refs.append(el('label',{class:'relationships-reference'},checkbox,e.kind+' · '+e.sourceId+' · '+e.locator));
     }
     if(!p.data.evidence.length)refs.append(el('p',{},'暂无已有依据，保存时会新增用户假设修改记录。'));
-    body.append(refs,el('div',{class:'relationships-save'},button('取消草稿',cancel),button('保存这一对的评分',save,true)),evidenceView(p,original),
-      el('details',{class:'rel-limits'},el('summary',{},'这个页面不做什么'),el('p',{},'图形模板只在“完整、有序 H/L、明确直接关系”时可用；三档与连续曲线不自动外推。方法论文不能代替实际关系依据。')));
+    body.append(refs,el('div',{class:'relationships-save'},button('取消草稿',cancel),button('保存这一对的评分',save,true)),evidenceView(p,original));
     showAtlas();
     paintSteps(p);
   }
@@ -462,7 +465,7 @@ export function mount(container, context) {
           row.append(el('td',{class:value===null?'relationships-missing':'relationships-score',style:value===null?'':'background:var(--s'+value+')','data-matrix-source':a.id,'data-matrix-target':b.id,'data-score':value===null?'null':value},value===null?'未判断':value===0?'0 · 没关系':value>0?'+'+value:value));}
       }rows.append(row);}
     table.append(rows);
-    return el('details',{class:'rev-matrix',...(judged>0?{open:''}:{})},el('summary',{},'查看评分矩阵（'+required+' 格，已判 '+judged+'）'),
+    return el('details',{class:'rev-matrix',...(judged>0?{open:''}:{})},el('summary',{},'评分矩阵（已判 '+judged+' / '+required+' 格）'),
       el('div',{class:'relationships-scroll',tabindex:'0','aria-label':'准备矩阵，窄屏可横向滚动'},table),
       el('p',{'data-matrix-coverage':'',class:'muted'},'0＝没关系；空白＝未判断。覆盖统计不是证据质量，也不代表方向与强度依据已验证。'),
       p.view.perspective==='expert'?el('details',{},el('summary',{},'MatrixSnapshot（输入准备，非求解结果）'),el('pre',{},JSON.stringify(snapshot,null,2))):null);
@@ -661,7 +664,7 @@ export function mount(container, context) {
     }
 
     // 适用范围：每类给对应入口，能在原地处理的就不跳页。
-    const scopeBox=el('details',{class:'rev-diag','data-rev-scope-issues':''},el('summary',{},'适用范围明细（'+scopeIssues.length+' 条记录）'));
+    const scopeBox=el('details',{class:'rev-diag','data-rev-scope-issues':''},el('summary',{},'适用范围明细'));
     const projectMissing=!p.scope.regionId||!p.scope.years.length;
     if(projectMissing)scopeBox.append(el('div',{class:'rev-scope-item'},
       el('p',{},'项目范围缺失：' + (!p.scope.regionId?'没有研究地区':'') + (!p.scope.regionId&&!p.scope.years.length?'、':'') + (!p.scope.years.length?'没有研究年份':'')),
@@ -710,7 +713,7 @@ export function mount(container, context) {
     const grouped=new Map();
     for(const d of diagnostics){const g=grouped.get(d.code)||{code:d.code,message:d.message,count:0,ids:new Set()};g.count++;for(const id of d.recordIds||[])g.ids.add(id);grouped.set(d.code,g);}
     if(grouped.size){
-      const details=el('details',{class:'rev-diag'},el('summary',{},'技术诊断（'+grouped.size+' 类，与上面的待办不重复计数）'));
+      const details=el('details',{class:'rev-diag'},el('summary',{},'技术诊断'));
       for(const g of grouped.values()){
         const related=[...g.ids].map(id=>{
           const j=p.data.judgments.find(r=>r.id===id);if(!j)return null;

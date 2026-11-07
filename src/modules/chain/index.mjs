@@ -1,7 +1,5 @@
 import { el } from '../../core/ui.mjs';
 import { buildChain, CHAIN_STATUS } from './nodes.mjs';
-import { formulaCard } from '../shared/formula-card.mjs';
-import { formulaById } from '../../core/formulas.mjs';
 import { readRunArchive } from '../solver/index.mjs';
 import { readPlanChecks } from '../solver/plan-check-store.mjs';
 import { gammaOf, tisOf } from '../../core/analytics.mjs';
@@ -14,7 +12,8 @@ const ROUTED = new Set(['workspace', 'elements', 'timeline', 'relationships', 's
 export function mount(container, context) {
   const root = el('section', { class: 'chain-module' });
   container.append(root);
-  let open = new Set(['scope', 'plan', 'matrix', 'solve', 'explain']);
+  // 默认只显示步骤清单与状态；点开某一步才看它的输入、依据与缺口。
+  let open = new Set();
   let disposed = false;
 
   function render() {
@@ -27,9 +26,7 @@ export function mount(container, context) {
 
     const run = archive?.RunResult;
     root.append(el('div', { class: 'v5-head' },
-      el('div', { class: 'eyebrow' }, '工具 · 白箱全过程'),
-      el('h1', {}, '计算过程与依据'),
-      el('p', { class: 'lead' }, '解释的是一份具体的检验结果：从研究范围到导出，每一步列本次真实输入、实际执行了什么、输出了什么、依据和版本在哪里。没有做的步骤写“未开始”，输入改过的写“已过期”。'),
+        el('h1', {}, '计算过程与依据'),
       el('div', { class: 'head-actions' },
         el('button', { class: 'button secondary', onclick: () => context.navigate('methods') }, '看一般方法与公式'),
         el('button', { class: 'button secondary', onclick: () => render() }, '重新读取当前输入'))));
@@ -38,7 +35,7 @@ export function mount(container, context) {
     const explainYear = archive?.RunInput?.year ?? null;
     const explainAt = run?.createdAt || null;
     const contextBar = el('div', { class: 'v5-card chain-context' }, el('div', { class: 'bd' },
-      el('p', {}, '解释对象：' + p.title + ' · ' + (explainYear === null ? '尚未计算（下面是已有输入与缺口）' : explainYear + ' 年检验结果')),
+      el('p', {}, '解释对象：' + p.title + ' · ' + (explainYear === null ? '尚未计算' : explainYear + ' 年检验结果')),
       el('div', { class: 'chain-context-actions' },
         archive ? el('button', { class: 'button', onclick: () => context.navigate('solver') }, '返回对应的检验结果') : el('button', { class: 'button', onclick: () => context.navigate('solver') }, '去检验与结果'),
         el('button', { class: 'button text', onclick: () => context.navigate('robustness') }, '稳健性检验'))));
@@ -74,7 +71,7 @@ export function mount(container, context) {
         el('span', { class: 'chain-no' }, String(node.no)),
         el('span', { class: 'chain-title' }, node.title),
         el('span', { class: 'v5-tag ' + cls }, label),
-        el('span', { class: 'chain-go' }, '查看/去这一步'));
+        el('span', { class: 'chain-go' }, open.has(node.id) ? '收起' : '展开'));
       card.append(head);
       if (open.has(node.id)) {
         const body = el('div', { class: 'chain-node-bd' });
@@ -103,19 +100,6 @@ export function mount(container, context) {
     }
     grid.append(main);
 
-    const rail = el('aside', { class: 'v5-rail' });
-    rail.append(el('section', { class: 'v5-card' }, el('div', { class: 'hd' }, el('h3', {}, '可信边界'), el('span', { class: 'note' }, '这段话不能省')),
-      el('div', { class: 'bd' },
-        el('ul', { class: 'v5-list' },
-          el('li', {}, '0 分＝两者没有直接关系；空白＝还没判断。'),
-          el('li', {}, 'CIB 判的是矩阵内自洽，不是发生概率，也不是最优绩效。'),
-          el('li', {}, '政策原文能证明政策事实，不能单独证明因素之间的影响规律。'),
-          el('li', {}, '定性状态排列不是数值曲线，不做插值。'),
-          el('li', {}, '情景频率的分母是全量自洽配置，不是展示截断的列表。')))));
-    const ctx = formulaContext(p, archive);
-    rail.append(el('section', { class: 'v5-card' }, el('div', { class: 'hd' }, el('h3', {}, '这条链用到的公式'), el('span', { class: 'note' }, '点开看含义与本次代入')),
-      el('div', { class: 'bd' }, ...['space', 'support', 'consistent', 'gap', 'gamma'].map(id => formulaCard(formulaById(id), ctx)))));
-    grid.append(rail);
     root.append(grid);
   }
 
@@ -181,7 +165,7 @@ function moduleTitle(module) {
   return { workspace: '项目与研究范围', elements: '因素与状态', timeline: '政策实施路径', relationships: '关系与依据', solver: '检验与解释', exports: '保存与导出', policy: '政策库', methods: '方法' }[module] || module;
 }
 
-function formulaContext(p, archive) {
+export function formulaContext(p, archive) {
   const input = archive?.RunInput;
   const ctx = { input, run: archive?.RunResult || null };
   const name = id => p.data.descriptors.find(d => d.id === id)?.label || id;

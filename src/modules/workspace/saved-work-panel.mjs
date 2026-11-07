@@ -128,12 +128,14 @@ export function runSavePanel(container, context) {
   function render() {
     const s = readRunSummary(context.store), archive = readRunArchive(context.store);
     if (!archive || !s) {
+      // 空态不重复占版面：上面「导出结果」已经说明要先算一次。
       runName.remove();
-      body.replaceChildren(
-                el('button', { class: 'button', type: 'button', onclick: () => context.navigate('solver') }, '去检验'));
+      body.replaceChildren();
       message.textContent = '';
+      root.hidden = true;
       return;
     }
+    root.hidden = false;
     if (!runName.isConnected) root.insertBefore(el('label', { class: 'save-field' }, '检验记录名称', runName), message);
     if (!runName.value.trim()) runName.value = (context.store.read().scope.regionId || '情景') + (s.year ? s.year : '') + '检验记录';
     const done = s.status === 'completed';

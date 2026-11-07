@@ -71,7 +71,7 @@
 .legacy-map td.rel{white-space:nowrap}
 .legacy-map .rel-same{color:var(--pri-d)}
 .legacy-map .rel-split{color:var(--wn)}
-.legacy-map .rel-merged{color:var(--s2)}
+.legacy-map .rel-merged{color:var(--s3)}
 .legacy-map .rel-unmatched{color:var(--tx3)}
 
 /* 首页：地图与范围表单并排，主动作留在首屏 */

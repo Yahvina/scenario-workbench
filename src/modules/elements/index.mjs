@@ -6,10 +6,10 @@ import { resolveSelection, visibleRows, descendantChoices, toggleBranch } from '
 import { joinJJJFramework } from './framework.mjs';
 import { JJJ_DRAFT_CATALOG, createJJJDraftProject } from '../../fixtures/jjj-draft.mjs';
 import { variableColor } from '../../core/object-colors.mjs';
-import {ZONES, zoneCounts, taxonomyForZone} from './zones.mjs';
+import {zonesOf, zoneCounts, taxonomyForZone} from './zones.mjs';
 import {joinSocialFramework, SOCIAL_DIMENSIONS, SOCIAL_SOURCE} from '../../fixtures/social-framework.mjs';
 import {ambitionPanel} from './ambition-panel.mjs';
-import {POLICY_PILOT_PATH, POLICY_PILOT_CLAUSES, POLICY_PILOT_GAPS, POLICY_PILOT_SOURCE, POLICY_PILOT_DESCRIPTOR_ID, POLICY_PILOT_LEAF_ID, clausesFor, joinPolicyPilot} from './policy-pilot.mjs';
+import {clausesFor} from './policy-pilot.mjs';
 import {joinBaseline, baselinePresence, descriptorNodeId} from './baseline.mjs';
 import {LEGACY_MAP, MAPPING_CATEGORIES, mappingSummary, migrateSelection, MAPPING_SOURCE_NOTE} from '../../fixtures/legacy-map.mjs';
 import {BASELINE_CATALOG_LABEL, BASELINE_STATE_SOURCE} from '../../fixtures/descriptors-46.mjs';
@@ -55,18 +55,12 @@ export function mount(container, context) {
   const summary = el('div', { class: 'elements-summary', 'aria-live': 'polite' });
   const message = el('p', { role: 'status' });
   const catalog = el('div', { class: 'elements-catalog' });
-  const otherFrameworks=el('details',{class:'other-frameworks'},el('summary',{},'其他框架与示例'));
   const zoneBar=el('div',{class:'zone-bar','aria-label':'业务分区'});
   const frameworkBar=el('div',{class:'framework-bar','aria-label':'描述符框架'});
   const treeInfo = el('p', { class: 'elements-tree-info muted' });
   const regionStrip = el('div', { class: 'region-strip', 'aria-live': 'polite' });
   const clear = el('button', { class: 'button secondary', onclick: () => commit([]) }, '清空选择');
-  // 框架来源是设置项，不是每天的活：默认收成一行，树和年份状态占据首屏。
-  const frameworkBox=el('details',{class:'framework-box'});
-  const frameworkSummary=el('summary',{},'框架与来源');
-  let legacyBox=el('div',{class:'legacy-host'});
-  // 业务分区是旧版视图，新体系按政策领域组织：能力保留，但收进「框架与来源」，不占首屏。
-  frameworkBox.append(frameworkSummary,zoneBar,catalog,frameworkBar);
+  // 先选框架、再选因素：框架条放在树上方，业务分区紧随其后。
   root.append(el('h2', { id: 'elements-title' }, '选择本次要研究的因素'),
     el('div', { class: 'elements-topbar' },
       el('div', { class: 'elements-picked', 'aria-live': 'polite', 'data-picked-count': '' }),
@@ -76,11 +70,10 @@ export function mount(container, context) {
         el('button', { class: 'button text', type: 'button', onclick: () => { expanded.clear(); render(); } }, '收起全部'),
         el('button', { class: 'button secondary elements-starter', type: 'button', 'data-starter': '', onclick: startStarter }, '示例起点'))),
     message, regionStrip,
-    el('details', { class: 'elements-rules' }, el('summary', {}, '选择规则'),
-      el('p', {}, '目录分三级：政策领域 → 细分领域 → 具体描述符。只有具体描述符参与计算，领域与细分只是分类。'),
-      el('p', {}, '勾选上级会带选全部下级，取消同理；部分选中时上级显示半选。同一因素只计算一次。')),
-    el('div', { class: 'elements-columns' }, el('section', { class: 'elements-browser', 'aria-label': '分类浏览' }, treeInfo, tree), summary), frameworkBox);
-  container.append(root);const editor=definitionPanel(root,context);const manage=el('details',{class:'factor-management'},el('summary',{},'添加或修改因素定义'),editor.element);root.append(manage,otherFrameworks);
+    frameworkBar, zoneBar,
+    el('div', { class: 'elements-columns' }, el('section', { class: 'elements-browser', 'aria-label': '分类浏览' }, treeInfo, tree), summary),
+    catalog);
+  container.append(root);const editor=definitionPanel(root,context);const manage=el('details',{class:'factor-management is-major'},el('summary',{},'添加或修改因素定义'),editor.element);root.append(manage);
 
   function openDraftTree(){
     expanded.clear();context.store.read().data.taxonomy.filter(node=>!node.parentIds.length).forEach(node=>expanded.add(node.id));expanded.add('jjj-group-0-section-0');render();
@@ -91,31 +84,6 @@ export function mount(container, context) {
   }
   // 目录小样：与加入京津冀框架同一套原子语义。加入只新增目录、候选因素与三条摘要，
   // 不动项目身份、范围、既有定义、评分与选择；内容一致时重复加入不新增任何记录。
-  const pilot = el('section', { class: 'elements-pilot', 'aria-labelledby': 'elements-pilot-title' });
-  function joinPilot(){
-    try{
-      const joined = joinPolicyPilot(context.store.read()), result = context.actions.replaceProject(joined.project);
-      if (!result.ok) throw new Error(result.error.message);
-      ['pilot-node-domain', 'pilot-node-sector', 'pilot-node-measure', POLICY_PILOT_LEAF_ID].forEach(id => expanded.add(id));
-      render();
-      if (!context.persistenceState().ok) message.textContent = '目录小样已加入当前页面，但浏览器保存失败，请下载项目备份。';
-      else if (joined.added) message.textContent = '已向当前项目加入目录小样：项目名称、地区、年份与原有定义、评分、选择保留。';
-      else message.textContent = '目录小样已在当前项目中且内容一致，未新增节点或记录。';
-    }
-    catch(error){ message.textContent = error.message; }
-  }
-  function renderPilot(){
-    const p = context.store.read(), joined = p.data.taxonomy.some(node => node.id === POLICY_PILOT_LEAF_ID);
-    const expert = p.view.perspective === 'expert';
-    const rows = [
-      el('h3', { id: 'elements-pilot-title' }, '目录小样：' + POLICY_PILOT_PATH.join(' → ')),
-      el('ul', { class: 'elements-pilot-clauses' }, ...POLICY_PILOT_CLAUSES.map(clause =>
-        el('li', {}, el('strong', {}, clause.clauseId), el('span', { class: 'elements-pilot-excerpt' }, clause.excerpt), null))),
-      el('button', { class: 'button', type: 'button', onclick: joinPilot }, joined ? '再次加入目录小样（内容一致时不新增）' : '向当前项目加入目录小样')
-    ];
-    // replaceChildren 会把 null 转成文本 "null"：先过滤，只有 el() 的 children 会自行跳过 null。
-    pilot.replaceChildren(...rows.filter(row => row !== null && row !== undefined));
-  }
   function loadDraft() {
     const current = context.store.read();
     if (!confirm('新建京津冀示例项目会替换当前项目的名称、地区、年份、所有数据与选择。请先到项目页下载所需备份。继续替换吗？')) return;
@@ -134,9 +102,13 @@ export function mount(container, context) {
   function renderZones(p){
     if(!p.data.taxonomy.length){zoneBar.replaceChildren();return;}
     const counts=zoneCounts(p);
-    const chips=[{id:'all',label:'全部',hint:'不筛选'} ,...ZONES];
+    // 分区就是目录的顶层领域；只列有内容的，不给一排看着像坏了的 0。
+    const chips=[{id:'all',label:'全部',hint:'不筛选',count:p.data.descriptors.length},
+      ...zonesOf(p).filter(z=>(counts[z.id]||0)>0).map(z=>({...z,count:counts[z.id]||0}))];
+    // 当前筛选的分区若已被滤掉，退回"全部"，避免树是空的却没选中任何分区。
+    if(!chips.some(z=>z.id===zoneFilter))zoneFilter='all';
     zoneBar.replaceChildren(el('span',{class:'zone-cap'},'业务分区'),
-      ...chips.map(z=>el('button',{class:'zone-chip'+(zoneFilter===z.id?' is-on':''),'aria-pressed':String(zoneFilter===z.id),title:z.hint,onclick:()=>{zoneFilter=z.id;render();}},z.label,el('span',{class:'n'},String(z.id==='all'?p.data.descriptors.length:counts[z.id]||0)))));
+      ...chips.map(z=>el('button',{class:'zone-chip'+(zoneFilter===z.id?' is-on':''),'aria-pressed':String(zoneFilter===z.id),title:z.hint,onclick:()=>{zoneFilter=z.id;render();}},z.label,el('span',{class:'n'},String(z.count)))));
   }
   // 新项目默认带 46 项目录：用户确认过的体系，进因素页就能选。
   // 只载入目录与定义——不自动勾选因素，不伪造年度状态或评分。
@@ -186,67 +158,21 @@ export function mount(container, context) {
       material,
       el('button',{class:'button text',type:'button',onclick:()=>context.navigate('workspace')},'换地区'));
   }
-  function renderLegacyMap(p){
-    const summary=mappingSummary();
-    const selectedLegacy=LEGACY_MAP.filter(row=>p.selection.descriptorIds.includes(row.legacy)).map(row=>row.label);
-    const missingTargets=LEGACY_MAP.flatMap(row=>row.targets).filter(id=>!p.data.descriptors.some(d=>d.id===id));
-    const box=el('details',{class:'legacy-map'},el('summary',{},'旧目录（24 项）→ 46 项对照与迁移'));
-    const rows=LEGACY_MAP.map(row=>el('tr',{},
-      el('td',{},row.label),
-      el('td',{class:'rel rel-'+row.relation},(MAPPING_CATEGORIES.find(c=>c.id===row.relation)||{}).label||row.relation),
-      el('td',{},row.outcome?'→ 结果指标（不计入 46 项）':row.targets.length?row.targets.map(id=>p.data.descriptors.find(d=>d.id===id)?.label||id).join('、'):'—'),
-      el('td',{},row.note)));
-    const migrate=el('button',{class:'button',type:'button',onclick:()=>{
-      try{
-        const plan=migrateSelection(context.store.read(),id=>descriptorNodeId(context.store.read(),id));
-        if(!plan.descriptorIds.length){
-          message.textContent='没有可迁移的旧选择：'+(plan.gaps.length?'所选旧项都属未匹配（'+plan.gaps.map(g=>g.label).join('、')+'）。':'当前没有选中旧目录的描述符。');
-          return;
-        }
-        const next=migrateSelection(context.store.read(),id=>descriptorNodeId(context.store.read(),id));
-        const merged=[...new Set([...context.store.read().selection.nodeIds,...next.nodeIds])];
-        const selection={nodeIds:merged,descriptorIds:[...new Set([...context.store.read().selection.descriptorIds,...next.descriptorIds])],stateIds:context.store.read().selection.stateIds,lockedStateIds:context.store.read().selection.lockedStateIds};
-        const result=context.actions.selectElements(selection);
-        if(!result.ok)throw new Error(result.error.message);
-        render();
-        message.textContent='已迁移选择：新增 '+next.descriptorIds.length+' 项。'+next.notCarried+(plan.gaps.length?' 未迁移：'+plan.gaps.map(g=>g.label+'（'+g.reason+'）').join('；'):'')+(plan.unresolved.length?' 未解析：'+plan.unresolved.map(g=>g.label+'：'+g.reason).join('；'):'');
-      }catch(error){message.textContent='迁移未完成：'+error.message;}
-    }},'把当前旧选择迁移到 46 项');
-    migrate.disabled=!selectedLegacy.length||!!missingTargets.length;
-    box.append(
-      el('p',{},selectedLegacy.length?'当前选中的旧描述符：'+selectedLegacy.join('、'):'当前没有选中旧目录的描述符。'),
-      el('table',{},el('thead',{},el('tr',{},el('th',{},'旧描述符'),el('th',{},'关系'),el('th',{},'新体系对应'),el('th',{},'说明'))),el('tbody',{},...rows)),
-      el('div',{class:'actions'},migrate));
-    return box;
-  }
   function renderFrameworks(p){
-    const hasPolicy=p.data.descriptors.some(d=>d.provenance?.sourceId==='legacy-framework');
     const hasSocial=p.data.descriptors.some(d=>d.provenance?.sourceId==='social-framework-lauer');
-    const policyCount=p.data.descriptors.filter(d=>d.provenance?.sourceId==='legacy-framework').length;
     const socialCount=p.data.descriptors.filter(d=>d.provenance?.sourceId==='social-framework-lauer').length;
-    const card=(title,sub,count,onJoin,note)=>el('div',{class:'fw-card'+(count?' is-in':'')},
-      el('div',{class:'fw-hd'},el('strong',{},title),el('span',{class:'v5-tag '+(count?'ok':'')},count?count+' 项已加入':'未加入')),
-      el('p',{class:'v5-hint'},sub),
-      note?el('p',{class:'v5-hint fw-note'},note):null,
-      el('button',{class:'button secondary',onclick:onJoin},count?'再次加入（内容一致不新增）':'加入当前项目'));
+    // 一张框架一行：名字 + 状态 + 行动作。副标题与说明不再单独占行。
+    const card=(title,count,onJoin,note)=>el('div',{class:'fw-card'+(count?' is-in':'')},
+      el('strong',{class:'fw-name'},title),
+      el('span',{class:'v5-tag '+(count?'ok':'')},count?count+' 项已加入':'未加入'),
+      note?el('span',{class:'fw-note'},note):null,
+      el('button',{class:'button secondary fw-go',onclick:onJoin},count?'再次加入':'加入当前项目'));
     const openSocial=()=>{try{const joined=joinSocialFramework(context.store.read());const r=context.actions.replaceProject(joined);if(!r.ok)throw new Error(r.error.message);['social-root',...SOCIAL_DIMENSIONS.map(d=>'social-sec-'+d.id)].forEach(id=>expanded.add(id));render();message.textContent='已加入社会框架：'+(SOCIAL_DIMENSIONS.length)+' 个维度、'+p.data.taxonomy.filter(n=>n.id.startsWith('social-')).length+' 个节点。英文原词与出处随记录保留；变体是否穷尽、年份与阈值均未核定。';}catch(e){message.textContent='社会框架未加入：'+e.message;}};
     const base=baselinePresence(p);
     zoneBar.hidden=!p.data.taxonomy.length;
-    frameworkSummary.textContent='框架与来源 · 46 项 '+(base.present?(base.descriptors+' / '+base.counts.leaves):'未加入')+' / 旧目录 '+(policyCount||'未加入')+' / 社会 '+(socialCount||'未加入');
-    if(!p.data.descriptors.length)frameworkBox.open=true;
     frameworkBar.replaceChildren(
-      card(BASELINE_CATALOG_LABEL,
-        base.counts.domains+' 个领域 · '+base.counts.sections+' 个细分领域 · '+base.counts.leaves+' 项描述符 · '+base.counts.outcomes+' 项结果指标',
-        base.present?base.descriptors:0,joinBaselineNow,
-        null),
-      card('社会描述符框架',SOCIAL_DIMENSIONS.length+' 个维度',socialCount,openSocial,null));
-    // 旧 24 项 + 迁移工具收进默认折叠的二级分组，不与新目录抢首屏。
-    const legacyCard=card('旧版 24 项目录','6 个分组 · 24 个因素',policyCount,joinDraft,null);
-    const legacyWrap=el('details',{class:'fw-legacy'},el('summary',{},'旧项目兼容与迁移（24 项旧目录 → 46 项）'),legacyCard);
-    const freshLegacy=renderLegacyMap(p);
-    legacyWrap.append(freshLegacy);
-    if(legacyBox.isConnected)legacyBox.replaceWith(legacyWrap);else frameworkBox.append(legacyWrap);
-    legacyBox=legacyWrap;
+      card(BASELINE_CATALOG_LABEL,base.present?base.descriptors:0,joinBaselineNow,null),
+      card('社会描述符框架',socialCount,openSocial,null));
   }
   // 选中描述符后的详情：完整分类路径、定义（如未建立就明说）、相关政策入口、细分缺口。
   // 口径：分类完成 ≠ 定义完成 ≠ 状态已核定，三件事分开说。
@@ -327,9 +253,6 @@ export function mount(container, context) {
     search.placeholder = expert ? '搜索分类名称或稳定 ID' : '搜索你关注的因素';
     const selected = new Set(p.selection.nodeIds);
     const empty = !p.data.taxonomy.length;
-    // 目录始终留在「框架与来源」里；空态时该折叠会自动展开，不再把节点搬到 root（搬动会踩到不是直接子节点的锚点）。
-    if(!empty)otherFrameworks.append(catalog);
-    otherFrameworks.hidden=empty;
     catalog.replaceChildren();
     renderZones(p);renderFrameworks(p);renderRegionStrip(p);
     root.querySelector('.demo-default-scope')?.remove();
@@ -340,13 +263,8 @@ export function mount(container, context) {
     if (empty) {
       catalog.append(el('h3', {}, '从已有框架开始'),         el('div', { class: 'elements-catalog-groups' }, ...JJJ_DRAFT_CATALOG.map(group => el('section', {}, el('strong', {}, group.label), el('p', {}, group.children.flatMap(section => section.descriptors.map(d => d.label)).join(' · '))))),
         el('button', { class: 'button', onclick: joinDraft }, '向当前项目加入京津冀框架'));
-    } else {
-      catalog.append(el('div', { class: 'elements-dataset' }, el('span', {}, p.title), el('span', { class: 'muted' }, p.data.descriptors.length + ' 项描述符')));
-      if (p.data.descriptors.some(item => item.provenance.sourceId === 'legacy-framework')) catalog.append();
-    }
-    catalog.append(el('details',{},el('summary',{},'另建示例项目（替换当前项目）'),el('p',{},'这会重设名称、范围、数据与选择，与“向当前项目加入框架”不同。'),el('button',{class:'button secondary',onclick:loadDraft},'新建京津冀示例项目（替换当前项目）')));
-    if (!pilot.isConnected) root.append(el('details',{class:'pilot-library'},el('summary',{},'查看燃煤政策目录小样'),pilot));
-    renderPilot();
+    } else if (p.data.descriptors.some(item => item.provenance.sourceId === 'legacy-framework')) catalog.append();
+    catalog.append(el('button',{class:'button secondary elements-new-demo',type:'button',onclick:loadDraft},'另建示例项目（替换当前项目）'));
     clear.disabled = !selected.size && !p.selection.descriptorIds.length;
     tree.replaceChildren();
     summary.replaceChildren(el('h3', {}, '所选分类（' + selected.size + '）'));

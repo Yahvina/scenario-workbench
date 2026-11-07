@@ -1,5 +1,5 @@
 /* Neutral surface candidate; validated in the sample before application-wide use. */
-:root{--bg:#F2F3F5;--panel:#FFFFFF;--panel2:#E7E9EC;--line:#BCC2C9;--line2:#E1E4E8;--tx:#30363D;--tx2:#454D56;--tx3:#606973;--pri:#424C58;--pri-d:#303842;--pri-s:#ECEEF1;--pri-b:#A6AEB8;--action:#424C58;--action-hover:#303842;--selection-bg:#ECEEF1;--selection-text:#30363D;--info-bg:#F5F6F7;--info-text:#454D56;--focus:#586675;--warning:#715B31;--warning-bg:#F6F2E9;--wn:var(--warning);--wn-s:var(--warning-bg);--wn-b:#C8BA99;--danger:#9C3438;--rd:var(--danger);--rd-s:#FBF0F0;--rd-b:#D6ABAE;--chart-1:#456D91;--chart-2:#80668E;--chart-3:#925B60;--chart-4:#687381;--s-3:#365E83;--s-2:#7896B0;--s-1:#C9D7E3;--s0:#F0F1F3;--s1:#E0D5E5;--s2:#AC94BA;--s3:#755B83}
+:root{--bg:#F2F3F5;--panel:#FFFFFF;--panel2:#E7E9EC;--line:#BCC2C9;--line2:#E1E4E8;--tx:#30363D;--tx2:#454D56;--tx3:#3F464E;--pri:#424C58;--pri-d:#303842;--pri-s:#ECEEF1;--pri-b:#A6AEB8;--action:#424C58;--action-hover:#303842;--selection-bg:#ECEEF1;--selection-text:#30363D;--info-bg:#F5F6F7;--info-text:#454D56;--focus:#586675;--warning:#715B31;--warning-bg:#F6F2E9;--wn:var(--warning);--wn-s:var(--warning-bg);--wn-b:#C8BA99;--danger:#9C3438;--rd:var(--danger);--rd-s:#FBF0F0;--rd-b:#D6ABAE;--chart-1:#456D91;--chart-2:#80668E;--chart-3:#925B60;--chart-4:#687381;--s-3:#365E83;--s-2:#7896B0;--s-1:#C9D7E3;--s0:#F0F1F3;--s1:#E0D5E5;--s2:#AC94BA;--s3:#755B83}
 body{background:var(--bg);color:var(--tx)}
 .topbar{background:var(--panel);color:var(--tx);border-bottom:1px solid var(--line2)}
 .version,.view-dropdown label{color:var(--tx3)}
@@ -7,8 +7,8 @@ body{background:var(--bg);color:var(--tx)}
 .button,.button.secondary{background:var(--panel);color:var(--tx);border:1px solid var(--line);box-shadow:none}
 .button:hover,.button.secondary:hover{background:var(--bg);border-color:var(--pri-b);color:var(--tx)}
 .button:active,.button.secondary:active{background:var(--panel2);border-color:var(--focus);transform:translateY(1px)}
-.button.text{background:transparent;color:var(--tx2);border-color:transparent}
-.button.text:hover{background:var(--bg);border-color:var(--line)}
+.button.text{background:var(--panel);color:var(--tx);border:1px solid var(--line);padding:6px 14px;min-height:32px}
+.button.text:hover{background:var(--bg);border-color:var(--pri-b)}
 .button.primary-action{font-weight:600;padding-inline:24px;border-color:var(--line)}
 .button.primary-action:hover{border-color:var(--pri-b)}
 .button.primary-action:active{border-color:var(--focus)}
@@ -33,7 +33,7 @@ input[aria-invalid=true]{border-color:var(--danger);background:var(--rd-s)}
 @media(prefers-reduced-motion:reduce){.button:active{transform:none}}
 
 /* P2 compact context, shared by both perspectives. */
-.content-grid{grid-template-columns:minmax(0,1fr)!important}.context-panel{grid-row:1;padding:12px!important}.context-panel .facts{display:flex;flex-wrap:wrap;gap:8px 24px}.context-panel .side-section{margin:0}.context-panel h2{font-size:16px}.context-panel details{margin-top:6px}.context-panel details .trace{margin:8px 0}.content-grid>#module-content{min-width:0}.sidebar details summary{padding:12px;cursor:pointer}.solver-module [data-experience-summary]{padding:12px;border:1px solid var(--line);margin:8px 0}.solver-module details{margin:8px 0}.solver-module h3,.solver-module label{overflow-wrap:anywhere}
+.content-grid{grid-template-columns:minmax(0,1fr)!important}.context-panel{grid-row:1;padding:12px!important}.context-panel .facts{display:flex;flex-wrap:wrap;gap:8px 24px}.context-panel .side-section{margin:0}.context-panel h2{font-size:16px}.context-panel details{margin-top:6px}.context-panel details .trace{margin:8px 0}.content-grid>#module-content{min-width:0}.solver-module [data-experience-summary]{padding:12px;border:1px solid var(--line);margin:8px 0}.solver-module details{margin:8px 0}.solver-module h3,.solver-module label{overflow-wrap:anywhere}
 
 /* H1 start page: local layout only. Reuses the existing neutral tokens and type scale. */
 /* On the start page the compact context panel would push the single primary action
@@ -93,7 +93,7 @@ input[aria-invalid=true]{border-color:var(--danger);background:var(--rd-s)}
 .curve-panel .shape-expert{margin-top:8px}
 .curve-panel .shape-expert p{margin:6px 0}
 .curve-panel .mentor-reference{padding:8px 12px;border:1px solid var(--line2);border-radius:var(--r);background:var(--bg)}
-.curve-panel .mentor-reference>summary{font-size:13px;font-weight:600;cursor:pointer}
+
 .curve-panel .mentor-reference-body{margin-top:8px}
 .curve-panel .mentor-source-line{margin:0 0 8px;font-size:12px;color:var(--tx3);overflow-wrap:anywhere}
 .curve-panel .mentor-shapes{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin:10px 0}
@@ -122,7 +122,7 @@ input[aria-invalid=true]{border-color:var(--danger);background:var(--rd-s)}
 .relationships-module .row-guide-sketch{margin:0;padding:8px 10px;border:1px dashed var(--line2);border-radius:var(--r);background:var(--panel);max-width:230px}
 .relationships-module .row-guide-sketch-note{margin:6px 0 0;font-size:12px;color:var(--tx3);overflow-wrap:anywhere}
 .relationships-module .row-guide-order{margin:10px 0;padding:8px 12px;border:1px solid var(--line2);border-radius:var(--r);background:var(--bg)}
-.relationships-module .row-guide-order>summary{font-size:13px;font-weight:600;cursor:pointer}
+
 .relationships-module .row-guide-order-body{margin-top:8px}
 .relationships-module .row-guide-order-pending{margin:8px 0;font-size:12px;color:var(--tx3)}
 .relationships-module .row-guide-order-readout p{margin:4px 0;font-size:12px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
@@ -217,7 +217,7 @@ input[aria-invalid=true]{border-color:var(--danger);background:var(--rd-s)}
 .factor-time-editor{min-width:0}.inline-timeline>.timeline-layout{display:block}.inline-timeline .timeline-variables{display:none}.inline-timeline>h2{font-size:16px;margin-bottom:4px}.inline-timeline>.timeline-message:empty{display:none}.inline-timeline .timeline-editor>h3{margin:12px 0}.inline-timeline .timeline-chart{min-width:0!important;background:#f5f7f9;border:1px solid var(--line2);touch-action:none}.inline-timeline .timeline-chart-frame{overflow:visible}.inline-timeline .timeline-table th:nth-child(3),.inline-timeline .timeline-table td:nth-child(3){display:none}.inline-timeline .timeline-table th:last-child{width:90px}.inline-timeline .timeline-table td:last-child button{padding:6px 8px}.inline-timeline .timeline-save{margin:14px 0}.inline-timeline .timeline-settings{display:grid;grid-template-columns:minmax(90px,1fr) minmax(0,1.5fr)}.inline-timeline .timeline-preview{margin:8px 0}.inline-timeline .timeline-point{r:7}.inline-timeline .timeline-editor>details{margin-top:8px}.inline-timeline .timeline-path-controls{padding:10px 0}.inline-timeline .timeline-path-controls>button{margin-top:8px}
 .inline-timeline .timeline-editor>h3{display:none}.inline-timeline .timeline-chart-frame{margin:12px 0}.inline-timeline .timeline-preview{overflow-wrap:anywhere}
 .state-plan-panel{min-width:0}.state-plan-panel h3{font-size:16px;margin:12px 0}.state-plan-panel svg{display:block;width:100%;height:auto;min-height:200px;background:#f5f7f9;border:1px solid var(--line2)}.state-plan-panel svg text{font-size:13px;fill:var(--tx2)}.state-plan-point{cursor:ns-resize;touch-action:none}.state-year-options{display:flex;flex-wrap:wrap;gap:12px;margin:16px 0}.state-year-options label{flex:1 1 180px;display:flex;flex-direction:column;gap:6px;font-size:15px}.state-year-options select,.factor-picker select{width:100%;min-height:40px;padding:7px 10px;background:white;border:1px solid var(--line);border-radius:var(--r)}.state-plan-message:empty{display:none}.numeric-time-options{margin:18px 0;padding-top:12px;border-top:1px solid var(--line2)}.numeric-time-options>.factor-time-editor{margin-top:12px}.demo-default-scope{margin:0 0 12px}.factor-picker{display:block;font-size:15px;margin-bottom:12px}.state-plan-panel details{margin-top:12px;font-size:12px}.state-plan-panel details p{margin-top:8px}
-.relation-atlas-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,1fr);gap:20px;margin-top:14px;align-items:start}.trend-atlas,.relation-score-rail{min-width:0}.trend-atlas>h3,.relation-score-rail>h3{font-size:16px;margin:0 0 12px}.trend-atlas-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.trend-card{display:flex;flex-direction:column;align-items:stretch;text-align:left;border:1px solid var(--line2);background:white;padding:8px;min-width:0;border-radius:var(--r)}.trend-card:hover{background:#f5f7f9;border-color:#a6b6c6}.trend-card[aria-pressed=true]{background:#edf3f9;border-color:#6488a9;box-shadow:inset 0 0 0 1px #6488a9}.trend-card svg{width:100%;height:78px;background:#f2f4f6}.trend-card strong{font-size:12px;margin-top:6px;line-height:1.5}.trend-atlas-choice:empty{display:none}.trend-atlas-choice{margin:10px 0;font-weight:600}.trend-atlas-note{font-size:12px;color:var(--tx3);margin:10px 0}.relation-score-rail{padding:14px;border:1px solid var(--line2);background:#f8f9fb}.relation-score-rail>.chosen-trend{margin:6px 0 14px}.relation-score-rail .relationships-controls{display:grid;grid-template-columns:1fr 1fr}.relation-score-rail .relationships-controls label:last-child{grid-column:1/-1}.relation-score-rail .relationships-controls input,.relation-score-rail .relationships-controls select{width:100%;min-width:0}.relation-score-rail .relationships-table input{width:100%;min-width:40px}.relation-score-rail .relationships-guide-toggle{display:flex;gap:8px;margin:10px 0}.relation-score-rail .relationships-save{display:flex;gap:8px;flex-wrap:wrap}.atlas-mentors{margin-top:16px;padding-top:12px;border-top:1px dashed var(--line)}.atlas-mentors h3{font-size:15px}.atlas-mentor-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.atlas-mentor-card{border:1px dashed var(--line2);padding:5px;text-align:center;min-width:0}.atlas-mentor-card svg{width:100%;height:44px}.atlas-mentor-card span{display:block;font-size:12px;line-height:1.5}.relationships-tabs{margin:14px 0!important}.relationships-module .relationships-status:empty{display:none}
+.relation-atlas-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,1fr);gap:20px;margin-top:14px;align-items:start}.trend-atlas,.relation-score-rail{min-width:0}.trend-atlas>h3,.relation-score-rail>h3{font-size:16px;margin:0 0 12px}.trend-atlas-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.trend-atlas-choice:empty{display:none}.trend-atlas-choice{margin:10px 0;font-weight:600}.trend-atlas-note{font-size:12px;color:var(--tx3);margin:10px 0}.relation-score-rail{padding:14px;border:1px solid var(--line2);background:#f8f9fb}.relation-score-rail>.chosen-trend{margin:6px 0 14px}.relation-score-rail .relationships-controls{display:grid;grid-template-columns:1fr 1fr}.relation-score-rail .relationships-controls label:last-child{grid-column:1/-1}.relation-score-rail .relationships-controls input,.relation-score-rail .relationships-controls select{width:100%;min-width:0}.relation-score-rail .relationships-table input{width:100%;min-width:40px}.relation-score-rail .relationships-guide-toggle{display:flex;gap:8px;margin:10px 0}.relation-score-rail .relationships-save{display:flex;gap:8px;flex-wrap:wrap}.atlas-mentors{margin-top:16px;padding-top:12px;border-top:1px dashed var(--line)}.atlas-mentors h3{font-size:15px}.atlas-mentor-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.atlas-mentor-card{border:1px dashed var(--line2);padding:5px;text-align:center;min-width:0}.atlas-mentor-card svg{width:100%;height:44px}.atlas-mentor-card span{display:block;font-size:12px;line-height:1.5}.relationships-tabs{margin:14px 0!important}.relationships-module .relationships-status:empty{display:none}
 @media(max-width:1050px){.relation-atlas-layout{grid-template-columns:1fr}.trend-card svg{height:90px}}@media(max-width:560px){.trend-atlas-grid,.atlas-mentor-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.relation-score-rail .relationships-controls{grid-template-columns:1fr}.relation-score-rail .relationships-controls label:last-child{grid-column:auto}.relation-score-rail{padding:10px}}
 .atlas-mentor-card{background:white;color:var(--tx2);font:inherit;cursor:zoom-in}.atlas-mentor-card:hover{border-color:var(--pri-b);background:#f5f7f9}.mentor-zoom{width:min(560px,90vw);border:1px solid var(--line);border-radius:6px;padding:24px;color:var(--tx);background:white}.mentor-zoom::backdrop{background:rgba(28,37,45,.28)}.mentor-zoom>svg{display:block;width:100%;height:240px}.mentor-zoom p{margin:12px 0}
 
@@ -242,7 +242,7 @@ input[aria-invalid=true]{border-color:var(--danger);background:var(--rd-s)}
 .rel-pstate.warn{color:var(--wn);border-color:var(--wn-b);background:var(--wn-s)}
 .rel-nexthint{font-size:12px;color:var(--tx3);margin:0 0 10px}
 .rel-records{margin:10px 0;border:1px solid var(--line2);border-radius:var(--r);padding:6px 10px;background:var(--panel)}
-.rel-records>summary{font-size:12px;color:var(--tx2);cursor:pointer}
+
 .rel-records label{font-size:12px}
 /* 步骤条：任务顺序常驻 */
 .rel-steps{display:flex;align-items:center;flex-wrap:wrap;gap:6px 0;padding:9px 16px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);margin:12px 0}
@@ -253,15 +253,27 @@ input[aria-invalid=true]{border-color:var(--danger);background:var(--rd-s)}
 .rel-steps .rs.done .n{background:var(--v5);border-color:var(--v5);color:#fff}
 .rel-steps .rs.cur{color:var(--tx);font-weight:600;border-bottom:2px solid var(--v5);padding-bottom:1px}
 .rel-steps .rs.cur .n{background:var(--v5);border-color:var(--v5);color:#fff}
-/* 图册卡：v5 左区 */
+/* 图册卡：v5 左区。卡片本身不是按钮，图与名称才是；选中用左侧色条表示。 */
 .rel-atlas-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);padding:12px 14px;min-width:0}
 .rel-atlas-card .trend-atlas>h3{font-size:16px;margin:0 2px 4px;display:inline}
-.trend-badge{font-size:12px;color:var(--tx3);border:1px solid var(--line2);border-radius:3px;padding:1px 8px;margin-left:10px;white-space:nowrap}
-.trend-ids{display:block;font-size:12px;color:var(--tx3);margin-top:3px;line-height:1.5;overflow-wrap:anywhere}
-.trend-card{position:relative}
-.trend-card[aria-pressed=true]{background:var(--v5-s);border-color:var(--v5-b);box-shadow:inset 0 0 0 1px var(--v5-b)}
-.trend-card[aria-pressed=true]::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;background:var(--v5);border-radius:1px}
-.trend-card[aria-pressed=true] strong{color:var(--v5-d)}
+.trend-badge{font-size:12px;color:var(--tx2);border:1px solid var(--line2);border-radius:3px;padding:1px 8px;margin-left:10px;white-space:nowrap}
+.trend-card{position:relative;display:flex;flex-direction:column;gap:6px;border:1px solid var(--line2);border-radius:var(--r);padding:8px;background:var(--panel)}
+.trend-card.is-selected{border-color:var(--v5-b);box-shadow:inset 0 0 0 1px var(--v5-b);background:var(--v5-s)}
+.trend-card.is-selected::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;background:var(--v5);border-radius:1px}
+.trend-card-head{display:flex;flex-direction:column;gap:4px;align-items:flex-start;width:100%;border:0;background:transparent;padding:0;cursor:pointer;text-align:left}
+.trend-card-head strong{font-size:13px;color:var(--tx)}
+.trend-card.is-selected .trend-card-head strong{color:var(--v5-d)}
+.trend-card-head:hover strong{color:var(--v5)}
+/* 缩略图：保持原比例，卡片里不抢高度。 */
+.trend-card-head svg{width:100%;height:78px;background:#f2f4f6;border-radius:3px}
+/* 同一形状有强弱两种线型时才出现；点哪个就是哪个，不摆论文编号。 */
+/* 强弱：连体小开关，只在选中的那张卡里出现；平时不占版面。 */
+.trend-lines{display:inline-flex;align-self:flex-start;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--panel)}
+.trend-lines[hidden]{display:none}
+.trend-line{min-height:26px;padding:3px 14px;font-size:12px;border:0;background:transparent;color:var(--tx2);cursor:pointer}
+.trend-line+.trend-line{border-left:1px solid var(--line)}
+.trend-line:hover{background:var(--bg);color:var(--v5)}
+.trend-line[aria-pressed=true]{background:var(--v5);color:#fff;font-weight:600}
 .rel-atlas-card .trend-atlas>button{margin:10px 0 0}
 .atlas-mentors{margin-top:14px}
 /* 模式按钮：次一级 */
@@ -332,3 +344,47 @@ input[aria-invalid=true]{border-color:var(--danger);background:var(--rd-s)}
 .factor-search{width:100%;min-height:38px;padding:7px 10px;background:#fff;border:1px solid var(--line);border-radius:var(--r)}
 .factor-picker-nav{display:flex;gap:6px;align-items:flex-end}
 .region-material-btn,.source-btn{font-size:12px}
+/* ═══ 可展开区块（2026-11-07）═══
+   规矩：不出现 details 的三角箭头；不写"展开/收起"字样；框本身可点。
+   默认是轻量框（细边、紧凑），只有被标为 .is-major 的主要功能才用常规按钮尺寸。 */
+#module-content details>summary,
+.context-panel details>summary{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 12px;margin:0;
+  border:1px solid var(--line2);border-radius:var(--r);
+  background:var(--panel);color:var(--tx);font-weight:600;font-size:13px;
+  cursor:pointer;list-style:none;
+}
+#module-content details>summary::-webkit-details-marker,
+.context-panel details>summary::-webkit-details-marker{display:none}
+#module-content details>summary::marker,
+.context-panel details>summary::marker{content:none}
+#module-content details>summary::before,
+.context-panel details>summary::before{content:none;display:none}
+#module-content details>summary::after,
+.context-panel details>summary::after{content:none;display:none}
+#module-content details>summary:hover,
+.context-panel details>summary:hover{border-color:var(--pri-b);background:var(--bg)}
+#module-content details[open]>summary,
+.context-panel details[open]>summary{border-color:var(--pri-b);background:var(--bg)}
+#module-content details>summary+*,
+.context-panel details>summary+*{margin-top:8px}
+/* 主要功能：常规按钮尺寸，但同样没有箭头与"展开/收起"。 */
+#module-content details.is-major>summary{padding:9px 14px;border-color:var(--line)}
+/* 侧栏：不画框，靠字重与悬停表示可点。 */
+.sidebar details>summary{
+  display:block;padding:6px 4px;margin:0;border:0;border-radius:var(--r);
+  background:transparent;color:var(--tx);font-weight:600;font-size:13px;
+  cursor:pointer;list-style:none;
+}
+.sidebar details>summary::-webkit-details-marker{display:none}
+.sidebar details>summary::marker{content:none}
+.sidebar details>summary::before{content:none;display:none}
+.sidebar details>summary:hover{background:var(--bg)}
+/* 卡片里的折叠跟随卡片，不再自带一圈外框。 */
+.v5-card details>summary,.elements-summary details>summary{border-color:var(--line2)}
+/* 右上角那排操作（清空/收起全部/示例起点）用正常按钮尺寸，不再是小号。 */
+.elements-module .elements-searchrow .button{padding:8px 16px;min-height:38px;font-size:13px}
+.relationship-modes .button{padding:8px 16px;min-height:38px;font-size:13px}
+.framework-stats{margin:8px 0 0;font-size:13px;color:var(--tx2);line-height:1.7;overflow-wrap:anywhere}
+.framework-note{margin:6px 0 0;font-size:13px;color:var(--tx2);line-height:1.7;overflow-wrap:anywhere}

@@ -86,8 +86,7 @@ export function mount(container,context){
 
   // 顶部状态：先讲这次检验（有多少解），方案块紧随其后。
   if(!archive){
-   section.append(el('div',{class:'solver-summary-empty'},el('h3',{},'还没有本次检验结果'),
-    el('p',{},'下面先检查这一年的方案，或者枚举这一年允许的全部组合。结果只会在计算完成后出现。')));
+   // 空态不单独占一张卡：下面「找出所有自洽情景」已经说清还差什么、点哪儿去补。
    appendPlan();
    return section;
   }
@@ -285,13 +284,13 @@ export function mount(container,context){
   const pre=prepareRun(p,{year:session.year===''?null:Number(session.year),selectedJudgmentIds:session.selected,assumptionAcknowledgements:{currentAssumptions:session.assumptions,unknownStateScope:session.unknown}});
   const planEl=planCheckSection({project:p,prepared:pre,session,context,lastArchive:last,onRender:render});
   planEl.classList.add('solver-task');
-  planEl.insertBefore(el('div',{class:'solver-task-hd'},el('span',{class:'no'},'2'),el('h3',{},'检验我的方案'),el('span',{class:'note'},'只算这一年你选的状态，不改变枚举范围')),planEl.firstChild);
+  planEl.insertBefore(el('div',{class:'solver-task-hd'},el('span',{class:'no'},'2'),el('h3',{},'检验我的方案'),),planEl.firstChild);
 
   // 2 · 寻找所有自洽组合
   const fullSpace=el('section',{class:'solver-fullspace solver-task'},
-    el('div',{class:'solver-task-hd'},el('span',{class:'no'},'1'),el('h3',{},'找出所有自洽情景'),el('span',{class:'note'},'枚举这一年允许的全部组合，不锁定我的方案')));
+    el('div',{class:'solver-task-hd'},el('span',{class:'no'},'1'),el('h3',{},'找出所有自洽情景'),));
   const fatal=pre.diagnostics.filter(d=>d.classification==='block');
-  const spaceText=el('p',{'data-solver-space':''},'组合空间：'+(pre.space?pre.space.constrained+' 种（无约束 '+pre.space.unconstrained+'），上限 '+pre.space.limit:'尚不能确定'));
+  const spaceText=el('p',{'data-solver-space':''},'可检验组合：'+(pre.space?pre.space.constrained+' 种':'暂不确定'));
   fullSpace.append(spaceText);
   if(fatal.length){
    // 同一件事只留一句：缺因素、缺评分、缺状态各合并成一条可操作问题。
@@ -422,13 +421,14 @@ export function mount(container,context){
    const b0=trace.balances[0],picked=b0.candidates.find(c=>c.stateId===b0.selectedStateId);
    if(picked)fctx.sample={label:'我的方案 · '+fctx.name(b0.descriptorId)+' 取“'+stateName(b0.selectedStateId)+'”',text:picked.contributions.map(x=>fctx.name(x.sourceDescriptorId)+' 的“'+stateName(x.sourceStateId)+'”格 '+x.score).join(' + ')+' = '+b0.selectedSupport};
   }
-  wrap.append(el('div',{class:'solver-formulas'},...['space','support','consistent','gap','gamma'].map(fid=>formulaInline(formulaById(fid),fctx))),
-   el('details',{},el('summary',{},'完整冻结输入与诊断'),el('pre',{},JSON.stringify({RunInput:archive.RunInput,preflightDiagnostics:archive.preflightDiagnostics,resultDiagnostics:result?.diagnostics||[]},null,2))));
+  wrap.append(el('div',{class:'solver-formulas'},...['space','support','consistent','gap','gamma'].map(fid=>formulaInline(formulaById(fid),fctx))));
   return wrap;
  }
 
  /* ── 本次检验结果 / 历史检验记录 ── */
  function sessionResultCard(p,archive){
+  // 没有结果时不渲染这张空卡：上面「找出所有自洽情景」已经说清还差什么。
+  if(!archive)return el('span');
   const section=el('section',{class:'solver-session'},el('div',{class:'hd'},el('h3',{},'本次检验结果'),el('span',{class:'note'},session.archives.length?('本会话 '+session.archives.length+' 次'):'尚无'))); 
   if(!archive){
    section.append();

@@ -30,7 +30,7 @@ export function statePlanPanel(project,descriptorId,context,canChange){
  const selects=el('div',{class:'state-year-options'},...years.map(year=>{const select=el('select',{'aria-label':year+'年状态',onchange:e=>{save(year,e.target.value||null);e.target.value=stateAtYear(context.store.read(),descriptorId,year)||'';}},el('option',{value:''},'请选择状态'),...states.map(s=>el('option',{value:s.id},s.label)));select.value=stateAtYear(project,descriptorId,year)||'';return el('label',{},year+' 年',select);}));
  const anyPicked=chosen.some(c=>c.id);
  box.append(selects,message);
- if(anyPicked)box.append(svg,el('details',{class:'state-chart-note'},el('summary',{},'这张图怎么读'),el('p',{},'纵轴是状态顺序，不是数值大小；虚线是你的安排，不是预测，也不锁定检验结果。可拖动节点修改。')));
+ if(anyPicked)box.append(svg,el('p',{class:'state-chart-note'},'纵轴是状态顺序，不是数值大小；虚线是你的安排，不是预测。拖动节点也能改。'));
  else box.append(el('p',{class:'state-empty'},'选好年份状态后，这里会出现时间图；也可以直接拖动。'));
  return box;
 }

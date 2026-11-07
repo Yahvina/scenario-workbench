@@ -1140,6 +1140,20 @@ input[aria-invalid=true]{border-color:var(--danger);background:var(--rd-s)}
 .elements-module .elements-row.is-pickable{cursor:pointer}
 .elements-module .elements-row.is-root{margin-top:8px}
 
+/* ── 侧栏分组标题：与可点条目拉开层次（2026-11-07）──
+   原来标题 12px 常规灰、条目 13px 常规灰，只差 1px，看上去是一堆一样的字。
+   现在标题做成小节标记：更小但加粗、字距拉开、颜色更深，并加一条细分隔线。 */
+.sidebar .nav-group-title{
+  font-size:11px;font-weight:600;color:var(--tx);letter-spacing:.14em;
+  padding:0 12px 8px;margin:0;
+}
+.sidebar .nav-group+.nav-group{border-top:1px solid var(--line2);padding-top:14px;margin-top:2px}
+.sidebar .nav-group{margin-bottom:14px}
+@media(max-width:650px){
+  .sidebar .nav-group+.nav-group{border-top:0;padding-top:0;margin-top:0}
+  .sidebar .nav-group-title{display:none}
+}
+
 /* ═══ v5 平台级落地（2026-11-05）═══
    学自用户认可的《关系页改版样稿 v5》：冷灰画布 + 白功能卡 + 独立右栏；
    克制的选中蓝只用于“当前/选中/主操作”，其余仍是灰按钮；

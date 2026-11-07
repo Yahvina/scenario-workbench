@@ -23,7 +23,7 @@ export function mount(container, context) {
     const p = context.store.read();
     const archive = readRunArchive(context.store);
     root.replaceChildren(el('div', { class: 'v5-head' },
-      el('div', { class: 'eyebrow' }, '工具 · 不覆盖基线'),
+      el('p', { class: 'eyebrow' }, 'Tool · Robustness'),
       el('h1', {}, '稳健性检验'),
       el('p', { class: 'lead' }, '在冻结输入的副本上改动一处评分或一条假设，真的重新枚举，再比较自洽组合的新增、消失与保留。基线结果保持不变。')));
 

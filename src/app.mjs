@@ -55,10 +55,11 @@ const nav = el('nav', { 'aria-label': '情景工作流程' });
 const sidebar = el('aside', { class: 'sidebar' }, el('p', { class: 'nav-label' }, '构建与检查方案'), nav,
   el('p', { class: 'sidebar-note' }, '选择、依据与计算分开记录。未判断的内容保持未判断。'));
 const main = el('main', { id: 'main', class: 'workspace', tabindex: '-1' });
+const headingEyebrow = el('p', { class: 'eyebrow' });
 const headingTitle = el('h1');
 const headingSubtitle = el('p', { class: 'subtitle' });
 const runBadge = el('span', { class: 'badge', 'data-cib-status': '' }, '尚未运行CIB');
-const heading = el('div', { class: 'page-heading' }, el('div', {}, headingTitle, headingSubtitle), runBadge);
+const heading = el('div', { class: 'page-heading' }, el('div', {}, headingEyebrow, headingTitle, headingSubtitle), runBadge);
 const content = el('section', { class: 'surface', id: 'module-content' });
 const contextPanel = el('aside', { class: 'surface context-panel', 'aria-label': '项目范围与来源' });
 const globalMessage = el('p', { class: 'message', role: 'status', 'aria-live': 'polite', id: 'global-status' });
@@ -206,6 +207,21 @@ function mountAbout(container, navigate) {
       el('button', { class: 'button secondary', onclick: () => navigate('chain') }, '计算过程与依据')));
 }
 
+// 页头小标签：给标题一个层级，也标出这是第几步。
+const EYEBROWS = {
+  workspace: 'Step 01 · Scope',
+  elements: 'Step 02 · Factors',
+  relationships: 'Step 03 · Relations',
+  solver: 'Step 04 · Check',
+  exports: 'Step 05 · Save & Export',
+  timeline: 'Path · Timeline',
+  chain: 'Trace · Evidence chain',
+  robustness: 'Tool · Robustness',
+  methods: 'Reference · Method',
+  about: 'Reference · Version',
+  'ai-draft': 'Tool · AI draft'
+};
+
 function renderRoute() {
   if (typeof mounted === 'function') mounted(); else mounted?.dispose?.();
   closeActiveDrawer(); // 抽屉挂在 body 上，切页必须显式关闭，否则残留旧页面数据
@@ -214,6 +230,7 @@ function renderRoute() {
   const currentItem = navigationFor(p.view.perspective).flatMap(group => group.items).find(item => item.module === route && item.objectId === p.view.objectId);
   const staticTitles = { methods: '方法与帮助', about: '关于平台／版本说明' };
   headingTitle.textContent = staticTitles[route] || currentItem?.title || navigationItem(route, p.view.objectId)?.title || steps.find(step => step[0] === route)?.[1] || '模块进度';
+  headingEyebrow.textContent = EYEBROWS[route] || '';
   headingSubtitle.textContent = '';
   main.dataset.route=route;main.dataset.perspective=p.view.perspective;
   const context = { store, actions, navigate, notify, refresh: renderRoute, contractVersion: CONTRACT_VERSION, persistenceState: () => ({ ...persistence }),

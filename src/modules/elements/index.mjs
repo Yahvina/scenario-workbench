@@ -298,18 +298,32 @@ export function mount(container, context) {
       const open = !!query.trim() || expanded.has(node.id);
       const toggleOpen = () => { if (expanded.has(node.id)) expanded.delete(node.id); else expanded.add(node.id); render(); };
       const isBranch = node.childIds.length > 0;
-      // 名称区域：分支行是按钮（点击/键盘都能展开收起），叶子行点击只选这个描述符，不会误选整类。
+      // 名称区域：分支行是按钮（点击/键盘都能展开收起）。
+      // 叶子行不用原生 label —— label 会自动触发一次复选框，再叠上行点击就变成"切两次"，
+      // 表现为点名称反选、点空白取消不掉。这里改成普通容器，勾选统一由行的点击处理。
       const nameArea = isBranch
         ? el('button', { class: 'elements-name', type: 'button', 'aria-expanded': String(open), 'aria-label': (open?'收起（不改变选择）：':'展开（不改变选择）：')+node.label, onclick: toggleOpen }, node.label)
-        : el('label', { class: 'elements-name-label' }, checkbox, el('span', { class: 'elements-name' }, node.label));
+        : el('span', { class: 'elements-name-label' }, el('span', { class: 'elements-name' }, node.label));
       const rowChildren = [
         isBranch
           ? el('button', { class: 'elements-disclosure', 'aria-label': (expanded.has(node.id) ? '收起 ' : '展开 ') + node.label, 'aria-expanded': String(open), disabled: !!query.trim(), onclick: toggleOpen }, disclosure(open))
           : el('span', { class: 'elements-leaf', 'aria-hidden': 'true' }),
-        el('div', { class: 'elements-cell' }, nameArea, isBranch ? checkbox : null),
+        el('div', { class: 'elements-cell' }, nameArea, checkbox),
         null
       ];
-      tree.append(el('div', { class: 'elements-row' + (depth === 1 ? ' is-root' : '') + (selected.has(node.id) ? ' is-selected' : ''), 'data-path': key, 'data-depth': depth, title: pathLabels, style: '--tree-indent:' + Math.min(depth - 1, 6) * 14 + 'px' }, ...rowChildren));
+      const row = el('div', { class: 'elements-row' + (depth === 1 ? ' is-root' : '') + (selected.has(node.id) ? ' is-selected' : ''), 'data-path': key, 'data-depth': depth, title: pathLabels, style: '--tree-indent:' + Math.min(depth - 1, 6) * 14 + 'px' }, ...rowChildren);
+      // 树叶行：整行一次点击 = 切换勾选。复选框本身交给它自己的 change，
+      // 行点击跳过复选框，避免同一动作触发两次。
+      if (!isBranch) {
+        row.classList.add('is-pickable');
+        row.addEventListener('click', event => {
+          if (event.target.closest('input,button,select,a')) return;
+          if (inlineTime && !inlineTime.canLeave()) return;
+          checkbox.checked = !checkbox.checked;
+          checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+      }
+      tree.append(row);
     }
     for (const id of selected) {
       const node = p.data.taxonomy.find(item => item.id === id);

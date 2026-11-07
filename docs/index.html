@@ -1093,6 +1093,52 @@ input[aria-invalid=true]{border-color:var(--danger);background:var(--rd-s)}
 .framework-stats{margin:8px 0 0;font-size:13px;color:var(--tx2);line-height:1.7;overflow-wrap:anywhere}
 .framework-note{margin:6px 0 0;font-size:13px;color:var(--tx2);line-height:1.7;overflow-wrap:anywhere}
 
+/* ═══ 视觉优化（2026-11-07）═══
+   学旧平台的做法：靠留白与字重分层次，不靠加边框；按钮轻下来（32px，
+   悬停只变边框，只有主按钮才实心）；配色沿用本平台，一个色号都没换。 */
+
+/* 形状与阴影：圆角回到 4/6，卡片只留一层几乎看不见的浮动 */
+:root{--r:4px;--r2:6px;--sh:0 1px 2px rgba(8,14,19,.05);--sh2:0 2px 8px rgba(8,14,19,.07)}
+
+/* ── 按钮：32px 高、悬停只变边框 ── */
+.button{min-height:32px;height:auto;padding:0 13px;border-radius:var(--r);font-size:13px;
+  border:1px solid var(--line);background:var(--panel);color:var(--tx);
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;
+  transition:border-color .16s var(--ease),background .16s var(--ease),transform .1s var(--ease)}
+.button:hover{border-color:var(--tx2);background:var(--panel);color:var(--tx)}
+.button:active{transform:translateY(1px)}
+.button.primary-action{background:var(--pri);border-color:var(--pri);color:#fff;font-weight:500;padding:0 20px}
+.button.primary-action:hover{background:var(--pri-d);border-color:var(--pri-d);color:#fff}
+.button.text{border-color:transparent;background:transparent;color:var(--tx2);padding:0 10px}
+.button.text:hover{background:var(--bg);border-color:var(--line2);color:var(--tx)}
+
+/* ── 卡片：边框减淡，浮起一点点 ── */
+.surface,.exports-card,.v5-card{box-shadow:var(--sh);border-color:var(--line2)}
+
+/* ── 页头：标题上方加一行字距拉开的小标签 ── */
+.page-heading .eyebrow,.v5-head .eyebrow{font-size:11px;letter-spacing:.16em;color:var(--tx3);
+  text-transform:uppercase;margin:0 0 6px}
+.page-heading .eyebrow:empty{display:none}
+.page-heading h1{font-family:"Source Han Serif SC","Noto Serif SC","SimSun",serif;letter-spacing:.02em}
+
+/* ── 业务分区：改成圆角胶囊，不再是一排描边方框 ── */
+.elements-module .zone-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  padding:12px 0 4px;border-top:1px solid var(--line2);margin:10px 0 0}
+.elements-module .zone-cap{font-size:12px;color:var(--tx3);margin-right:4px}
+.elements-module .zone-chip{min-height:26px;padding:0 11px;border-radius:13px;
+  border:1px solid var(--line2);background:var(--panel);color:var(--tx2);font-size:12px;font-weight:400;
+  display:inline-flex;align-items:center;gap:6px;cursor:pointer;
+  transition:border-color .14s var(--ease),background .14s var(--ease),color .14s var(--ease)}
+.elements-module .zone-chip:hover{border-color:var(--pri-b);color:var(--pri)}
+.elements-module .zone-chip.is-on{background:var(--pri);border-color:var(--pri);color:#fff;font-weight:500}
+.elements-module .zone-chip .n{opacity:.72;font-variant-numeric:tabular-nums}
+
+/* ── 因素树：整行可点，悬停浅底，去掉表格感 ── */
+.elements-module .elements-row{padding:7px 8px;border-radius:var(--r);
+  transition:background .12s var(--ease)}
+.elements-module .elements-row.is-pickable{cursor:pointer}
+.elements-module .elements-row.is-root{margin-top:8px}
+
 /* ═══ v5 平台级落地（2026-11-05）═══
    学自用户认可的《关系页改版样稿 v5》：冷灰画布 + 白功能卡 + 独立右栏；
    克制的选中蓝只用于“当前/选中/主操作”，其余仍是灰按钮；
@@ -1339,10 +1385,11 @@ const nav = el('nav', { 'aria-label': '情景工作流程' });
 const sidebar = el('aside', { class: 'sidebar' }, el('p', { class: 'nav-label' }, '构建与检查方案'), nav,
   el('p', { class: 'sidebar-note' }, '选择、依据与计算分开记录。未判断的内容保持未判断。'));
 const main = el('main', { id: 'main', class: 'workspace', tabindex: '-1' });
+const headingEyebrow = el('p', { class: 'eyebrow' });
 const headingTitle = el('h1');
 const headingSubtitle = el('p', { class: 'subtitle' });
 const runBadge = el('span', { class: 'badge', 'data-cib-status': '' }, '尚未运行CIB');
-const heading = el('div', { class: 'page-heading' }, el('div', {}, headingTitle, headingSubtitle), runBadge);
+const heading = el('div', { class: 'page-heading' }, el('div', {}, headingEyebrow, headingTitle, headingSubtitle), runBadge);
 const content = el('section', { class: 'surface', id: 'module-content' });
 const contextPanel = el('aside', { class: 'surface context-panel', 'aria-label': '项目范围与来源' });
 const globalMessage = el('p', { class: 'message', role: 'status', 'aria-live': 'polite', id: 'global-status' });
@@ -1490,6 +1537,21 @@ function mountAbout(container, navigate) {
       el('button', { class: 'button secondary', onclick: () => navigate('chain') }, '计算过程与依据')));
 }
 
+// 页头小标签：给标题一个层级，也标出这是第几步。
+const EYEBROWS = {
+  workspace: 'Step 01 · Scope',
+  elements: 'Step 02 · Factors',
+  relationships: 'Step 03 · Relations',
+  solver: 'Step 04 · Check',
+  exports: 'Step 05 · Save & Export',
+  timeline: 'Path · Timeline',
+  chain: 'Trace · Evidence chain',
+  robustness: 'Tool · Robustness',
+  methods: 'Reference · Method',
+  about: 'Reference · Version',
+  'ai-draft': 'Tool · AI draft'
+};
+
 function renderRoute() {
   if (typeof mounted === 'function') mounted(); else mounted?.dispose?.();
   closeActiveDrawer(); // 抽屉挂在 body 上，切页必须显式关闭，否则残留旧页面数据
@@ -1498,6 +1560,7 @@ function renderRoute() {
   const currentItem = navigationFor(p.view.perspective).flatMap(group => group.items).find(item => item.module === route && item.objectId === p.view.objectId);
   const staticTitles = { methods: '方法与帮助', about: '关于平台／版本说明' };
   headingTitle.textContent = staticTitles[route] || currentItem?.title || navigationItem(route, p.view.objectId)?.title || steps.find(step => step[0] === route)?.[1] || '模块进度';
+  headingEyebrow.textContent = EYEBROWS[route] || '';
   headingSubtitle.textContent = '';
   main.dataset.route=route;main.dataset.perspective=p.view.perspective;
   const context = { store, actions, navigate, notify, refresh: renderRoute, contractVersion: CONTRACT_VERSION, persistenceState: () => ({ ...persistence }),
@@ -3568,6 +3631,7 @@ function mount(container, context) {
 
     const run = archive?.RunResult;
     root.append(el('div', { class: 'v5-head' },
+        el('p', { class: 'eyebrow' }, 'Trace · Evidence chain'),
         el('h1', {}, '计算过程与依据'),
       el('div', { class: 'head-actions' },
         el('button', { class: 'button secondary', onclick: () => context.navigate('methods') }, '看一般方法与公式'),
@@ -7158,18 +7222,32 @@ function mount(container, context) {
       const open = !!query.trim() || expanded.has(node.id);
       const toggleOpen = () => { if (expanded.has(node.id)) expanded.delete(node.id); else expanded.add(node.id); render(); };
       const isBranch = node.childIds.length > 0;
-      // 名称区域：分支行是按钮（点击/键盘都能展开收起），叶子行点击只选这个描述符，不会误选整类。
+      // 名称区域：分支行是按钮（点击/键盘都能展开收起）。
+      // 叶子行不用原生 label —— label 会自动触发一次复选框，再叠上行点击就变成"切两次"，
+      // 表现为点名称反选、点空白取消不掉。这里改成普通容器，勾选统一由行的点击处理。
       const nameArea = isBranch
         ? el('button', { class: 'elements-name', type: 'button', 'aria-expanded': String(open), 'aria-label': (open?'收起（不改变选择）：':'展开（不改变选择）：')+node.label, onclick: toggleOpen }, node.label)
-        : el('label', { class: 'elements-name-label' }, checkbox, el('span', { class: 'elements-name' }, node.label));
+        : el('span', { class: 'elements-name-label' }, el('span', { class: 'elements-name' }, node.label));
       const rowChildren = [
         isBranch
           ? el('button', { class: 'elements-disclosure', 'aria-label': (expanded.has(node.id) ? '收起 ' : '展开 ') + node.label, 'aria-expanded': String(open), disabled: !!query.trim(), onclick: toggleOpen }, disclosure(open))
           : el('span', { class: 'elements-leaf', 'aria-hidden': 'true' }),
-        el('div', { class: 'elements-cell' }, nameArea, isBranch ? checkbox : null),
+        el('div', { class: 'elements-cell' }, nameArea, checkbox),
         null
       ];
-      tree.append(el('div', { class: 'elements-row' + (depth === 1 ? ' is-root' : '') + (selected.has(node.id) ? ' is-selected' : ''), 'data-path': key, 'data-depth': depth, title: pathLabels, style: '--tree-indent:' + Math.min(depth - 1, 6) * 14 + 'px' }, ...rowChildren));
+      const row = el('div', { class: 'elements-row' + (depth === 1 ? ' is-root' : '') + (selected.has(node.id) ? ' is-selected' : ''), 'data-path': key, 'data-depth': depth, title: pathLabels, style: '--tree-indent:' + Math.min(depth - 1, 6) * 14 + 'px' }, ...rowChildren);
+      // 树叶行：整行一次点击 = 切换勾选。复选框本身交给它自己的 change，
+      // 行点击跳过复选框，避免同一动作触发两次。
+      if (!isBranch) {
+        row.classList.add('is-pickable');
+        row.addEventListener('click', event => {
+          if (event.target.closest('input,button,select,a')) return;
+          if (inlineTime && !inlineTime.canLeave()) return;
+          checkbox.checked = !checkbox.checked;
+          checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+      }
+      tree.append(row);
     }
     for (const id of selected) {
       const node = p.data.taxonomy.find(item => item.id === id);
@@ -11826,6 +11904,7 @@ function mountExports(container, context) {
   grid.append(planHost, resultHost);
   page.append(
     el('div', { class: 'v5-head' },
+      el('p', { class: 'eyebrow' }, 'Step 05 · Save & Export'),
       el('h1', {}, '保存与导出'),
       ),
     grid);
@@ -14128,7 +14207,7 @@ function mount(container, context) {
     const p = context.store.read();
     const archive = readRunArchive(context.store);
     root.replaceChildren(el('div', { class: 'v5-head' },
-      el('div', { class: 'eyebrow' }, '工具 · 不覆盖基线'),
+      el('p', { class: 'eyebrow' }, 'Tool · Robustness'),
       el('h1', {}, '稳健性检验'),
       el('p', { class: 'lead' }, '在冻结输入的副本上改动一处评分或一条假设，真的重新枚举，再比较自洽组合的新增、消失与保留。基线结果保持不变。')));
 

@@ -56,6 +56,7 @@ export function mountExports(container, context) {
   grid.append(planHost, resultHost);
   page.append(
     el('div', { class: 'v5-head' },
+      el('p', { class: 'eyebrow' }, 'Step 05 · Save & Export'),
       el('h1', {}, '保存与导出'),
       ),
     grid);

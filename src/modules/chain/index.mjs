@@ -26,6 +26,7 @@ export function mount(container, context) {
 
     const run = archive?.RunResult;
     root.append(el('div', { class: 'v5-head' },
+        el('p', { class: 'eyebrow' }, 'Trace · Evidence chain'),
         el('h1', {}, '计算过程与依据'),
       el('div', { class: 'head-actions' },
         el('button', { class: 'button secondary', onclick: () => context.navigate('methods') }, '看一般方法与公式'),

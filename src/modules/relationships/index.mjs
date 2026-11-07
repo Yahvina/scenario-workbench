@@ -280,8 +280,7 @@ export function mount(container, context) {
       else{const guide=body.querySelector('[data-guide-view="guide"]');if(guide)guide.click();}
       status.textContent='当前因素没有可用的参考规则：请逐格手动判断（0＝没关系，空白＝未判断）。';
     }),
-    kind==='matrix'?button('体验完整示例',()=>loadGuidedWithConfirm()):null,
-    el('span',{class:'rel-ref-coverage none'},'这对因素没有参考评分，请手动判断')].filter(Boolean);
+    ].filter(Boolean);
   }
   function loadGuidedWithConfirm(){
     const p=context.store.read();
@@ -351,8 +350,7 @@ export function mount(container, context) {
     body.append(el('div',{class:'relationship-modes'},
       graphEligible?button('看图判断',()=>{if(!canLeave())return;inputMode='graph';render();}):null,
       button('直接填写评分',()=>{if(!canLeave())return;inputMode='manual';render();}),
-      ...referenceEntry('input'),
-      el('span',{class:'rel-mode-note'},'参考评分可修改')));
+      ...referenceEntry('input')));
     if(graphEligible&&inputMode==='graph'&&!original){
       curvePanel(body,context,sourceId,targetId,()=>{curveDirty=true;},()=>{curveDirty=false;inputMode='manual';render();},savedId=>{recordId=savedId;curveDirty=false;inputMode='manual';const saved=context.store.read(),adv=nextUngjudgedDirection(saved),cov=directionCoverage(saved);if(adv&&!(adv.source===sourceId&&adv.target===targetId)){sourceId=adv.source;targetId=adv.target;recordId=null;load();remember();render();status.textContent='编码草案已保存；已切到下一未判方向（还剩 '+cov.missing.length+' 个）。';}else{load();render();status.textContent='编码草案已保存。'+(adv?'继续核对评分，或交换方向判断。':' '+cov.need+' 个方向已全部有判断记录。');}},encodingTemplate);
       return;
@@ -622,9 +620,7 @@ export function mount(container, context) {
       catch(error){status.textContent='还不能进入检验：'+error.message;}
     },true);
     next.disabled=!canContinue;
-    body.append(el('div',{class:'rev-next'},next,
-      ...referenceEntry('matrix'),
-      el('span',{class:'rev-next-note'},canContinue?'评分已齐，可以直接检验。':'还不能检验：先处理下面 '+(incompleteDirs.length+conflictDirs.length+unadopted.length)+' 个方向的问题。')));
+    body.append(el('div',{class:'rev-next'},next,...referenceEntry('matrix')));
 
     // 问题按“要做的动作”合并；齐全时整个区块不出现（没有“没有待处理项”的空状态）。
     const issues=[];

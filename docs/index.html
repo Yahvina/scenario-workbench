@@ -10636,8 +10636,7 @@ function mount(container, context) {
       else{const guide=body.querySelector('[data-guide-view="guide"]');if(guide)guide.click();}
       status.textContent='当前因素没有可用的参考规则：请逐格手动判断（0＝没关系，空白＝未判断）。';
     }),
-    kind==='matrix'?button('体验完整示例',()=>loadGuidedWithConfirm()):null,
-    el('span',{class:'rel-ref-coverage none'},'这对因素没有参考评分，请手动判断')].filter(Boolean);
+    ].filter(Boolean);
   }
   function loadGuidedWithConfirm(){
     const p=context.store.read();
@@ -10707,8 +10706,7 @@ function mount(container, context) {
     body.append(el('div',{class:'relationship-modes'},
       graphEligible?button('看图判断',()=>{if(!canLeave())return;inputMode='graph';render();}):null,
       button('直接填写评分',()=>{if(!canLeave())return;inputMode='manual';render();}),
-      ...referenceEntry('input'),
-      el('span',{class:'rel-mode-note'},'参考评分可修改')));
+      ...referenceEntry('input')));
     if(graphEligible&&inputMode==='graph'&&!original){
       curvePanel(body,context,sourceId,targetId,()=>{curveDirty=true;},()=>{curveDirty=false;inputMode='manual';render();},savedId=>{recordId=savedId;curveDirty=false;inputMode='manual';const saved=context.store.read(),adv=nextUngjudgedDirection(saved),cov=directionCoverage(saved);if(adv&&!(adv.source===sourceId&&adv.target===targetId)){sourceId=adv.source;targetId=adv.target;recordId=null;load();remember();render();status.textContent='编码草案已保存；已切到下一未判方向（还剩 '+cov.missing.length+' 个）。';}else{load();render();status.textContent='编码草案已保存。'+(adv?'继续核对评分，或交换方向判断。':' '+cov.need+' 个方向已全部有判断记录。');}},encodingTemplate);
       return;
@@ -10978,9 +10976,7 @@ function mount(container, context) {
       catch(error){status.textContent='还不能进入检验：'+error.message;}
     },true);
     next.disabled=!canContinue;
-    body.append(el('div',{class:'rev-next'},next,
-      ...referenceEntry('matrix'),
-      el('span',{class:'rev-next-note'},canContinue?'评分已齐，可以直接检验。':'还不能检验：先处理下面 '+(incompleteDirs.length+conflictDirs.length+unadopted.length)+' 个方向的问题。')));
+    body.append(el('div',{class:'rev-next'},next,...referenceEntry('matrix')));
 
     // 问题按“要做的动作”合并；齐全时整个区块不出现（没有“没有待处理项”的空状态）。
     const issues=[];
@@ -14189,7 +14185,7 @@ Object.assign(__exports, { projectBackupPanel });
 "src/modules/solver/robustness-panel.mjs": (__require, __exports) => {
 // 稳健性检验：在冻结输入的副本上真的改一格、真的重算，再比较集合差异。
 // 不覆盖基线；不把“数量变了”当成稳健性结论；没有完整基线就明说不比。
-const { el } = __require("src/core/ui.mjs");
+const { el, infoTip } = __require("src/core/ui.mjs");
 const { readRunArchive } = __require("src/modules/solver/index.mjs");
 const { createEnumeration, explain } = __require("src/modules/solver/engine.mjs");
 const { planAtYear } = __require("src/modules/elements/state-plan.mjs");
@@ -14212,12 +14208,10 @@ function mount(container, context) {
     const archive = readRunArchive(context.store);
     root.replaceChildren(el('div', { class: 'v5-head' },
       el('p', { class: 'eyebrow' }, 'Tool · Robustness'),
-      el('h1', {}, '稳健性检验'),
-      el('p', { class: 'lead' }, '在冻结输入的副本上改动一处评分或一条假设，真的重新枚举，再比较自洽组合的新增、消失与保留。基线结果保持不变。')));
+      el('h1', {}, '稳健性检验', infoTip('在冻结输入的副本上改动一处评分或一条假设，真的重新枚举，再比较自洽组合的新增、消失与保留。基线结果保持不变。', '稳健性检验怎么算'))));
 
     if (!archive?.RunInput || archive.RunResult?.status !== 'completed') {
       root.append(el('div', { class: 'v5-empty' }, el('b', {}, '还没有可用的基线'),
-        el('p', {}, '稳健性检验需要一份完整算完的检验结果。先到「检验与结果」跑一次全空间，再回来。'),
         el('button', { class: 'button', onclick: () => context.navigate('solver') }, '去检验与结果')));
       return;
     }

@@ -1,6 +1,6 @@
 // 稳健性检验：在冻结输入的副本上真的改一格、真的重算，再比较集合差异。
 // 不覆盖基线；不把“数量变了”当成稳健性结论；没有完整基线就明说不比。
-import { el } from '../../core/ui.mjs';
+import { el, infoTip } from '../../core/ui.mjs';
 import { readRunArchive } from './index.mjs';
 import { createEnumeration, explain } from './engine.mjs';
 import { planAtYear } from '../elements/state-plan.mjs';
@@ -24,12 +24,10 @@ export function mount(container, context) {
     const archive = readRunArchive(context.store);
     root.replaceChildren(el('div', { class: 'v5-head' },
       el('p', { class: 'eyebrow' }, 'Tool · Robustness'),
-      el('h1', {}, '稳健性检验'),
-      el('p', { class: 'lead' }, '在冻结输入的副本上改动一处评分或一条假设，真的重新枚举，再比较自洽组合的新增、消失与保留。基线结果保持不变。')));
+      el('h1', {}, '稳健性检验', infoTip('在冻结输入的副本上改动一处评分或一条假设，真的重新枚举，再比较自洽组合的新增、消失与保留。基线结果保持不变。', '稳健性检验怎么算'))));
 
     if (!archive?.RunInput || archive.RunResult?.status !== 'completed') {
       root.append(el('div', { class: 'v5-empty' }, el('b', {}, '还没有可用的基线'),
-        el('p', {}, '稳健性检验需要一份完整算完的检验结果。先到「检验与结果」跑一次全空间，再回来。'),
         el('button', { class: 'button', onclick: () => context.navigate('solver') }, '去检验与结果')));
       return;
     }

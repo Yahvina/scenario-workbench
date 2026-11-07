@@ -162,11 +162,14 @@ export function mount(container, context) {
     const hasSocial=p.data.descriptors.some(d=>d.provenance?.sourceId==='social-framework-lauer');
     const socialCount=p.data.descriptors.filter(d=>d.provenance?.sourceId==='social-framework-lauer').length;
     // 一张框架一行：名字 + 状态 + 行动作。副标题与说明不再单独占行。
+    // 一行一个框架：名称 + 状态 + 动作。动作只在"还没加入"时出现，且做成蓝字文字按钮，
+    // 不再和状态标签抢方块——否则三个带框元素并排，分不清哪个能点。
+    // 「再次加入」已去掉：新项目的 46 项目录是自动带上的，重复加入这个动作没有实际用途。
     const card=(title,count,onJoin,note)=>el('div',{class:'fw-card'+(count?' is-in':'')},
       el('strong',{class:'fw-name'},title),
       el('span',{class:'v5-tag '+(count?'ok':'')},count?count+' 项已加入':'未加入'),
       note?el('span',{class:'fw-note'},note):null,
-      el('button',{class:'button secondary fw-go',onclick:onJoin},count?'再次加入':'加入当前项目'));
+      count?null:el('button',{class:'button text fw-go',onclick:onJoin},'加入当前项目'));
     const openSocial=()=>{try{const joined=joinSocialFramework(context.store.read());const r=context.actions.replaceProject(joined);if(!r.ok)throw new Error(r.error.message);['social-root',...SOCIAL_DIMENSIONS.map(d=>'social-sec-'+d.id)].forEach(id=>expanded.add(id));render();message.textContent='已加入社会框架：'+(SOCIAL_DIMENSIONS.length)+' 个维度、'+p.data.taxonomy.filter(n=>n.id.startsWith('social-')).length+' 个节点。英文原词与出处随记录保留；变体是否穷尽、年份与阈值均未核定。';}catch(e){message.textContent='社会框架未加入：'+e.message;}};
     const base=baselinePresence(p);
     zoneBar.hidden=!p.data.taxonomy.length;

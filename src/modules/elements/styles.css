@@ -61,7 +61,8 @@
 .elements-module .framework-box .fw-card{margin:0 0 8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .elements-module .fw-card .fw-name{font-size:13px;color:var(--tx)}
 .elements-module .fw-card .fw-note{font-size:12px;color:var(--tx2)}
-.elements-module .fw-card .fw-go{margin-left:auto}
+.elements-module .fw-card .fw-go{margin-left:auto;color:var(--pri);padding:0 8px}
+.elements-module .fw-card .fw-go:hover{background:var(--pri-s);color:var(--pri-d)}
 .elements-module .state-note{font-size:12px;color:var(--wn);border-left:3px solid var(--wn-b);background:var(--wn-s);padding:5px 9px;margin:0 0 8px}
 .elements-module .tree-empty{border:1px dashed var(--line);border-radius:var(--r2);padding:14px 16px;background:var(--panel)}
 .elements-module .tree-empty p{margin:0 0 8px;font-size:13px;color:var(--tx2);max-width:52ch}

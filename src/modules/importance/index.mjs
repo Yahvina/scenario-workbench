@@ -16,11 +16,12 @@ export function mount(container, context) {
 
   function render() {
     root.replaceChildren();
-    root.append(head(project, ids.length, project.selection.descriptorIds.length));
+    root.append(head(ids.length, project.selection.descriptorIds.length));
     if (ids.length < 2) {
       root.append(el('div', { class: 'v5-empty' }, el('b', {}, '至少要选两个因素才能做重要性比较'),
         '这页比较的是你已经选中的计算变量。',
         el('button', { class: 'button', onclick: () => context.navigate('elements') }, '去选因素')));
+      return;
       return;
     }
     if (ids.length > MAX_FACTORS) {
@@ -100,12 +101,15 @@ export function mount(container, context) {
   return { canLeave: () => true, dispose() { unsubscribe?.(); root.remove(); } };
 }
 
-function head(project, used, total) {
+function head(used, total) {
+  const lead = used < 2
+    ? '先在因素页选至少两个因素，再回来做两两比较。'
+    : '用 ' + used + ' 个因素做两两比较' + (total > used ? '（共选 ' + total + ' 个，这里取前 ' + used + '）' : '') + '，看权重和这些比较是否自相矛盾。';
   return el('div', { class: 'v5-head' },
     el('p', { class: 'eyebrow' }, 'Tool · AHP'),
     el('h1', { id: 'importance-title' }, 'AHP 重要性判断',
       infoTip('对已选因素做两两重要性比较，算相对权重与一致性比率 CR。' + RI_TABLE.source + '。这一页只做对照：不改关系评分，不把权重作用到 CIB 结果。', '这一页做什么')),
-    el('p', { class: 'lead' }, '用 ' + used + ' 个因素做两两比较' + (total > used ? '（共选 ' + total + ' 个，这里取前 ' + used + '）' : '') + '，看权重和这些比较是否自相矛盾。'));
+    el('p', { class: 'lead' }, lead));
 }
 
 function footNote() {

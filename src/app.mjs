@@ -118,7 +118,6 @@ function renderContext() {
     nav.replaceChildren(...navigationFor(signature).map(group => el('section', { class: 'nav-group' }, el('h2', { class: 'nav-group-title' }, group.title),
       ...group.items.map(item => el('button', { class: 'nav-item', 'data-route': item.module, 'data-object-id': item.objectId || '', onclick: () => navigate(item.module, item.objectId) }, item.title, item.ready ? null : el('span', { class: 'nav-note' }, '待实现'))))));
   }
-  if(signature==='expert'&&!nav.querySelector('[data-planned]')){const more=el('details',{'data-planned':''},el('summary',{},'更多工具与开发计划'));nav.querySelectorAll('.nav-item').forEach(b=>{if(b.querySelector('.nav-note'))more.append(b);});nav.append(more);}
   sidebar.querySelectorAll('[data-route]').forEach(button => {
     if (button.dataset.route === p.view.module && (button.dataset.objectId || '') === (p.view.objectId || '')) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current');
   });

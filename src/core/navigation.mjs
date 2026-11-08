@@ -25,7 +25,7 @@ export function navigationFor(perspective) {
     { title: '政策关系建模', items: [
       item('relationships', '专家关系输入', true),
       item('relationships', '关系矩阵生成', true, 'matrix'),
-      item('review', '分歧分析与校核')
+      item('review', '分析校核', true)
     ] },
     { title: '情景与结果', items: [
       item('timeline', '政策实施路径', true),
@@ -49,4 +49,5 @@ export function navigationFor(perspective) {
 export function navigationItem(module, objectId) {
   return navigationFor('expert').flatMap(group => group.items).find(item => item.module === module && item.objectId === objectId);
 }
+
 

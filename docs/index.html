@@ -769,6 +769,44 @@
 @media(max-width:760px){.policy-module .policy-detail>div{grid-template-columns:1fr;gap:2px}}
 
 
+/* 分析校核：只读自查页。沿用 v5 令牌，不新增颜色。 */
+.review-module .review-card+.review-card{margin-top:12px}
+.review-module .review-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:1px;
+  background:var(--line2);border:1px solid var(--line2);border-radius:var(--r2);overflow:hidden;margin:0}
+.review-module .review-stats>div{background:var(--panel);padding:9px 12px}
+.review-module .review-stats dt{font-size:12px;color:var(--tx2)}
+.review-module .review-stats dd{margin:2px 0 0;font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}
+.review-module .review-table{font-size:12px}
+.review-module .review-table td{vertical-align:middle}
+.review-module .review-table tbody tr:hover{background:var(--bg)}
+.review-module .review-name{display:block;width:100%;text-align:left;padding:2px 0;border:0;background:transparent;
+  font:inherit;color:var(--pri);cursor:pointer;overflow-wrap:anywhere}
+.review-module .review-name:hover{text-decoration:underline}
+.review-module .review-name:focus-visible{outline:2px solid var(--action);outline-offset:2px}
+.review-module .review-tag{display:inline-block;padding:0 7px;border-radius:3px;font-size:12px;white-space:nowrap;
+  border:1px solid var(--line2);background:var(--bg);color:var(--tx2)}
+.review-module .review-tag.is-ok{border-color:var(--pri-b);background:var(--pri-s);color:var(--pri-d)}
+.review-module .review-tag.is-bad{border-color:var(--wn-b);background:var(--wn-s);color:var(--wn)}
+.review-module .review-tag.is-reference,.review-module .review-tag.is-fixture{border-color:var(--wn-b);background:var(--wn-s);color:var(--wn)}
+.review-module .review-note{font-size:12px;color:var(--tx2);margin:8px 0 0;line-height:1.7;display:flex;
+  align-items:center;gap:8px;flex-wrap:wrap}
+.review-module .review-warn{font-size:12px;color:var(--wn);margin:8px 0 0;line-height:1.7}
+.review-module .review-library{list-style:none;margin:0;padding:0}
+.review-module .review-library li{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;padding:7px 0;
+  border-bottom:1px solid var(--line2);font-size:13px}
+.review-module .review-library li:last-child{border-bottom:0}
+.review-module .review-library b{min-width:150px}
+.review-module .review-library span{color:var(--tx2);font-size:12px}
+.review-module .review-origin{font-size:13px;margin:0 0 10px}
+.review-module .review-detail{margin:0 0 14px}
+.review-module .review-detail>div{display:grid;grid-template-columns:90px minmax(0,1fr);gap:10px;padding:6px 0;
+  border-bottom:1px solid var(--line2)}
+.review-module .review-detail dt{font-size:12px;color:var(--tx2)}
+.review-module .review-detail dd{margin:0;font-size:13px;overflow-wrap:anywhere}
+.review-module .review-evidence{list-style:none;margin:0;padding:0}
+.review-module .review-evidence li{padding:7px 0;border-bottom:1px solid var(--line2);font-size:13px}
+.review-module .review-evidence-loc{display:block;font-size:12px;color:var(--tx2);overflow-wrap:anywhere;margin-top:2px}
+
 /* Neutral surface candidate; validated in the sample before application-wide use. */
 :root{--bg:#F2F3F5;--panel:#FFFFFF;--panel2:#E7E9EC;--line:#BCC2C9;--line2:#E1E4E8;--tx:#30363D;--tx2:#454D56;--tx3:#3F464E;--pri:#424C58;--pri-d:#303842;--pri-s:#ECEEF1;--pri-b:#A6AEB8;--action:#424C58;--action-hover:#303842;--selection-bg:#ECEEF1;--selection-text:#30363D;--info-bg:#F5F6F7;--info-text:#454D56;--focus:#586675;--warning:#715B31;--warning-bg:#F6F2E9;--wn:var(--warning);--wn-s:var(--warning-bg);--wn-b:#C8BA99;--danger:#9C3438;--rd:var(--danger);--rd-s:#FBF0F0;--rd-b:#D6ABAE;--chart-1:#456D91;--chart-2:#80668E;--chart-3:#925B60;--chart-4:#687381;--s-3:#365E83;--s-2:#7896B0;--s-1:#C9D7E3;--s0:#F0F1F3;--s1:#E0D5E5;--s2:#AC94BA;--s3:#755B83}
 body{background:var(--bg);color:var(--tx)}
@@ -1432,6 +1470,7 @@ const { mountExports, mountAiDraft } = __require("src/modules/exports/index.mjs"
 const { mount: mountChain } = __require("src/modules/chain/index.mjs");
 const { mount: mountAnalysis } = __require("src/modules/analysis/index.mjs");
 const { mount: mountPolicy } = __require("src/modules/policy/index.mjs");
+const { mount: mountReview } = __require("src/modules/review/index.mjs");
 const { mount: mountRobustness } = __require("src/modules/solver/robustness-panel.mjs");
 const { sendMatrixHandoff } = __require("src/modules/relationships/handoff.mjs");
 const STORAGE_KEY = 'scenario-workbench.project.v1';
@@ -1449,7 +1488,7 @@ try {
 }
 const actions = createActions(store);
 const steps = [['workspace', '项目与研究范围'], ['elements', '描述符与状态'], ['timeline', '政策实施路径'], ['relationships', '关系与依据'], ['solver', '检验与解释']];
-const routes = { workspace: mountWorkspace, elements: mountElements, timeline: mountTimeline, relationships: mountRelationships, solver: mountSolver, exports: mountExports, 'ai-draft': mountAiDraft, chain: mountChain, robustness: mountRobustness, analysis: mountAnalysis, policy: mountPolicy };
+const routes = { workspace: mountWorkspace, elements: mountElements, timeline: mountTimeline, relationships: mountRelationships, solver: mountSolver, exports: mountExports, 'ai-draft': mountAiDraft, chain: mountChain, robustness: mountRobustness, analysis: mountAnalysis, policy: mountPolicy, review: mountReview };
 const header = el('header', { class: 'topbar' }, el('div', {}, el('span', { class: 'brand' }, '京津冀政策情景快速评估平台')));
 const perspectiveSelect = el('select', { id: 'perspective-select' }, el('option', { value: 'public' }, '普通用户 · 简洁界面'), el('option', { value: 'expert' }, '专家用户 · 完整工作台'));
 const viewSwitch = el('div', { class: 'view-dropdown' }, el('label', { for: 'perspective-select' }, '界面视角'), perspectiveSelect);
@@ -1734,6 +1773,7 @@ renderRoute();
 if (recoveryMessage) notify(recoveryMessage);
 
 
+
 Object.assign(__exports, {  });
 },
 "src/core/project-store.mjs": (__require, __exports) => {
@@ -1961,7 +2001,7 @@ function navigationFor(perspective) {
     { title: '政策关系建模', items: [
       item('relationships', '专家关系输入', true),
       item('relationships', '关系矩阵生成', true, 'matrix'),
-      item('review', '分歧分析与校核')
+      item('review', '分析校核', true)
     ] },
     { title: '情景与结果', items: [
       item('timeline', '政策实施路径', true),
@@ -1985,6 +2025,7 @@ function navigationFor(perspective) {
 function navigationItem(module, objectId) {
   return navigationFor('expert').flatMap(group => group.items).find(item => item.module === module && item.objectId === objectId);
 }
+
 
 
 Object.assign(__exports, { navigationFor, navigationItem });
@@ -14681,6 +14722,299 @@ function datasetSummary(descriptorName = id => id) {
 
 Object.assign(__exports, { normalize, decorate, filterRows, summarize, groupCounts, datasetSummary });
 },
+"src/modules/review/index.mjs": (__require, __exports) => {
+// 分析校核：单人自查。两件事——口径对不对得上、依据是什么性质。
+// 只读项目，不写任何记录；发现问题只给去处，不替用户改。
+const { el, infoTip, openDrawer } = __require("src/core/ui.mjs");
+const { scopeChecks, checkSummary, evidenceLedger, libraryChecks, libraryTotals, evidenceKindLabel } = __require("src/modules/review/logic.mjs");
+function mount(container, context) {
+  const root = el('section', { class: 'review-module', 'aria-labelledby': 'review-title' });
+  container.append(root);
+
+  function render() {
+    root.replaceChildren();
+    const project = context.store.read();
+    const year = preferredYear(project);
+
+    root.append(el('div', { class: 'v5-head' },
+      el('p', { class: 'eyebrow' }, 'Tool · Self check'),
+      el('h1', { id: 'review-title' }, '分析校核',
+        infoTip('自查两件事：每条判断的口径（范围、年份、直接性、格子数）是否对得上当前项目；每条判断引用的依据是什么性质。不聚合、不评价、不改项目。', '这一页做什么')),
+      el('p', { class: 'lead' }, '检查自己的输入对不对得上，再决定要不要回去改。')));
+
+    if (!project.data.judgments.length) {
+      root.append(el('div', { class: 'v5-empty' }, el('b', {}, '还没有判断记录可以核对'),
+        el('button', { class: 'button', onclick: () => context.navigate('relationships') }, '去填关系评分')));
+      return;
+    }
+
+    const rows = scopeChecks(project, year);
+    const summary = checkSummary(rows);
+    root.append(summaryCard(summary, year, project));
+    root.append(scopeCard(rows, context));
+    root.append(evidenceCard(project));
+    root.append(libraryCard(project));
+  }
+
+  const unsubscribe = context.store.subscribe(render);
+  render();
+  return { canLeave: () => true, dispose() { unsubscribe?.(); root.remove(); } };
+}
+
+// 与求解页同口径：默认落在已经有判断范围覆盖的年份上，否则取项目第一个年份。
+function preferredYear(project) {
+  const years = [...project.scope.years].sort((a, b) => a - b);
+  return years.find(y => project.data.judgments.some(j => (j.validYears || []).includes(y))) ?? years[0] ?? null;
+}
+
+function summaryCard(summary, year, project) {
+  const items = [
+    ['判断记录', summary.total + ' 条'],
+    ['范围对不上', summary.regionMismatch + ' 条'],
+    ['没覆盖 ' + (year ?? '本年'), summary.yearMismatch + ' 条'],
+    ['格子没填齐', summary.coverageGap + ' 条'],
+    ['没有引用依据', summary.noEvidence + ' 条'],
+    ['来源是演示参考/示例', summary.referenceOrigin + ' 条']
+  ];
+  return el('section', { class: 'v5-card review-card' },
+    el('div', { class: 'hd' }, el('h3', {}, '核对结果'), el('span', { class: 'note' }, '当前项目 · ' + (project.scope.regionId || '未指定地区'))),
+    el('div', { class: 'bd' },
+      el('dl', { class: 'review-stats' }, ...items.map(([k, v]) => el('div', {}, el('dt', {}, k), el('dd', {}, v))))));
+}
+
+function scopeCard(rows, context) {
+  const card = el('section', { class: 'v5-card review-card' },
+    el('div', { class: 'hd' }, el('h3', {}, '逐条口径'), el('span', { class: 'note' }, rows.length + ' 条判断')));
+  const table = el('table', { class: 'v5-table review-table' },
+    el('thead', {}, el('tr', {},
+      el('th', { scope: 'col' }, '判断'),
+      el('th', { scope: 'col' }, '适用地区'),
+      el('th', { scope: 'col' }, '适用年份'),
+      el('th', { scope: 'col' }, '直接性'),
+      el('th', { scope: 'col', class: 'num' }, '格子'),
+      el('th', { scope: 'col' }, '来源'))));
+  const body = el('tbody');
+  const DIRECT = { direct: '直接', indirect: '间接', unknown: '未说明' };
+  for (const r of rows) {
+    body.append(el('tr', {},
+      el('td', {}, el('button', { class: 'review-name', type: 'button', onclick: () => {
+        openDrawer(null, r.name, host => {
+          host.append(el('p', { class: 'review-origin' }, r.origin.label, '：', r.origin.note));
+          const dl = el('dl', { class: 'review-detail' });
+          for (const [k, v] of [['适用地区', r.region.note], ['适用年份', r.years.note], ['直接性', DIRECT[r.directness] || r.directness], ['格子', r.coverage.filled + ' / ' + r.coverage.required], ['审核状态', r.reviewStatus], ['记录编号', r.id]]) {
+            dl.append(el('div', {}, el('dt', {}, k), el('dd', {}, String(v))));
+          }
+          host.append(dl, el('h4', {}, '引用的依据（' + r.evidence.found.length + ' 条）'));
+          host.append(r.evidence.found.length
+            ? el('ul', { class: 'review-evidence' }, ...r.evidence.found.map(ev => el('li', {}, el('b', {}, ev.label), ' · ' + ev.sourceId, el('span', { class: 'review-evidence-loc' }, ev.locator))))
+            : el('p', {}, '这条没有引用任何依据记录。'));
+          if (r.evidence.missing.length) host.append(el('p', { class: 'review-warn' }, '有 ' + r.evidence.missing.length + ' 个引用找不到对应记录：' + r.evidence.missing.join('、')));
+        });
+      } }, r.name)),
+      el('td', {}, badge(r.region.ok, r.region.note)),
+      el('td', {}, badge(r.years.ok, r.years.note)),
+      el('td', {}, DIRECT[r.directness] || r.directness),
+      el('td', { class: 'num' }, r.coverage.filled + ' / ' + r.coverage.required),
+      el('td', {}, el('span', { class: 'review-tag is-' + r.origin.kind }, r.origin.label))));
+  }
+  table.append(body);
+  card.append(el('div', { class: 'bd' }, el('div', { class: 'v5-scroll' }, table),
+    el('p', { class: 'review-note' }, '口径不改记录本身；要改范围或年份，去关系页对应的方向。',
+      el('button', { class: 'button text', type: 'button', onclick: () => context.navigate('relationships') }, '去关系页'))));
+  return card;
+}
+
+function evidenceCard(project) {
+  const ledger = evidenceLedger(project);
+  const card = el('section', { class: 'v5-card review-card' },
+    el('div', { class: 'hd' }, el('h3', {}, '依据清单'),
+      el('span', { class: 'note' }, ledger.used.length + ' 条依据 · ' + ledger.unused + ' 条还没被引用')));
+  const body = el('div', { class: 'bd' });
+  if (!ledger.used.length) {
+    body.append(el('p', { class: 'review-note' }, '项目里还没有依据记录。'));
+  } else {
+    const table = el('table', { class: 'v5-table review-table' },
+      el('thead', {}, el('tr', {},
+        el('th', { scope: 'col' }, '性质'), el('th', { scope: 'col' }, '出处'),
+        el('th', { scope: 'col', class: 'num' }, '被引用'), el('th', { scope: 'col' }, '审核状态'))));
+    const tbody = el('tbody');
+    for (const ev of ledger.used) {
+      tbody.append(el('tr', {},
+        el('td', {}, ev.label),
+        el('td', {}, el('span', { class: 'review-src' }, ev.sourceId), el('span', { class: 'review-evidence-loc' }, ev.locator)),
+        el('td', { class: 'num' }, ev.used ? ev.used + ' 次' : '—'),
+        el('td', {}, ev.reviewStatus === 'reviewed' ? '已核' : '未核')));
+    }
+    table.append(tbody);
+    body.append(el('div', { class: 'v5-scroll' }, table));
+    if (ledger.dangling.length) body.append(el('p', { class: 'review-warn' }, '有 ' + ledger.dangling.length + ' 个引用找不到对应依据记录。'));
+  }
+  card.append(body);
+  return card;
+}
+
+function libraryCard(project) {
+  const lib = libraryChecks(project);
+  const totals = libraryTotals();
+  const card = el('section', { class: 'v5-card review-card' },
+    el('div', { class: 'hd' }, el('h3', {}, '与政策库对得上吗'),
+      el('span', { class: 'note' }, '已选 ' + lib.total + ' 个因素 · ' + lib.covered + ' 个在库里已有明确路径')));
+  const body = el('div', { class: 'bd' },
+    el('p', { class: 'review-note' }, '同学的数据集共 ' + totals.rows + ' 条工具记录（国家级 ' + totals.national + ' 条、地方 ' + totals.local + ' 条），已建立 ' + totals.paths + ' 条路径关联。'));
+  if (!lib.total) {
+    body.append(el('p', { class: 'review-note' }, '当前项目还没选因素。'));
+  } else {
+    const list = el('ul', { class: 'review-library' });
+    for (const row of lib.rows) {
+      list.append(el('li', {},
+        el('b', {}, row.label),
+        row.links.length
+          ? el('span', {}, row.links.map(l => l.path + (l.level === 'partial' ? '（部分对应）' : '（直接）')).join('；'))
+          : el('span', { class: 'review-tag is-pending' }, '库里还没有明确关联的路径')));
+    }
+    body.append(list);
+  }
+  card.append(body);
+  return card;
+}
+
+function badge(ok, text) {
+  return el('span', { class: 'review-tag ' + (ok ? 'is-ok' : 'is-bad') }, text);
+}
+
+
+Object.assign(__exports, { mount });
+},
+"src/modules/review/logic.mjs": (__require, __exports) => {
+// 分析校核（单人自查版）：只读项目，列出「口径」与「依据」两类可核对项。
+// 口径 = 这条记录怎么写范围/年份/直接性；依据 = 这条记录引用了哪些证据、属于什么性质。
+// 只报告事实与缺口，不替用户打分、不改项目、不生成结论。
+const { POLICY_ROWS, PATH_LINKS } = __require("src/fixtures/policy-library.mjs");
+const { PARK_JURISDICTIONS } = __require("src/fixtures/policy-library.mjs");
+const REFERENCE_PREFIX = 'reference:';
+
+function evidenceKindLabel(kind) {
+  return ({
+    policy: '政策文件',
+    paper: '论文/方法',
+    'historical-data': '历史数据',
+    expert: '专家意见',
+    'user-assumption': '用户假设',
+    fixture: '机制示例'
+  })[kind] || kind || '未标注';
+}
+
+// 记录是不是参考填入的（参考包把 sourceId 写成 reference:xxx，且留了一条同源证据）。
+function originOf(record, project) {
+  const sid = String(record?.provenance?.sourceId || '');
+  const isReference = sid.startsWith(REFERENCE_PREFIX) || (record?.evidenceRefs || []).some(id => {
+    const ev = project.data.evidence.find(e => e.id === id);
+    return ev && String(ev.sourceId || '').startsWith(REFERENCE_PREFIX);
+  });
+  if (isReference) return { kind: 'reference', label: '演示参考', note: '这条是参考填入，可修改，非实时 AI 生成；用于演示不等于政策结论。' };
+  if ((record?.evidenceRefs || []).some(id => project.data.evidence.find(e => e.id === id)?.kind === 'fixture')) {
+    return { kind: 'fixture', label: '机制示例', note: '依据里含机制示例记录，只能验证软件机制。' };
+  }
+  return { kind: 'user', label: '自行填写', note: '没有参考包痕迹；依据仍以引用的记录为准。' };
+}
+
+// 一条判断记录的引用依据明细；引用不到的证据单独列出，不假装存在。
+function evidenceOf(record, project) {
+  const refs = record?.evidenceRefs || [];
+  const found = [], missing = [];
+  for (const id of refs) {
+    const ev = project.data.evidence.find(e => e.id === id);
+    (ev ? found : missing).push(ev || id);
+  }
+  return { refs, found: found.map(summarizeEvidence), missing };
+}
+
+function summarizeEvidence(ev) {
+  return { id: ev.id, kind: ev.kind, label: evidenceKindLabel(ev.kind), sourceId: ev.sourceId, locator: ev.locator, reviewStatus: ev.reviewStatus || 'draft', excerpt: ev.excerpt };
+}
+
+// 口径核对：范围/年份/直接性/状态覆盖四项，逐条给出事实与是否对得上当前项目。
+function scopeChecks(project, year) {
+  const region = project.scope.regionId || null;
+  const label = id => project.data.descriptors.find(d => d.id === id)?.label || id;
+  return project.data.judgments.map(j => {
+    const from = label(j.sourceDescriptorId), to = label(j.targetDescriptorId);
+    const recRegion = j.scope?.regionId ?? null;
+    const recYears = Array.isArray(j.validYears) ? [...j.validYears].sort((a, b) => a - b) : [];
+    const srcStates = project.data.descriptors.find(d => d.id === j.sourceDescriptorId)?.stateIds.length || 0;
+    const tgtStates = project.data.descriptors.find(d => d.id === j.targetDescriptorId)?.stateIds.length || 0;
+    const required = srcStates * tgtStates;
+    const filled = (j.entries || []).filter(e => Number.isInteger(e.score)).length;
+    return {
+      id: j.id, name: from + ' → ' + to, origin: originOf(j, project), evidence: evidenceOf(j, project),
+      region: {
+        value: recRegion, ok: !!region && recRegion === region,
+        note: !recRegion ? '记录没写适用地区' : (recRegion === region ? '与项目一致' : '记录写的是「' + recRegion + '」')
+      },
+      years: {
+        value: recYears, ok: recYears.length > 0 && Number.isInteger(year) && recYears.includes(year),
+        note: !recYears.length ? '记录没写适用年份'
+          : (Number.isInteger(year) && recYears.includes(year) ? '覆盖本次 ' + year : '写的是 ' + recYears.join('/'))
+      },
+      directness: j.directness || 'unknown',
+      coverage: { filled, required, ok: required > 0 && filled === required },
+      reviewStatus: j.reviewStatus || 'draft'
+    };
+  });
+}
+
+// 校核汇总：每类问题各有多少条，便于一眼看还剩什么。
+function checkSummary(rows) {
+  const count = test => rows.filter(test).length;
+  return {
+    total: rows.length,
+    regionMismatch: count(r => !r.region.ok),
+    yearMismatch: count(r => !r.years.ok),
+    coverageGap: count(r => !r.coverage.ok),
+    noEvidence: count(r => r.evidence.refs.length === 0),
+    referenceOrigin: count(r => r.origin.kind !== 'user'),
+    missingEvidence: count(r => r.evidence.missing.length > 0),
+    notReviewed: count(r => r.reviewStatus !== 'reviewed')
+  };
+}
+
+// 依据清单：项目里所有证据记录，标出被多少条判断引用、属于什么性质。
+function evidenceLedger(project) {
+  const use = new Map();
+  for (const j of project.data.judgments) for (const id of j.evidenceRefs || []) use.set(id, (use.get(id) || 0) + 1);
+  const byId = new Map(project.data.evidence.map(e => [e.id, e]));
+  const used = project.data.evidence.map(ev => ({ ...summarizeEvidence(ev), used: use.get(ev.id) || 0 }))
+    .sort((a, b) => b.used - a.used || String(a.kind).localeCompare(String(b.kind)));
+  const dangling = [...use.keys()].filter(id => !byId.has(id));
+  return { used, dangling, unused: used.filter(e => !e.used).length };
+}
+
+// 政策库关联核对：当前项目选中的描述符里，哪些在同学数据集里已有明确路径、哪些还没有。
+function libraryChecks(project) {
+  const linksByDescriptor = new Map();
+  for (const [path, link] of Object.entries(PATH_LINKS)) {
+    for (const id of link.ids) {
+      if (!linksByDescriptor.has(id)) linksByDescriptor.set(id, []);
+      linksByDescriptor.get(id).push({ path, level: link.level, note: link.note });
+    }
+  }
+  const rows = project.selection.descriptorIds.map(id => ({
+    descriptorId: id,
+    label: project.data.descriptors.find(d => d.id === id)?.label || id,
+    links: linksByDescriptor.get(id) || []
+  }));
+  return { rows, covered: rows.filter(r => r.links.length).length, total: rows.length };
+}
+
+function libraryTotals() {
+  const national = POLICY_ROWS.filter(r => r[4] === '国家级').length;
+  return { rows: POLICY_ROWS.length, national, local: POLICY_ROWS.length - national, paths: Object.keys(PATH_LINKS).length };
+}
+
+function parkJurisdictions() { return [...PARK_JURISDICTIONS]; }
+
+Object.assign(__exports, { evidenceKindLabel, originOf, evidenceOf, scopeChecks, checkSummary, evidenceLedger, libraryChecks, libraryTotals, parkJurisdictions });
+},
 "src/modules/solver/robustness-panel.mjs": (__require, __exports) => {
 // 稳健性检验：在冻结输入的副本上真的改一格、真的重算，再比较集合差异。
 // 不覆盖基线；不把“数量变了”当成稳健性结论；没有完整基线就明说不比。
@@ -14809,4 +15143,5 @@ __require("src/app.mjs");
 </script>
 </body>
 </html>
+
 

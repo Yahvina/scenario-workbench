@@ -30,7 +30,7 @@ export function navigationFor(perspective) {
     { title: '情景与结果', items: [
       item('timeline', '政策实施路径', true),
       item('solver', '情景计算与研判', true),
-      item('analysis', '结果可视化'),
+      item('analysis', '结果可视化', true),
       item('optimization', '政策组合优化'),
       item('exports', '保存与导出', true)
     ] },
@@ -40,7 +40,7 @@ export function navigationFor(perspective) {
       item('methods', '方法与帮助', true),
       item('about', '关于平台／版本说明', true),
       item('importance', 'AHP重要性判断'),
-      item('ai-draft', 'AI草案'),
+      item('ai-draft', 'AI草案', true),
       item('knowledge', '知识库')
     ] }
   ];

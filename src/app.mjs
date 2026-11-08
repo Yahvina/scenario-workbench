@@ -18,6 +18,7 @@ import { mount as mountRelationships } from './modules/relationships/index.mjs';
 import { mount as mountSolver, readRunSummary, subscribeRunSummary } from './modules/solver/index.mjs';
 import { mountExports, mountAiDraft } from './modules/exports/index.mjs';
 import { mount as mountChain } from './modules/chain/index.mjs';
+import { mount as mountAnalysis } from './modules/analysis/index.mjs';
 import { mount as mountRobustness } from './modules/solver/robustness-panel.mjs';
 import { sendMatrixHandoff } from './modules/relationships/handoff.mjs';
 
@@ -36,7 +37,7 @@ try {
 }
 const actions = createActions(store);
 const steps = [['workspace', '项目与研究范围'], ['elements', '描述符与状态'], ['timeline', '政策实施路径'], ['relationships', '关系与依据'], ['solver', '检验与解释']];
-const routes = { workspace: mountWorkspace, elements: mountElements, timeline: mountTimeline, relationships: mountRelationships, solver: mountSolver, exports: mountExports, 'ai-draft': mountAiDraft, chain: mountChain, robustness: mountRobustness };
+const routes = { workspace: mountWorkspace, elements: mountElements, timeline: mountTimeline, relationships: mountRelationships, solver: mountSolver, exports: mountExports, 'ai-draft': mountAiDraft, chain: mountChain, robustness: mountRobustness, analysis: mountAnalysis };
 const header = el('header', { class: 'topbar' }, el('div', {}, el('span', { class: 'brand' }, '京津冀政策情景快速评估平台')));
 const perspectiveSelect = el('select', { id: 'perspective-select' }, el('option', { value: 'public' }, '普通用户 · 简洁界面'), el('option', { value: 'expert' }, '专家用户 · 完整工作台'));
 const viewSwitch = el('div', { class: 'view-dropdown' }, el('label', { for: 'perspective-select' }, '界面视角'), perspectiveSelect);

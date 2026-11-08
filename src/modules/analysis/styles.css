@@ -1,0 +1,27 @@
+/* 结果可视化：只读冻结结果的两张图 */
+.analysis-module .analysis-card{margin:0 0 14px}
+.analysis-module .analysis-block{margin:0 0 16px}
+.analysis-module .analysis-block:last-child{margin-bottom:0}
+.analysis-module .analysis-block h4{margin:0 0 6px;font-size:13px;font-weight:600;color:var(--tx)}
+.analysis-module .analysis-bar-wrap{display:grid;grid-template-columns:minmax(96px,168px) minmax(0,1fr) auto;
+  gap:8px;align-items:center;margin:3px 0;font-size:12px}
+.analysis-module .analysis-bar-label{color:var(--tx2);overflow-wrap:anywhere}
+.analysis-module .analysis-bar{height:14px;border-radius:3px;background:var(--bg);border:1px solid var(--line2);overflow:hidden}
+.analysis-module .analysis-bar-fill{height:100%;background:var(--pri);border-radius:2px 0 0 2px;
+  transition:width .2s var(--ease)}
+.analysis-module .analysis-bar-value{color:var(--tx3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.analysis-module .analysis-pairs{width:100%;border-collapse:collapse;font-size:12px}
+.analysis-module .analysis-pairs th,.analysis-module .analysis-pairs td{padding:7px 8px;text-align:left;
+  border-bottom:1px solid var(--line2);vertical-align:top}
+.analysis-module .analysis-pairs th{font-weight:600;color:var(--tx3);font-size:12px}
+.analysis-module .analysis-pairs td.num,.analysis-module .analysis-pairs th.num{text-align:right;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.analysis-module .analysis-pairs tbody tr:last-child td{border-bottom:0}
+.analysis-module .analysis-chips{display:flex;flex-wrap:wrap;gap:4px}
+.analysis-module .analysis-chip{display:inline-flex;align-items:center;gap:5px;padding:1px 7px;border-radius:10px;
+  background:var(--pri-s);color:var(--pri-d);font-size:12px;line-height:1.7}
+.analysis-module .analysis-chip i{font-style:normal;color:var(--tx2);font-variant-numeric:tabular-nums}
+.analysis-module .analysis-chip.is-more{background:var(--panel2);color:var(--tx2)}
+.analysis-module .analysis-empty{font-size:13px;color:var(--tx2);margin:0}
+.analysis-module .analysis-note{font-size:12px;color:var(--tx2);margin:8px 0 0;line-height:1.7}
+@media(max-width:640px){.analysis-module .analysis-bar-wrap{grid-template-columns:1fr;gap:2px}}

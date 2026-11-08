@@ -703,6 +703,34 @@
 .geo-card .geo-facts dt{font-size:12px;color:var(--tx3);white-space:nowrap}
 .geo-card .geo-facts dd{margin:0;font-size:12px;color:var(--tx2)}
 
+/* 结果可视化：只读冻结结果的两张图 */
+.analysis-module .analysis-card{margin:0 0 14px}
+.analysis-module .analysis-block{margin:0 0 16px}
+.analysis-module .analysis-block:last-child{margin-bottom:0}
+.analysis-module .analysis-block h4{margin:0 0 6px;font-size:13px;font-weight:600;color:var(--tx)}
+.analysis-module .analysis-bar-wrap{display:grid;grid-template-columns:minmax(96px,168px) minmax(0,1fr) auto;
+  gap:8px;align-items:center;margin:3px 0;font-size:12px}
+.analysis-module .analysis-bar-label{color:var(--tx2);overflow-wrap:anywhere}
+.analysis-module .analysis-bar{height:14px;border-radius:3px;background:var(--bg);border:1px solid var(--line2);overflow:hidden}
+.analysis-module .analysis-bar-fill{height:100%;background:var(--pri);border-radius:2px 0 0 2px;
+  transition:width .2s var(--ease)}
+.analysis-module .analysis-bar-value{color:var(--tx3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.analysis-module .analysis-pairs{width:100%;border-collapse:collapse;font-size:12px}
+.analysis-module .analysis-pairs th,.analysis-module .analysis-pairs td{padding:7px 8px;text-align:left;
+  border-bottom:1px solid var(--line2);vertical-align:top}
+.analysis-module .analysis-pairs th{font-weight:600;color:var(--tx3);font-size:12px}
+.analysis-module .analysis-pairs td.num,.analysis-module .analysis-pairs th.num{text-align:right;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.analysis-module .analysis-pairs tbody tr:last-child td{border-bottom:0}
+.analysis-module .analysis-chips{display:flex;flex-wrap:wrap;gap:4px}
+.analysis-module .analysis-chip{display:inline-flex;align-items:center;gap:5px;padding:1px 7px;border-radius:10px;
+  background:var(--pri-s);color:var(--pri-d);font-size:12px;line-height:1.7}
+.analysis-module .analysis-chip i{font-style:normal;color:var(--tx2);font-variant-numeric:tabular-nums}
+.analysis-module .analysis-chip.is-more{background:var(--panel2);color:var(--tx2)}
+.analysis-module .analysis-empty{font-size:13px;color:var(--tx2);margin:0}
+.analysis-module .analysis-note{font-size:12px;color:var(--tx2);margin:8px 0 0;line-height:1.7}
+@media(max-width:640px){.analysis-module .analysis-bar-wrap{grid-template-columns:1fr;gap:2px}}
+
 /* Neutral surface candidate; validated in the sample before application-wide use. */
 :root{--bg:#F2F3F5;--panel:#FFFFFF;--panel2:#E7E9EC;--line:#BCC2C9;--line2:#E1E4E8;--tx:#30363D;--tx2:#454D56;--tx3:#3F464E;--pri:#424C58;--pri-d:#303842;--pri-s:#ECEEF1;--pri-b:#A6AEB8;--action:#424C58;--action-hover:#303842;--selection-bg:#ECEEF1;--selection-text:#30363D;--info-bg:#F5F6F7;--info-text:#454D56;--focus:#586675;--warning:#715B31;--warning-bg:#F6F2E9;--wn:var(--warning);--wn-s:var(--warning-bg);--wn-b:#C8BA99;--danger:#9C3438;--rd:var(--danger);--rd-s:#FBF0F0;--rd-b:#D6ABAE;--chart-1:#456D91;--chart-2:#80668E;--chart-3:#925B60;--chart-4:#687381;--s-3:#365E83;--s-2:#7896B0;--s-1:#C9D7E3;--s0:#F0F1F3;--s1:#E0D5E5;--s2:#AC94BA;--s3:#755B83}
 body{background:var(--bg);color:var(--tx)}
@@ -1364,6 +1392,7 @@ const { mount: mountRelationships } = __require("src/modules/relationships/index
 const { mount: mountSolver, readRunSummary, subscribeRunSummary } = __require("src/modules/solver/index.mjs");
 const { mountExports, mountAiDraft } = __require("src/modules/exports/index.mjs");
 const { mount: mountChain } = __require("src/modules/chain/index.mjs");
+const { mount: mountAnalysis } = __require("src/modules/analysis/index.mjs");
 const { mount: mountRobustness } = __require("src/modules/solver/robustness-panel.mjs");
 const { sendMatrixHandoff } = __require("src/modules/relationships/handoff.mjs");
 const STORAGE_KEY = 'scenario-workbench.project.v1';
@@ -1381,7 +1410,7 @@ try {
 }
 const actions = createActions(store);
 const steps = [['workspace', '项目与研究范围'], ['elements', '描述符与状态'], ['timeline', '政策实施路径'], ['relationships', '关系与依据'], ['solver', '检验与解释']];
-const routes = { workspace: mountWorkspace, elements: mountElements, timeline: mountTimeline, relationships: mountRelationships, solver: mountSolver, exports: mountExports, 'ai-draft': mountAiDraft, chain: mountChain, robustness: mountRobustness };
+const routes = { workspace: mountWorkspace, elements: mountElements, timeline: mountTimeline, relationships: mountRelationships, solver: mountSolver, exports: mountExports, 'ai-draft': mountAiDraft, chain: mountChain, robustness: mountRobustness, analysis: mountAnalysis };
 const header = el('header', { class: 'topbar' }, el('div', {}, el('span', { class: 'brand' }, '京津冀政策情景快速评估平台')));
 const perspectiveSelect = el('select', { id: 'perspective-select' }, el('option', { value: 'public' }, '普通用户 · 简洁界面'), el('option', { value: 'expert' }, '专家用户 · 完整工作台'));
 const viewSwitch = el('div', { class: 'view-dropdown' }, el('label', { for: 'perspective-select' }, '界面视角'), perspectiveSelect);
@@ -1897,7 +1926,7 @@ function navigationFor(perspective) {
     { title: '情景与结果', items: [
       item('timeline', '政策实施路径', true),
       item('solver', '情景计算与研判', true),
-      item('analysis', '结果可视化'),
+      item('analysis', '结果可视化', true),
       item('optimization', '政策组合优化'),
       item('exports', '保存与导出', true)
     ] },
@@ -1907,7 +1936,7 @@ function navigationFor(perspective) {
       item('methods', '方法与帮助', true),
       item('about', '关于平台／版本说明', true),
       item('importance', 'AHP重要性判断'),
-      item('ai-draft', 'AI草案'),
+      item('ai-draft', 'AI草案', true),
       item('knowledge', '知识库')
     ] }
   ];
@@ -14195,6 +14224,179 @@ function projectBackupPanel(host, context) {
 }
 
 Object.assign(__exports, { projectBackupPanel });
+},
+"src/modules/analysis/index.mjs": (__require, __exports) => {
+// 结果可视化：全部从冻结的 RunInput / RunResult 读，不碰当前正在编辑的项目。
+//   1. 状态分布 —— 每个因素的各状态在自洽组合里出现几次（分母是全量自洽数）；
+//   2. 状态搭配约束 —— 一对因素在自洽组合里实际出现过哪些状态搭配。
+//      可能搭配全部出现 = 这一对没有被约束；只出现少数 = 自洽性把两者绑在了一起。
+const { el, infoTip } = __require("src/core/ui.mjs");
+const { readRunArchive } = __require("src/modules/solver/index.mjs");
+const { stateDistribution, pairingConstraints } = __require("src/modules/analysis/logic.mjs");
+function mount(container, context) {
+  const root = el('section', { class: 'analysis-module', 'aria-labelledby': 'analysis-title' });
+  container.append(root);
+
+  function render() {
+    root.replaceChildren();
+    const project = context.store.read();
+    const archive = readRunArchive(context.store);
+    const run = archive?.RunResult;
+    const input = archive?.RunInput;
+
+    root.append(el('div', { class: 'v5-head' },
+      el('p', { class: 'eyebrow' }, 'Tool · Visual analysis'),
+      el('h1', { id: 'analysis-title' }, '结果可视化',
+        infoTip('这里只画本次已冻结的检验结果：自洽组合在各状态上的分布，以及哪些状态搭配被自洽性绑在了一起。不预测、不给绩效结论。', '这些图是什么')),
+      el('p', { class: 'lead' }, '先看分布，再看搭配。图只描述这次算出来的自洽空间。')));
+
+    if (!input || run?.status !== 'completed') {
+      root.append(el('div', { class: 'v5-empty' }, el('b', {}, '还没有可用的检验结果'),
+        el('button', { class: 'button', onclick: () => context.navigate('solver') }, '去检验与结果')));
+      return;
+    }
+
+    const name = id => project.data.descriptors.find(d => d.id === id)?.label || id;
+    const stateName = id => project.data.states.find(s => s.id === id)?.label || id;
+
+    root.append(distributionCard({ dist: stateDistribution(input, run), name, stateName }));
+    root.append(pairingCard({ data: pairingConstraints(input, run, run.all), input, name, stateName }));
+  }
+
+  const unsubscribe = context.store.subscribe(render);
+  render();
+  return { canLeave: () => true, dispose() { unsubscribe?.(); root.remove(); } };
+}
+
+// ── 状态分布 ────────────────────────────────────────────────
+function distributionCard({ dist, name, stateName }) {
+  const card = el('section', { class: 'v5-card analysis-card' },
+    el('div', { class: 'hd' },
+      el('h3', {}, '自洽组合里的状态分布'),
+      el('span', { class: 'note' }, dist.total === null ? '未定' : '分母：' + dist.total + ' 个自洽组合')));
+  const body = el('div', { class: 'bd' });
+  if (!dist.total) {
+    body.append(el('p', { class: 'analysis-empty' }, '这次没有自洽组合，因此没有分布可画。'));
+  } else {
+    for (const row of dist.rows) {
+      const block = el('div', { class: 'analysis-block' }, el('h4', {}, name(row.descriptorId)));
+      for (const s of row.states) {
+        const pct = Math.round((s.count / dist.total) * 100);
+        block.append(el('div', { class: 'analysis-bar-wrap' },
+          el('span', { class: 'analysis-bar-label' }, stateName(s.stateId)),
+          el('div', { class: 'analysis-bar' },
+            el('div', { class: 'analysis-bar-fill', style: 'width:' + Math.max(0, Math.min(100, pct)) + '%' })),
+          el('span', { class: 'analysis-bar-value' }, s.count + ' 次 · ' + pct + '%')));
+      }
+      body.append(block);
+    }
+  }
+  card.append(body);
+  return card;
+}
+
+// ── 状态搭配约束 ────────────────────────────────────────────
+function pairingCard({ data, input, name, stateName }) {
+  const card = el('section', { class: 'v5-card analysis-card' },
+    el('div', { class: 'hd' },
+      el('h3', {}, '被绑定的状态搭配'),
+      el('span', { class: 'note' }, '样本：' + data.sample + ' 个自洽组合')));
+  const body = el('div', { class: 'bd' }),
+    bound = data.pairs.filter(p => p.coverage < 1).sort((x, y) => x.coverage - y.coverage || y.possible - x.possible);
+
+  if (!data.sample) {
+    body.append(el('p', { class: 'analysis-empty' }, '这次没有自洽组合，因此没有搭配可看。'));
+  } else if (!bound.length) {
+    body.append(el('p', { class: 'analysis-empty' }, '每个因素的两两状态搭配都出现过，这两者之间没有被自洽性额外绑定。'));
+  } else {
+    const shown = bound.slice(0, 12);
+    const table = el('table', { class: 'analysis-pairs' },
+      el('thead', {}, el('tr', {},
+        el('th', { scope: 'col' }, '因素对'),
+        el('th', { scope: 'col' }, '自洽组合里实际出现'),
+        el('th', { scope: 'col', class: 'num' }, '搭配数'))));
+    for (const p of shown) {
+      const shownCombos = p.combos.slice(0, 4);
+      const chips = el('div', { class: 'analysis-chips' },
+        ...shownCombos.map(c => el('span', { class: 'analysis-chip' },
+          stateName(c.a) + ' × ' + stateName(c.b),
+          el('i', {}, String(c.count)))),
+        p.combos.length > shownCombos.length ? el('span', { class: 'analysis-chip is-more' }, '另 ' + (p.combos.length - shownCombos.length) + ' 种') : null);
+      table.append(el('tbody', {}, el('tr', {},
+        el('td', {}, el('b', {}, name(p.a) + ' × ' + name(p.b))),
+        el('td', {}, chips),
+        el('td', { class: 'num' }, p.used + ' / ' + p.possible))));
+    }
+    body.append(table);
+    if (bound.length > shown.length) body.append(el('p', { class: 'analysis-note' }, '另外还有 ' + (bound.length - shown.length) + ' 对只在部分搭配上出现，未逐条列出。'));
+  }
+
+  if (data.complete) {
+    body.append(el('p', { class: 'analysis-note' }, '「搭配数」是可能出现的状态搭配中、真正出现在自洽组合里的数量。数量越少，说明这一对在自洽解里被绑得越紧。'));
+  } else {
+    body.append(el('p', { class: 'analysis-note' }, '自洽组合共 ' + (data.total ?? '—') + ' 个，这里只能逐条比较前 ' + data.sample + ' 个，因此只能说明这几条的情况。'));
+  }
+  card.append(body);
+  return card;
+}
+
+
+
+Object.assign(__exports, { mount });
+},
+"src/modules/analysis/logic.mjs": (__require, __exports) => {
+// 结果可视化的纯计算部分：不碰 DOM，便于单测。
+// 口径：全部读冻结的 RunInput / RunResult，不预测、不给绩效结论。
+
+// 状态分布：run.stateCounts 记的是"全量自洽配置里这个状态出现了几次"，
+// 分母是 run.count（自洽总数），不是展示出来的前几条。
+function stateDistribution(input, run) {
+  const ids = input?.activeDescriptorIds || [];
+  const total = Number.isInteger(run?.count) ? run.count : null;
+  return {
+    total,
+    rows: ids.map(descriptorId => {
+      const counts = run?.stateCounts?.[descriptorId] || {};
+      const states = input?.matrix?.stateIdsByDescriptor?.[descriptorId] || [];
+      return {
+        descriptorId,
+        states: states.map(stateId => ({ stateId, count: counts[stateId] ?? 0 })),
+        max: Math.max(0, ...states.map(stateId => counts[stateId] ?? 0))
+      };
+    })
+  };
+}
+
+// 状态搭配约束：逐对因素统计实际出现的状态搭配数。
+// 可能搭配全部出现 = 这一对没有被自洽性额外约束；只出现少数 = 被绑在一起。
+// 只用能逐条比较的那些组合（run.all 有上限），complete=false 时界面要写明样本范围。
+function pairingConstraints(input, run, all = []) {
+  const ids = input?.activeDescriptorIds || [];
+  const list = Array.isArray(all) && all.length ? all : (run?.scenarios || []);
+  const sample = list.length;
+  const total = Number.isInteger(run?.count) ? run.count : null;
+  const pairs = [];
+  for (let i = 0; i < ids.length; i += 1) {
+    for (let j = i + 1; j < ids.length; j += 1) {
+      const a = ids[i], b = ids[j];
+      const statesA = input?.matrix?.stateIdsByDescriptor?.[a] || [];
+      const statesB = input?.matrix?.stateIdsByDescriptor?.[b] || [];
+      const possible = statesA.length * statesB.length;
+      const observed = new Map();
+      for (const config of list) {
+        if (!config || config[a] === undefined || config[b] === undefined) continue;
+        const key = config[a] + '\u0000' + config[b];
+        const hit = observed.get(key);
+        if (hit) hit.count += 1; else observed.set(key, { a: config[a], b: config[b], count: 1 });
+      }
+      const combos = [...observed.values()].sort((x, y) => y.count - x.count || String(x.a).localeCompare(String(y.a)));
+      pairs.push({ a, b, possible, used: observed.size, combos, coverage: possible ? observed.size / possible : 1 });
+    }
+  }
+  return { pairs, sample, total, complete: total !== null && sample >= total };
+}
+
+Object.assign(__exports, { stateDistribution, pairingConstraints });
 },
 "src/modules/solver/robustness-panel.mjs": (__require, __exports) => {
 // 稳健性检验：在冻结输入的副本上真的改一格、真的重算，再比较集合差异。

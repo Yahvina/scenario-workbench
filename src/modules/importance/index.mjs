@@ -16,7 +16,7 @@ export function mount(container, context) {
 
   function render() {
     root.replaceChildren();
-    root.append(head(ids.length, project.selection.descriptorIds.length));
+    root.append(head());
     if (ids.length < 2) {
       root.append(el('div', { class: 'v5-empty' }, el('b', {}, '至少要选两个因素才能做重要性比较'),
         '这页比较的是你已经选中的计算变量。',
@@ -30,14 +30,16 @@ export function mount(container, context) {
     statusHost = el('p', { class: 'importance-status', role: 'status' });
     tableHost = el('div', { class: 'importance-pairs' });
     resultHost = el('section', { class: 'v5-card importance-result' });
-    root.append(tableHost, resultHost, statusHost, footNote());
+    root.append(tableHost, resultHost, statusHost);
     buildPairs();
     update();
   }
 
   function buildPairs() {
     const table = el('table', { class: 'v5-table' }, el('thead', {}, el('tr', {},
-      el('th', { scope: 'col' }, '比较（左边 ↔ 右边）'), el('th', { scope: 'col' }, '重要性（左边相对右边）'))));
+      el('th', { scope: 'col' }, '比较（左边 ↔ 右边）'),
+      el('th', { scope: 'col' }, '重要性（左边相对右边）',
+        infoTip('标度用 Saaty 1–9 及其倒数：左边比右边重要选大于 1，右边更重要选小于 1，1 是同等重要。', '标度怎么选')))));
     const tbody = el('tbody');
     for (let i = 0; i < ids.length; i += 1) {
       for (let j = i + 1; j < ids.length; j += 1) {
@@ -63,7 +65,8 @@ export function mount(container, context) {
     const stats = complete ? consistency(A, solved.weights) : null;
     resultHost.replaceChildren(
       el('div', { class: 'hd' },
-        el('h3', {}, '权重与一致性'),
+        el('h3', {}, '权重与一致性',
+          infoTip('权重是这套两两比较的相对结果，不是重要性评分，也不改变 CIB 的关系矩阵；AHP–CIB 加权规则尚未核实，本页不作用到计算结果。', '权重是什么')),
         el('span', { class: 'note' }, complete ? '比较已填齐' : '还差 ' + missing.length + ' 项')),
       el('div', { class: 'bd' }, ...body(complete, solved, stats, missing)));
     statusHost.textContent = complete
@@ -93,7 +96,7 @@ export function mount(container, context) {
       ['判断', stats.cr === null ? '两两比较必然一致' : (stats.acceptable ? 'CR ≤ 0.10，可接受' : 'CR > 0.10，建议重看比较')]
     ];
     for (const [k, v] of rows) facts.append(el('div', {}, el('dt', {}, k), el('dd', {}, v)));
-    return [hands, facts, el('p', { class: 'importance-note' }, '权重是这套比较的相对结果，不是重要性评分，也不改变 CIB 的关系矩阵；AHP–CIB 加权规则尚未核实，本页不作用到计算结果。')];
+    return [hands, facts];
   }
 
   const unsubscribe = context.store.subscribe(render);
@@ -101,17 +104,10 @@ export function mount(container, context) {
   return { canLeave: () => true, dispose() { unsubscribe?.(); root.remove(); } };
 }
 
-function head(used, total) {
-  const lead = used < 2
-    ? '先在因素页选至少两个因素，再回来做两两比较。'
-    : '用 ' + used + ' 个因素做两两比较' + (total > used ? '（共选 ' + total + ' 个，这里取前 ' + used + '）' : '') + '，看权重和这些比较是否自相矛盾。';
+function head() {
   return el('div', { class: 'v5-head' },
     el('p', { class: 'eyebrow' }, 'Tool · AHP'),
     el('h1', { id: 'importance-title' }, 'AHP 重要性判断',
-      infoTip('对已选因素做两两重要性比较，算相对权重与一致性比率 CR。' + RI_TABLE.source + '。这一页只做对照：不改关系评分，不把权重作用到 CIB 结果。', '这一页做什么')),
-    el('p', { class: 'lead' }, lead));
+      infoTip('对已选因素做两两重要性比较，算相对权重与一致性比率 CR。' + RI_TABLE.source + '。这一页只做对照：不改关系评分，不把权重作用到 CIB 结果。', '这一页做什么')));
 }
 
-function footNote() {
-  return el('p', { class: 'importance-note' }, '标度用 Saaty 1–9 及其倒数：“左边比右边重要”选大于 1，“右边更重要”选小于 1。');
-}

@@ -19,8 +19,7 @@ export function mount(container, context) {
     root.append(el('div', { class: 'v5-head' },
       el('p', { class: 'eyebrow' }, 'Tool · Visual analysis'),
       el('h1', { id: 'analysis-title' }, '结果可视化',
-        infoTip('这里只画本次已冻结的检验结果：自洽组合在各状态上的分布，以及哪些状态搭配被自洽性绑在了一起。不预测、不给绩效结论。', '这些图是什么')),
-      el('p', { class: 'lead' }, '先看分布，再看搭配。图只描述这次算出来的自洽空间。')));
+        infoTip('只画本次已冻结的检验结果：自洽组合在各状态上的分布，以及哪些状态搭配被自洽性绑在了一起。不预测、不给绩效结论。', '这些图是什么'))));
 
     if (!input || run?.status !== 'completed') {
       root.append(el('div', { class: 'v5-empty' }, el('b', {}, '还没有可用的检验结果'),
@@ -71,7 +70,8 @@ function distributionCard({ dist, name, stateName }) {
 function pairingCard({ data, input, name, stateName }) {
   const card = el('section', { class: 'v5-card analysis-card' },
     el('div', { class: 'hd' },
-      el('h3', {}, '被绑定的状态搭配'),
+      el('h3', {}, '被绑定的状态搭配',
+        infoTip('「搭配数」= 这一对因素可能出现的状态搭配里，真正出现在自洽组合里的数量。数字越小，说明这一对在自洽解里被绑得越紧。', '搭配数怎么算')),
       el('span', { class: 'note' }, '样本：' + data.sample + ' 个自洽组合')));
   const body = el('div', { class: 'bd' }),
     bound = data.pairs.filter(p => p.coverage < 1).sort((x, y) => x.coverage - y.coverage || y.possible - x.possible);
@@ -103,10 +103,8 @@ function pairingCard({ data, input, name, stateName }) {
     if (bound.length > shown.length) body.append(el('p', { class: 'analysis-note' }, '另外还有 ' + (bound.length - shown.length) + ' 对只在部分搭配上出现，未逐条列出。'));
   }
 
-  if (data.complete) {
-    body.append(el('p', { class: 'analysis-note' }, '「搭配数」是可能出现的状态搭配中、真正出现在自洽组合里的数量。数量越少，说明这一对在自洽解里被绑得越紧。'));
-  } else {
-    body.append(el('p', { class: 'analysis-note' }, '自洽组合共 ' + (data.total ?? '—') + ' 个，这里只能逐条比较前 ' + data.sample + ' 个，因此只能说明这几条的情况。'));
+  if (!data.complete) {
+    body.append(el('p', { class: 'analysis-note' }, '自洽组合共 ' + (data.total ?? '—') + ' 个，这里只能逐条比较前 ' + data.sample + ' 个。'));
   }
   card.append(body);
   return card;

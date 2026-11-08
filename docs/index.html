@@ -14426,8 +14426,7 @@ function mount(container, context) {
     root.append(el('div', { class: 'v5-head' },
       el('p', { class: 'eyebrow' }, 'Tool · Visual analysis'),
       el('h1', { id: 'analysis-title' }, '结果可视化',
-        infoTip('这里只画本次已冻结的检验结果：自洽组合在各状态上的分布，以及哪些状态搭配被自洽性绑在了一起。不预测、不给绩效结论。', '这些图是什么')),
-      el('p', { class: 'lead' }, '先看分布，再看搭配。图只描述这次算出来的自洽空间。')));
+        infoTip('只画本次已冻结的检验结果：自洽组合在各状态上的分布，以及哪些状态搭配被自洽性绑在了一起。不预测、不给绩效结论。', '这些图是什么'))));
 
     if (!input || run?.status !== 'completed') {
       root.append(el('div', { class: 'v5-empty' }, el('b', {}, '还没有可用的检验结果'),
@@ -14478,7 +14477,8 @@ function distributionCard({ dist, name, stateName }) {
 function pairingCard({ data, input, name, stateName }) {
   const card = el('section', { class: 'v5-card analysis-card' },
     el('div', { class: 'hd' },
-      el('h3', {}, '被绑定的状态搭配'),
+      el('h3', {}, '被绑定的状态搭配',
+        infoTip('「搭配数」= 这一对因素可能出现的状态搭配里，真正出现在自洽组合里的数量。数字越小，说明这一对在自洽解里被绑得越紧。', '搭配数怎么算')),
       el('span', { class: 'note' }, '样本：' + data.sample + ' 个自洽组合')));
   const body = el('div', { class: 'bd' }),
     bound = data.pairs.filter(p => p.coverage < 1).sort((x, y) => x.coverage - y.coverage || y.possible - x.possible);
@@ -14510,10 +14510,8 @@ function pairingCard({ data, input, name, stateName }) {
     if (bound.length > shown.length) body.append(el('p', { class: 'analysis-note' }, '另外还有 ' + (bound.length - shown.length) + ' 对只在部分搭配上出现，未逐条列出。'));
   }
 
-  if (data.complete) {
-    body.append(el('p', { class: 'analysis-note' }, '「搭配数」是可能出现的状态搭配中、真正出现在自洽组合里的数量。数量越少，说明这一对在自洽解里被绑得越紧。'));
-  } else {
-    body.append(el('p', { class: 'analysis-note' }, '自洽组合共 ' + (data.total ?? '—') + ' 个，这里只能逐条比较前 ' + data.sample + ' 个，因此只能说明这几条的情况。'));
+  if (!data.complete) {
+    body.append(el('p', { class: 'analysis-note' }, '自洽组合共 ' + (data.total ?? '—') + ' 个，这里只能逐条比较前 ' + data.sample + ' 个。'));
   }
   card.append(body);
   return card;
@@ -14626,8 +14624,7 @@ function mount(container, context) {
       ['缺生效年', stats.unknownYear + ' 条']
     ].map(([k, v]) => el('div', { class: 'policy-stat' }, el('dt', {}, k), el('dd', {}, v))));
 
-    countHost.textContent = '当前显示 ' + Math.min(state.shown, sorted.length) + ' / ' + sorted.length + ' 条' +
-      (sorted.length !== items.length ? '（全库 ' + items.length + ' 条，已按筛选条件缩小）' : '');
+    countHost.textContent = '当前显示 ' + Math.min(state.shown, sorted.length) + ' / ' + sorted.length + ' 条';
 
     listHost.replaceChildren();
     if (!sorted.length) {
@@ -14652,8 +14649,8 @@ function mount(container, context) {
         el('td', { class: 'num' }, item.startYear === null ? '未知' : String(item.startYear)),
         el('td', {}, item.category),
         el('td', {}, item.link
-          ? el('span', { class: 'policy-tag is-linked' }, item.link.level === 'direct' ? '直接' : '部分对应', ' · ' + item.link.labels.join('、'))
-          : el('span', { class: 'policy-tag is-pending' }, '待匹配'))));
+          ? el('span', { class: 'policy-tag is-linked' }, item.link.level === 'direct' ? '对应：' : '部分对应：', item.link.labels.join('、'))
+          : el('span', { class: 'policy-tag is-pending' }, '还没对应到因素'))));
     }
     table.append(body);
     listHost.append(el('div', { class: 'v5-scroll' }, table));
@@ -14708,8 +14705,7 @@ function head(source, summary) {
   return el('div', { class: 'v5-head' },
     el('p', { class: 'eyebrow' }, 'Tool · Policy library'),
     el('h1', { id: 'policy-title' }, '政策库与来源',
-      infoTip('这里是同学提供的政策工具数据集只读检索页：' + source.rows + ' 条记录，来源表为「' + source.sheet + '」。缺失字段保持未知，不做推断；描述符关联只显示已建立的路径。', '这一页是什么')),
-    el('p', { class: 'lead' }, '按地区、类别、层级和关键词查政策工具，看每条记录写了什么、关联到哪些描述符。'));
+      infoTip('同学提供的政策工具数据集只读检索页：' + source.rows + ' 条记录，来源表为「' + source.sheet + '」。按地区、类别、层级和关键词查，看每条记录写了什么、关联到哪些因素。缺失字段保持未知，不做推断。', '这一页是什么')));
 }
 
 // 一条记录的全部字段放进右侧抽屉，不改动列表状态。
@@ -14726,7 +14722,7 @@ function openDetail(item, nameOf) {
       ['组别', item.group],
       ['国家父工具', item.nationalParent],
       ['地方匹配状态', item.localMatch],
-      ['描述符关联', item.link ? (item.link.level === 'direct' ? '直接对应：' : '部分对应：') + item.link.labels.join('、') + '（' + item.link.note + '）' : '待匹配（未建立关联）'],
+      ['对应的因素', item.link ? (item.link.level === 'direct' ? '直接对应：' : '部分对应：') + item.link.labels.join('、') + '（' + item.link.note + '）' : '还没对应到因素'],
       ['法律文件', item.document]
     ];
     for (const [k, v] of rows) dl.append(el('div', {}, el('dt', {}, k), el('dd', {}, String(v))));
@@ -14823,7 +14819,7 @@ Object.assign(__exports, { normalize, decorate, filterRows, summarize, groupCoun
 // 分析校核：单人自查。两件事——口径对不对得上、依据是什么性质。
 // 只读项目，不写任何记录；发现问题只给去处，不替用户改。
 const { el, infoTip, openDrawer } = __require("src/core/ui.mjs");
-const { scopeChecks, checkSummary, evidenceLedger, libraryChecks, libraryTotals, evidenceKindLabel } = __require("src/modules/review/logic.mjs");
+const { scopeChecks, checkSummary, libraryChecks, libraryTotals } = __require("src/modules/review/logic.mjs");
 function mount(container, context) {
   const root = el('section', { class: 'review-module', 'aria-labelledby': 'review-title' });
   container.append(root);
@@ -14836,8 +14832,7 @@ function mount(container, context) {
     root.append(el('div', { class: 'v5-head' },
       el('p', { class: 'eyebrow' }, 'Tool · Self check'),
       el('h1', { id: 'review-title' }, '分析校核',
-        infoTip('自查两件事：每条判断的口径（范围、年份、直接性、格子数）是否对得上当前项目；每条判断引用的依据是什么性质。不聚合、不评价、不改项目。', '这一页做什么')),
-      el('p', { class: 'lead' }, '检查自己的输入对不对得上，再决定要不要回去改。')));
+        infoTip('自查两件事：每条判断的口径（范围、年份、直接性、格子数）是否对得上当前项目；每条判断引用的依据是什么性质。不聚合、不评价、不改项目。', '这一页做什么'))));
 
     if (!project.data.judgments.length) {
       root.append(el('div', { class: 'v5-empty' }, el('b', {}, '还没有判断记录可以核对'),
@@ -14847,9 +14842,8 @@ function mount(container, context) {
 
     const rows = scopeChecks(project, year);
     const summary = checkSummary(rows);
-    root.append(summaryCard(summary, year, project));
-    root.append(scopeCard(rows, context));
-    root.append(evidenceCard(project));
+    root.append(summaryCard(summary, year, project, context));
+    root.append(scopeCard(rows));
     root.append(libraryCard(project));
   }
 
@@ -14864,7 +14858,7 @@ function preferredYear(project) {
   return years.find(y => project.data.judgments.some(j => (j.validYears || []).includes(y))) ?? years[0] ?? null;
 }
 
-function summaryCard(summary, year, project) {
+function summaryCard(summary, year, project, context) {
   const items = [
     ['判断记录', summary.total + ' 条'],
     ['范围对不上', summary.regionMismatch + ' 条'],
@@ -14874,12 +14868,14 @@ function summaryCard(summary, year, project) {
     ['来源是演示参考/示例', summary.referenceOrigin + ' 条']
   ];
   return el('section', { class: 'v5-card review-card' },
-    el('div', { class: 'hd' }, el('h3', {}, '核对结果'), el('span', { class: 'note' }, '当前项目 · ' + (project.scope.regionId || '未指定地区'))),
+    el('div', { class: 'hd' }, el('h3', {}, '核对结果'),
+      el('button', { class: 'button text', type: 'button', onclick: () => context.navigate('relationships') }, '去关系页改'),
+      el('span', { class: 'note' }, '当前项目 · ' + (project.scope.regionId || '未指定地区'))),
     el('div', { class: 'bd' },
       el('dl', { class: 'review-stats' }, ...items.map(([k, v]) => el('div', {}, el('dt', {}, k), el('dd', {}, v))))));
 }
 
-function scopeCard(rows, context) {
+function scopeCard(rows) {
   const card = el('section', { class: 'v5-card review-card' },
     el('div', { class: 'hd' }, el('h3', {}, '逐条口径'), el('span', { class: 'note' }, rows.length + ' 条判断')));
   const table = el('table', { class: 'v5-table review-table' },
@@ -14915,38 +14911,7 @@ function scopeCard(rows, context) {
       el('td', {}, el('span', { class: 'review-tag is-' + r.origin.kind }, r.origin.label))));
   }
   table.append(body);
-  card.append(el('div', { class: 'bd' }, el('div', { class: 'v5-scroll' }, table),
-    el('p', { class: 'review-note' }, '口径不改记录本身；要改范围或年份，去关系页对应的方向。',
-      el('button', { class: 'button text', type: 'button', onclick: () => context.navigate('relationships') }, '去关系页'))));
-  return card;
-}
-
-function evidenceCard(project) {
-  const ledger = evidenceLedger(project);
-  const card = el('section', { class: 'v5-card review-card' },
-    el('div', { class: 'hd' }, el('h3', {}, '依据清单'),
-      el('span', { class: 'note' }, ledger.used.length + ' 条依据 · ' + ledger.unused + ' 条还没被引用')));
-  const body = el('div', { class: 'bd' });
-  if (!ledger.used.length) {
-    body.append(el('p', { class: 'review-note' }, '项目里还没有依据记录。'));
-  } else {
-    const table = el('table', { class: 'v5-table review-table' },
-      el('thead', {}, el('tr', {},
-        el('th', { scope: 'col' }, '性质'), el('th', { scope: 'col' }, '出处'),
-        el('th', { scope: 'col', class: 'num' }, '被引用'), el('th', { scope: 'col' }, '审核状态'))));
-    const tbody = el('tbody');
-    for (const ev of ledger.used) {
-      tbody.append(el('tr', {},
-        el('td', {}, ev.label),
-        el('td', {}, el('span', { class: 'review-src' }, ev.sourceId), el('span', { class: 'review-evidence-loc' }, ev.locator)),
-        el('td', { class: 'num' }, ev.used ? ev.used + ' 次' : '—'),
-        el('td', {}, ev.reviewStatus === 'reviewed' ? '已核' : '未核')));
-    }
-    table.append(tbody);
-    body.append(el('div', { class: 'v5-scroll' }, table));
-    if (ledger.dangling.length) body.append(el('p', { class: 'review-warn' }, '有 ' + ledger.dangling.length + ' 个引用找不到对应依据记录。'));
-  }
-  card.append(body);
+  card.append(el('div', { class: 'bd' }, el('div', { class: 'v5-scroll' }, table)));
   return card;
 }
 
@@ -14954,10 +14919,10 @@ function libraryCard(project) {
   const lib = libraryChecks(project);
   const totals = libraryTotals();
   const card = el('section', { class: 'v5-card review-card' },
-    el('div', { class: 'hd' }, el('h3', {}, '与政策库对得上吗'),
+    el('div', { class: 'hd' }, el('h3', {}, '与政策库对得上吗',
+      infoTip('同学的数据集共 ' + totals.rows + ' 条工具记录（国家级 ' + totals.national + ' 条、地方 ' + totals.local + ' 条），已建立 ' + totals.paths + ' 条路径关联。', '数据从哪来')),
       el('span', { class: 'note' }, '已选 ' + lib.total + ' 个因素 · ' + lib.covered + ' 个在库里已有明确路径')));
-  const body = el('div', { class: 'bd' },
-    el('p', { class: 'review-note' }, '同学的数据集共 ' + totals.rows + ' 条工具记录（国家级 ' + totals.national + ' 条、地方 ' + totals.local + ' 条），已建立 ' + totals.paths + ' 条路径关联。'));
+  const body = el('div', { class: 'bd' });
   if (!lib.total) {
     body.append(el('p', { class: 'review-note' }, '当前项目还没选因素。'));
   } else {
@@ -15137,8 +15102,7 @@ function mount(container, context) {
     root.append(el('div', { class: 'v5-head' },
       el('p', { class: 'eyebrow' }, 'Tool · Knowledge base'),
       el('h1', { id: 'knowledge-title' }, '知识库',
-        infoTip('两类来源合在一处检索：本项目里已有依据记录，和同学提供的政策工具数据集。只读检索与引用反查，不抓取、不生成、不改项目。', '这一页是什么')),
-      el('p', { class: 'lead' }, '找依据、看被谁引用，也看哪些判断还没挂依据。')));
+        infoTip('两类来源合在一处检索：本项目里已有依据记录，和同学提供的政策工具数据集。只读检索与引用反查，不抓取、不生成、不改项目。', '这一页是什么'))));
 
     host = el('div', { class: 'knowledge-toolbar' });
     kindBar = el('div', { class: 'knowledge-kinds', role: 'group', 'aria-label': '依据类型' });
@@ -15157,7 +15121,7 @@ function mount(container, context) {
   function paintTabs() {
     const c = counts(entries);
     const items = [['all', '全部', c.total]];
-    for (const k of ['policy', 'paper', 'historical-data', 'expert', 'user-assumption']) {
+    for (const k of ['policy', 'paper', 'historical-data', 'expert']) {
       const n = c.byKind.get(k) || 0;
       if (n) items.push([k, evidenceKindLabel(k), n]);
     }
@@ -15180,7 +15144,7 @@ function mount(container, context) {
       cards.append(el('article', { class: 'knowledge-card' + (e.relevant ? ' is-relevant' : '') },
         el('div', { class: 'knowledge-card-hd' },
           el('button', { class: 'knowledge-name', type: 'button', onclick: () => openDetail(e) }, isPolicy ? e.name : (e.sourceId || e.id)),
-          el('span', { class: 'knowledge-tag is-' + e.kind }, e.label),
+          e.kind === 'user-assumption' ? null : el('span', { class: 'knowledge-tag is-' + e.kind }, e.label),
           e.relevant ? el('span', { class: 'knowledge-tag is-relevant' }, '与当前项目相关') : null),
         el('p', { class: 'knowledge-meta' }, isPolicy
           ? [e.path, e.jurisdiction, e.startYear === null ? '生效年未知' : e.startYear + ' 年起', e.category].join(' · ')
@@ -15362,7 +15326,7 @@ function mount(container, context) {
 
   function render() {
     root.replaceChildren();
-    root.append(head(ids.length, project.selection.descriptorIds.length));
+    root.append(head());
     if (ids.length < 2) {
       root.append(el('div', { class: 'v5-empty' }, el('b', {}, '至少要选两个因素才能做重要性比较'),
         '这页比较的是你已经选中的计算变量。',
@@ -15376,14 +15340,16 @@ function mount(container, context) {
     statusHost = el('p', { class: 'importance-status', role: 'status' });
     tableHost = el('div', { class: 'importance-pairs' });
     resultHost = el('section', { class: 'v5-card importance-result' });
-    root.append(tableHost, resultHost, statusHost, footNote());
+    root.append(tableHost, resultHost, statusHost);
     buildPairs();
     update();
   }
 
   function buildPairs() {
     const table = el('table', { class: 'v5-table' }, el('thead', {}, el('tr', {},
-      el('th', { scope: 'col' }, '比较（左边 ↔ 右边）'), el('th', { scope: 'col' }, '重要性（左边相对右边）'))));
+      el('th', { scope: 'col' }, '比较（左边 ↔ 右边）'),
+      el('th', { scope: 'col' }, '重要性（左边相对右边）',
+        infoTip('标度用 Saaty 1–9 及其倒数：左边比右边重要选大于 1，右边更重要选小于 1，1 是同等重要。', '标度怎么选')))));
     const tbody = el('tbody');
     for (let i = 0; i < ids.length; i += 1) {
       for (let j = i + 1; j < ids.length; j += 1) {
@@ -15409,7 +15375,8 @@ function mount(container, context) {
     const stats = complete ? consistency(A, solved.weights) : null;
     resultHost.replaceChildren(
       el('div', { class: 'hd' },
-        el('h3', {}, '权重与一致性'),
+        el('h3', {}, '权重与一致性',
+          infoTip('权重是这套两两比较的相对结果，不是重要性评分，也不改变 CIB 的关系矩阵；AHP–CIB 加权规则尚未核实，本页不作用到计算结果。', '权重是什么')),
         el('span', { class: 'note' }, complete ? '比较已填齐' : '还差 ' + missing.length + ' 项')),
       el('div', { class: 'bd' }, ...body(complete, solved, stats, missing)));
     statusHost.textContent = complete
@@ -15439,7 +15406,7 @@ function mount(container, context) {
       ['判断', stats.cr === null ? '两两比较必然一致' : (stats.acceptable ? 'CR ≤ 0.10，可接受' : 'CR > 0.10，建议重看比较')]
     ];
     for (const [k, v] of rows) facts.append(el('div', {}, el('dt', {}, k), el('dd', {}, v)));
-    return [hands, facts, el('p', { class: 'importance-note' }, '权重是这套比较的相对结果，不是重要性评分，也不改变 CIB 的关系矩阵；AHP–CIB 加权规则尚未核实，本页不作用到计算结果。')];
+    return [hands, facts];
   }
 
   const unsubscribe = context.store.subscribe(render);
@@ -15447,20 +15414,13 @@ function mount(container, context) {
   return { canLeave: () => true, dispose() { unsubscribe?.(); root.remove(); } };
 }
 
-function head(used, total) {
-  const lead = used < 2
-    ? '先在因素页选至少两个因素，再回来做两两比较。'
-    : '用 ' + used + ' 个因素做两两比较' + (total > used ? '（共选 ' + total + ' 个，这里取前 ' + used + '）' : '') + '，看权重和这些比较是否自相矛盾。';
+function head() {
   return el('div', { class: 'v5-head' },
     el('p', { class: 'eyebrow' }, 'Tool · AHP'),
     el('h1', { id: 'importance-title' }, 'AHP 重要性判断',
-      infoTip('对已选因素做两两重要性比较，算相对权重与一致性比率 CR。' + RI_TABLE.source + '。这一页只做对照：不改关系评分，不把权重作用到 CIB 结果。', '这一页做什么')),
-    el('p', { class: 'lead' }, lead));
+      infoTip('对已选因素做两两重要性比较，算相对权重与一致性比率 CR。' + RI_TABLE.source + '。这一页只做对照：不改关系评分，不把权重作用到 CIB 结果。', '这一页做什么')));
 }
 
-function footNote() {
-  return el('p', { class: 'importance-note' }, '标度用 Saaty 1–9 及其倒数：“左边比右边重要”选大于 1，“右边更重要”选小于 1。');
-}
 
 Object.assign(__exports, { mount });
 },
@@ -15586,8 +15546,7 @@ function mount(container, context) {
     root.append(el('div', { class: 'v5-head' },
       el('p', { class: 'eyebrow' }, 'Tool · Alternatives'),
       el('h1', { id: 'optimization-title' }, '政策组合优化',
-        infoTip('在本次已经算出的自洽组合里，找离你的方案最近的几条，逐条列出改了哪几个因素。这一页不做绩效优化：没有成本、减排或效益模型时，不能声称哪条更优。', '这一页做什么')),
-      el('p', { class: 'lead' }, '看完自洽空间之后，看有没有「只差一两步」的可行调整。')));
+        infoTip('在本次已经算出的自洽组合里，找离你的方案最近的几条，逐条列出改了哪几个因素。这一页不做绩效优化：没有成本、减排或效益模型时，不能声称哪条更优。', '这一页做什么'))));
 
     if (!input || run?.status !== 'completed') {
       root.append(el('div', { class: 'v5-empty' }, el('b', {}, '还没有可用的检验结果'),
@@ -15629,15 +15588,15 @@ function summaryCard(ranked, input, current, stateName) {
   const exact = ranked.rows.filter(r => r.sameAsPlan).length;
   const near = ranked.rows.filter(r => r.distance === 1).length;
   return el('section', { class: 'v5-card optimization-card' },
-    el('div', { class: 'hd' }, el('h3', {}, '与你方案的差距'),
+    el('div', { class: 'hd' }, el('h3', {}, '与你方案的差距',
+      infoTip('差距按变量个数算：改一个因素的状态就是差一步。差距小只说明改动少，不代表更好。', '差距怎么算')),
       el('span', { class: 'note' }, ranked.complete ? '全部 ' + ranked.sample + ' 条自洽组合' : '逐条可比的前 ' + ranked.sample + ' 条（共 ' + (ranked.total ?? '—') + ' 条）')),
     el('div', { class: 'bd' },
       el('dl', { class: 'optimization-stats' },
         el('div', {}, el('dt', {}, '自洽组合'), el('dd', {}, String(ranked.total ?? '—'))),
         el('div', {}, el('dt', {}, '与方案一致'), el('dd', {}, exact ? exact + ' 条' : '不在可比列表里')),
         el('div', {}, el('dt', {}, '只差一步'), el('dd', {}, near + ' 条')),
-        el('div', {}, el('dt', {}, '你的方案'), el('dd', {}, input.activeDescriptorIds.map(id => stateName(current[id])).join(' / ')))),
-      el('p', { class: 'optimization-note' }, '差距按变量个数算：改一个因素的状态就是差一步。差距小只说明改动少，不代表更好。')));
+        el('div', {}, el('dt', {}, '你的方案'), el('dd', {}, input.activeDescriptorIds.map(id => stateName(current[id])).join(' / '))))));
 }
 
 function alternativesCard(ranked, { input, current, name, stateName, limit, onMore }) {

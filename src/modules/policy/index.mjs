@@ -47,8 +47,7 @@ export function mount(container, context) {
       ['缺生效年', stats.unknownYear + ' 条']
     ].map(([k, v]) => el('div', { class: 'policy-stat' }, el('dt', {}, k), el('dd', {}, v))));
 
-    countHost.textContent = '当前显示 ' + Math.min(state.shown, sorted.length) + ' / ' + sorted.length + ' 条' +
-      (sorted.length !== items.length ? '（全库 ' + items.length + ' 条，已按筛选条件缩小）' : '');
+    countHost.textContent = '当前显示 ' + Math.min(state.shown, sorted.length) + ' / ' + sorted.length + ' 条';
 
     listHost.replaceChildren();
     if (!sorted.length) {
@@ -73,8 +72,8 @@ export function mount(container, context) {
         el('td', { class: 'num' }, item.startYear === null ? '未知' : String(item.startYear)),
         el('td', {}, item.category),
         el('td', {}, item.link
-          ? el('span', { class: 'policy-tag is-linked' }, item.link.level === 'direct' ? '直接' : '部分对应', ' · ' + item.link.labels.join('、'))
-          : el('span', { class: 'policy-tag is-pending' }, '待匹配'))));
+          ? el('span', { class: 'policy-tag is-linked' }, item.link.level === 'direct' ? '对应：' : '部分对应：', item.link.labels.join('、'))
+          : el('span', { class: 'policy-tag is-pending' }, '还没对应到因素'))));
     }
     table.append(body);
     listHost.append(el('div', { class: 'v5-scroll' }, table));
@@ -129,8 +128,7 @@ function head(source, summary) {
   return el('div', { class: 'v5-head' },
     el('p', { class: 'eyebrow' }, 'Tool · Policy library'),
     el('h1', { id: 'policy-title' }, '政策库与来源',
-      infoTip('这里是同学提供的政策工具数据集只读检索页：' + source.rows + ' 条记录，来源表为「' + source.sheet + '」。缺失字段保持未知，不做推断；描述符关联只显示已建立的路径。', '这一页是什么')),
-    el('p', { class: 'lead' }, '按地区、类别、层级和关键词查政策工具，看每条记录写了什么、关联到哪些描述符。'));
+      infoTip('同学提供的政策工具数据集只读检索页：' + source.rows + ' 条记录，来源表为「' + source.sheet + '」。按地区、类别、层级和关键词查，看每条记录写了什么、关联到哪些因素。缺失字段保持未知，不做推断。', '这一页是什么')));
 }
 
 // 一条记录的全部字段放进右侧抽屉，不改动列表状态。
@@ -147,7 +145,7 @@ function openDetail(item, nameOf) {
       ['组别', item.group],
       ['国家父工具', item.nationalParent],
       ['地方匹配状态', item.localMatch],
-      ['描述符关联', item.link ? (item.link.level === 'direct' ? '直接对应：' : '部分对应：') + item.link.labels.join('、') + '（' + item.link.note + '）' : '待匹配（未建立关联）'],
+      ['对应的因素', item.link ? (item.link.level === 'direct' ? '直接对应：' : '部分对应：') + item.link.labels.join('、') + '（' + item.link.note + '）' : '还没对应到因素'],
       ['法律文件', item.document]
     ];
     for (const [k, v] of rows) dl.append(el('div', {}, el('dt', {}, k), el('dd', {}, String(v))));

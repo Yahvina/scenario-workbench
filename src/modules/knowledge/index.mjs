@@ -23,8 +23,7 @@ export function mount(container, context) {
     root.append(el('div', { class: 'v5-head' },
       el('p', { class: 'eyebrow' }, 'Tool · Knowledge base'),
       el('h1', { id: 'knowledge-title' }, '知识库',
-        infoTip('两类来源合在一处检索：本项目里已有依据记录，和同学提供的政策工具数据集。只读检索与引用反查，不抓取、不生成、不改项目。', '这一页是什么')),
-      el('p', { class: 'lead' }, '找依据、看被谁引用，也看哪些判断还没挂依据。')));
+        infoTip('两类来源合在一处检索：本项目里已有依据记录，和同学提供的政策工具数据集。只读检索与引用反查，不抓取、不生成、不改项目。', '这一页是什么'))));
 
     host = el('div', { class: 'knowledge-toolbar' });
     kindBar = el('div', { class: 'knowledge-kinds', role: 'group', 'aria-label': '依据类型' });
@@ -43,7 +42,7 @@ export function mount(container, context) {
   function paintTabs() {
     const c = counts(entries);
     const items = [['all', '全部', c.total]];
-    for (const k of ['policy', 'paper', 'historical-data', 'expert', 'user-assumption']) {
+    for (const k of ['policy', 'paper', 'historical-data', 'expert']) {
       const n = c.byKind.get(k) || 0;
       if (n) items.push([k, evidenceKindLabel(k), n]);
     }
@@ -66,7 +65,7 @@ export function mount(container, context) {
       cards.append(el('article', { class: 'knowledge-card' + (e.relevant ? ' is-relevant' : '') },
         el('div', { class: 'knowledge-card-hd' },
           el('button', { class: 'knowledge-name', type: 'button', onclick: () => openDetail(e) }, isPolicy ? e.name : (e.sourceId || e.id)),
-          el('span', { class: 'knowledge-tag is-' + e.kind }, e.label),
+          e.kind === 'user-assumption' ? null : el('span', { class: 'knowledge-tag is-' + e.kind }, e.label),
           e.relevant ? el('span', { class: 'knowledge-tag is-relevant' }, '与当前项目相关') : null),
         el('p', { class: 'knowledge-meta' }, isPolicy
           ? [e.path, e.jurisdiction, e.startYear === null ? '生效年未知' : e.startYear + ' 年起', e.category].join(' · ')

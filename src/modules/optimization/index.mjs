@@ -23,8 +23,7 @@ export function mount(container, context) {
     root.append(el('div', { class: 'v5-head' },
       el('p', { class: 'eyebrow' }, 'Tool · Alternatives'),
       el('h1', { id: 'optimization-title' }, '政策组合优化',
-        infoTip('在本次已经算出的自洽组合里，找离你的方案最近的几条，逐条列出改了哪几个因素。这一页不做绩效优化：没有成本、减排或效益模型时，不能声称哪条更优。', '这一页做什么')),
-      el('p', { class: 'lead' }, '看完自洽空间之后，看有没有「只差一两步」的可行调整。')));
+        infoTip('在本次已经算出的自洽组合里，找离你的方案最近的几条，逐条列出改了哪几个因素。这一页不做绩效优化：没有成本、减排或效益模型时，不能声称哪条更优。', '这一页做什么'))));
 
     if (!input || run?.status !== 'completed') {
       root.append(el('div', { class: 'v5-empty' }, el('b', {}, '还没有可用的检验结果'),
@@ -66,15 +65,15 @@ function summaryCard(ranked, input, current, stateName) {
   const exact = ranked.rows.filter(r => r.sameAsPlan).length;
   const near = ranked.rows.filter(r => r.distance === 1).length;
   return el('section', { class: 'v5-card optimization-card' },
-    el('div', { class: 'hd' }, el('h3', {}, '与你方案的差距'),
+    el('div', { class: 'hd' }, el('h3', {}, '与你方案的差距',
+      infoTip('差距按变量个数算：改一个因素的状态就是差一步。差距小只说明改动少，不代表更好。', '差距怎么算')),
       el('span', { class: 'note' }, ranked.complete ? '全部 ' + ranked.sample + ' 条自洽组合' : '逐条可比的前 ' + ranked.sample + ' 条（共 ' + (ranked.total ?? '—') + ' 条）')),
     el('div', { class: 'bd' },
       el('dl', { class: 'optimization-stats' },
         el('div', {}, el('dt', {}, '自洽组合'), el('dd', {}, String(ranked.total ?? '—'))),
         el('div', {}, el('dt', {}, '与方案一致'), el('dd', {}, exact ? exact + ' 条' : '不在可比列表里')),
         el('div', {}, el('dt', {}, '只差一步'), el('dd', {}, near + ' 条')),
-        el('div', {}, el('dt', {}, '你的方案'), el('dd', {}, input.activeDescriptorIds.map(id => stateName(current[id])).join(' / ')))),
-      el('p', { class: 'optimization-note' }, '差距按变量个数算：改一个因素的状态就是差一步。差距小只说明改动少，不代表更好。')));
+        el('div', {}, el('dt', {}, '你的方案'), el('dd', {}, input.activeDescriptorIds.map(id => stateName(current[id])).join(' / '))))));
 }
 
 function alternativesCard(ranked, { input, current, name, stateName, limit, onMore }) {

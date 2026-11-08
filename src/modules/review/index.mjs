@@ -1,7 +1,7 @@
 // 分析校核：单人自查。两件事——口径对不对得上、依据是什么性质。
 // 只读项目，不写任何记录；发现问题只给去处，不替用户改。
 import { el, infoTip, openDrawer } from '../../core/ui.mjs';
-import { scopeChecks, checkSummary, evidenceLedger, libraryChecks, libraryTotals, evidenceKindLabel } from './logic.mjs';
+import { scopeChecks, checkSummary, libraryChecks, libraryTotals } from './logic.mjs';
 
 export function mount(container, context) {
   const root = el('section', { class: 'review-module', 'aria-labelledby': 'review-title' });
@@ -15,8 +15,7 @@ export function mount(container, context) {
     root.append(el('div', { class: 'v5-head' },
       el('p', { class: 'eyebrow' }, 'Tool · Self check'),
       el('h1', { id: 'review-title' }, '分析校核',
-        infoTip('自查两件事：每条判断的口径（范围、年份、直接性、格子数）是否对得上当前项目；每条判断引用的依据是什么性质。不聚合、不评价、不改项目。', '这一页做什么')),
-      el('p', { class: 'lead' }, '检查自己的输入对不对得上，再决定要不要回去改。')));
+        infoTip('自查两件事：每条判断的口径（范围、年份、直接性、格子数）是否对得上当前项目；每条判断引用的依据是什么性质。不聚合、不评价、不改项目。', '这一页做什么'))));
 
     if (!project.data.judgments.length) {
       root.append(el('div', { class: 'v5-empty' }, el('b', {}, '还没有判断记录可以核对'),
@@ -26,9 +25,8 @@ export function mount(container, context) {
 
     const rows = scopeChecks(project, year);
     const summary = checkSummary(rows);
-    root.append(summaryCard(summary, year, project));
-    root.append(scopeCard(rows, context));
-    root.append(evidenceCard(project));
+    root.append(summaryCard(summary, year, project, context));
+    root.append(scopeCard(rows));
     root.append(libraryCard(project));
   }
 
@@ -43,7 +41,7 @@ function preferredYear(project) {
   return years.find(y => project.data.judgments.some(j => (j.validYears || []).includes(y))) ?? years[0] ?? null;
 }
 
-function summaryCard(summary, year, project) {
+function summaryCard(summary, year, project, context) {
   const items = [
     ['判断记录', summary.total + ' 条'],
     ['范围对不上', summary.regionMismatch + ' 条'],
@@ -53,12 +51,14 @@ function summaryCard(summary, year, project) {
     ['来源是演示参考/示例', summary.referenceOrigin + ' 条']
   ];
   return el('section', { class: 'v5-card review-card' },
-    el('div', { class: 'hd' }, el('h3', {}, '核对结果'), el('span', { class: 'note' }, '当前项目 · ' + (project.scope.regionId || '未指定地区'))),
+    el('div', { class: 'hd' }, el('h3', {}, '核对结果'),
+      el('button', { class: 'button text', type: 'button', onclick: () => context.navigate('relationships') }, '去关系页改'),
+      el('span', { class: 'note' }, '当前项目 · ' + (project.scope.regionId || '未指定地区'))),
     el('div', { class: 'bd' },
       el('dl', { class: 'review-stats' }, ...items.map(([k, v]) => el('div', {}, el('dt', {}, k), el('dd', {}, v))))));
 }
 
-function scopeCard(rows, context) {
+function scopeCard(rows) {
   const card = el('section', { class: 'v5-card review-card' },
     el('div', { class: 'hd' }, el('h3', {}, '逐条口径'), el('span', { class: 'note' }, rows.length + ' 条判断')));
   const table = el('table', { class: 'v5-table review-table' },
@@ -94,38 +94,7 @@ function scopeCard(rows, context) {
       el('td', {}, el('span', { class: 'review-tag is-' + r.origin.kind }, r.origin.label))));
   }
   table.append(body);
-  card.append(el('div', { class: 'bd' }, el('div', { class: 'v5-scroll' }, table),
-    el('p', { class: 'review-note' }, '口径不改记录本身；要改范围或年份，去关系页对应的方向。',
-      el('button', { class: 'button text', type: 'button', onclick: () => context.navigate('relationships') }, '去关系页'))));
-  return card;
-}
-
-function evidenceCard(project) {
-  const ledger = evidenceLedger(project);
-  const card = el('section', { class: 'v5-card review-card' },
-    el('div', { class: 'hd' }, el('h3', {}, '依据清单'),
-      el('span', { class: 'note' }, ledger.used.length + ' 条依据 · ' + ledger.unused + ' 条还没被引用')));
-  const body = el('div', { class: 'bd' });
-  if (!ledger.used.length) {
-    body.append(el('p', { class: 'review-note' }, '项目里还没有依据记录。'));
-  } else {
-    const table = el('table', { class: 'v5-table review-table' },
-      el('thead', {}, el('tr', {},
-        el('th', { scope: 'col' }, '性质'), el('th', { scope: 'col' }, '出处'),
-        el('th', { scope: 'col', class: 'num' }, '被引用'), el('th', { scope: 'col' }, '审核状态'))));
-    const tbody = el('tbody');
-    for (const ev of ledger.used) {
-      tbody.append(el('tr', {},
-        el('td', {}, ev.label),
-        el('td', {}, el('span', { class: 'review-src' }, ev.sourceId), el('span', { class: 'review-evidence-loc' }, ev.locator)),
-        el('td', { class: 'num' }, ev.used ? ev.used + ' 次' : '—'),
-        el('td', {}, ev.reviewStatus === 'reviewed' ? '已核' : '未核')));
-    }
-    table.append(tbody);
-    body.append(el('div', { class: 'v5-scroll' }, table));
-    if (ledger.dangling.length) body.append(el('p', { class: 'review-warn' }, '有 ' + ledger.dangling.length + ' 个引用找不到对应依据记录。'));
-  }
-  card.append(body);
+  card.append(el('div', { class: 'bd' }, el('div', { class: 'v5-scroll' }, table)));
   return card;
 }
 
@@ -133,10 +102,10 @@ function libraryCard(project) {
   const lib = libraryChecks(project);
   const totals = libraryTotals();
   const card = el('section', { class: 'v5-card review-card' },
-    el('div', { class: 'hd' }, el('h3', {}, '与政策库对得上吗'),
+    el('div', { class: 'hd' }, el('h3', {}, '与政策库对得上吗',
+      infoTip('同学的数据集共 ' + totals.rows + ' 条工具记录（国家级 ' + totals.national + ' 条、地方 ' + totals.local + ' 条），已建立 ' + totals.paths + ' 条路径关联。', '数据从哪来')),
       el('span', { class: 'note' }, '已选 ' + lib.total + ' 个因素 · ' + lib.covered + ' 个在库里已有明确路径')));
-  const body = el('div', { class: 'bd' },
-    el('p', { class: 'review-note' }, '同学的数据集共 ' + totals.rows + ' 条工具记录（国家级 ' + totals.national + ' 条、地方 ' + totals.local + ' 条），已建立 ' + totals.paths + ' 条路径关联。'));
+  const body = el('div', { class: 'bd' });
   if (!lib.total) {
     body.append(el('p', { class: 'review-note' }, '当前项目还没选因素。'));
   } else {

@@ -1,0 +1,41 @@
+/* 知识库：只读检索与引用反查。沿用 v5 令牌，不新增颜色。 */
+.knowledge-module .knowledge-toolbar{margin:0 0 10px}
+.knowledge-module .knowledge-searchrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.knowledge-module .knowledge-searchrow input[type=search]{flex:1 1 320px;min-width:0;height:34px;padding:5px 10px;
+  border:1px solid var(--line);border-radius:var(--r);background:var(--panel);font:inherit;font-size:13px}
+.knowledge-module .knowledge-select{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tx2)}
+.knowledge-module .knowledge-select select{height:32px;padding:4px 8px;border:1px solid var(--line);border-radius:var(--r);
+  background:var(--panel);font:inherit;font-size:12px;color:var(--tx)}
+.knowledge-module .knowledge-check{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tx2)}
+.knowledge-module .knowledge-kinds{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.knowledge-module .knowledge-kind{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;
+  border:1px solid var(--line);border-radius:15px;background:var(--panel);font:inherit;font-size:12px;color:var(--tx2);cursor:pointer}
+.knowledge-module .knowledge-kind:hover{background:var(--bg)}
+.knowledge-module .knowledge-kind.is-active{background:var(--pri-s);border-color:var(--pri-b);color:var(--pri-d);font-weight:600}
+.knowledge-module .knowledge-kind i{font-style:normal;color:var(--tx2);font-variant-numeric:tabular-nums}
+.knowledge-module .knowledge-count{font-size:13px;color:var(--tx2);margin:0 0 8px}
+.knowledge-module .knowledge-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px}
+.knowledge-module .knowledge-card{border:1px solid var(--line2);border-radius:var(--r2);background:var(--panel);padding:10px 12px}
+.knowledge-module .knowledge-card.is-relevant{border-color:var(--pri-b);background:var(--pri-s)}
+.knowledge-module .knowledge-card-hd{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.knowledge-module .knowledge-name{flex:1 1 auto;min-width:0;text-align:left;padding:0;border:0;background:transparent;
+  font:inherit;font-size:13px;font-weight:600;color:var(--pri);cursor:pointer;overflow-wrap:anywhere}
+.knowledge-module .knowledge-name:hover{text-decoration:underline}
+.knowledge-module .knowledge-name:focus-visible{outline:2px solid var(--action);outline-offset:2px}
+.knowledge-module .knowledge-tag{display:inline-block;padding:0 7px;border-radius:3px;font-size:12px;white-space:nowrap;
+  border:1px solid var(--line2);background:var(--bg);color:var(--tx2)}
+.knowledge-module .knowledge-card.is-relevant .knowledge-tag{background:var(--panel)}
+.knowledge-module .knowledge-tag.is-relevant{border-color:var(--pri);color:var(--pri-d)}
+.knowledge-module .knowledge-meta{font-size:12px;color:var(--tx2);margin:6px 0 0;line-height:1.7;overflow-wrap:anywhere}
+.knowledge-module .knowledge-links{font-size:12px;color:var(--pri-d);margin:6px 0 0;overflow-wrap:anywhere}
+.knowledge-module .knowledge-card-block{margin-top:14px}
+.knowledge-module .knowledge-bare{list-style:none;margin:6px 0 0;padding:0}
+.knowledge-module .knowledge-bare li{font-size:13px;padding:5px 0;border-bottom:1px solid var(--line2)}
+.knowledge-module .knowledge-bare li:last-child{border-bottom:0}
+.knowledge-module .knowledge-warn{font-size:12px;color:var(--wn);margin:8px 0 0}
+.knowledge-module .knowledge-detail{margin:0}
+.knowledge-module .knowledge-detail>div{display:grid;grid-template-columns:110px minmax(0,1fr);gap:10px;padding:7px 0;
+  border-bottom:1px solid var(--line2)}
+.knowledge-module .knowledge-detail dt{font-size:12px;color:var(--tx2)}
+.knowledge-module .knowledge-detail dd{margin:0;font-size:13px;overflow-wrap:anywhere}
+@media(max-width:760px){.knowledge-module .knowledge-detail>div{grid-template-columns:1fr;gap:2px}}

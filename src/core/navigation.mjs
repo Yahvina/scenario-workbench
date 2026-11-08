@@ -41,7 +41,7 @@ export function navigationFor(perspective) {
       item('about', '关于平台／版本说明', true),
       item('importance', 'AHP重要性判断'),
       item('ai-draft', 'AI草案', true),
-      item('knowledge', '知识库')
+      item('knowledge', '知识库', true)
     ] }
   ];
 }
@@ -49,5 +49,6 @@ export function navigationFor(perspective) {
 export function navigationItem(module, objectId) {
   return navigationFor('expert').flatMap(group => group.items).find(item => item.module === module && item.objectId === objectId);
 }
+
 
 

@@ -23,6 +23,7 @@ import { mount as mountPolicy } from './modules/policy/index.mjs';
 import { mount as mountReview } from './modules/review/index.mjs';
 import { mount as mountKnowledge } from './modules/knowledge/index.mjs';
 import { mount as mountImportance } from './modules/importance/index.mjs';
+import { mount as mountOptimization } from './modules/optimization/index.mjs';
 import { mount as mountRobustness } from './modules/solver/robustness-panel.mjs';
 import { sendMatrixHandoff } from './modules/relationships/handoff.mjs';
 
@@ -41,7 +42,7 @@ try {
 }
 const actions = createActions(store);
 const steps = [['workspace', '项目与研究范围'], ['elements', '描述符与状态'], ['timeline', '政策实施路径'], ['relationships', '关系与依据'], ['solver', '检验与解释']];
-const routes = { workspace: mountWorkspace, elements: mountElements, timeline: mountTimeline, relationships: mountRelationships, solver: mountSolver, exports: mountExports, 'ai-draft': mountAiDraft, chain: mountChain, robustness: mountRobustness, analysis: mountAnalysis, policy: mountPolicy, review: mountReview, knowledge: mountKnowledge, importance: mountImportance };
+const routes = { workspace: mountWorkspace, elements: mountElements, timeline: mountTimeline, relationships: mountRelationships, solver: mountSolver, exports: mountExports, 'ai-draft': mountAiDraft, chain: mountChain, robustness: mountRobustness, analysis: mountAnalysis, policy: mountPolicy, review: mountReview, knowledge: mountKnowledge, importance: mountImportance, optimization: mountOptimization };
 const header = el('header', { class: 'topbar' }, el('div', {}, el('span', { class: 'brand' }, '京津冀政策情景快速评估平台')));
 const perspectiveSelect = el('select', { id: 'perspective-select' }, el('option', { value: 'public' }, '普通用户 · 简洁界面'), el('option', { value: 'expert' }, '专家用户 · 完整工作台'));
 const viewSwitch = el('div', { class: 'view-dropdown' }, el('label', { for: 'perspective-select' }, '界面视角'), perspectiveSelect);
@@ -324,6 +325,7 @@ store.subscribe(p => { persist(p); renderContext(); });
 subscribeRunSummary(renderContext);
 renderRoute();
 if (recoveryMessage) notify(recoveryMessage);
+
 
 
 

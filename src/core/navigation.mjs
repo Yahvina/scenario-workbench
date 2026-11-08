@@ -31,7 +31,7 @@ export function navigationFor(perspective) {
       item('timeline', '政策实施路径', true),
       item('solver', '情景计算与研判', true),
       item('analysis', '结果可视化', true),
-      item('optimization', '政策组合优化'),
+      item('optimization', '政策组合优化', true),
       item('exports', '保存与导出', true)
     ] },
     { title: '工具与说明', items: [
@@ -49,6 +49,7 @@ export function navigationFor(perspective) {
 export function navigationItem(module, objectId) {
   return navigationFor('expert').flatMap(group => group.items).find(item => item.module === module && item.objectId === objectId);
 }
+
 
 
 

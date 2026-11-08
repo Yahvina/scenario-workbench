@@ -731,6 +731,44 @@
 .analysis-module .analysis-note{font-size:12px;color:var(--tx2);margin:8px 0 0;line-height:1.7}
 @media(max-width:640px){.analysis-module .analysis-bar-wrap{grid-template-columns:1fr;gap:2px}}
 
+/* 政策库与来源：只读检索页。沿用 v5 卡片/表格令牌，不新增颜色。 */
+.policy-module .policy-toolbar{margin:0 0 12px}
+.policy-module .policy-searchrow{display:flex;gap:8px;align-items:center}
+.policy-module .policy-searchrow input{flex:1 1 auto;min-width:0;height:34px;padding:5px 10px;
+  border:1px solid var(--line);border-radius:var(--r);background:var(--panel);font:inherit;font-size:13px}
+.policy-module .policy-selects{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0 0}
+.policy-module .policy-select{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tx2)}
+.policy-module .policy-select select{height:32px;padding:4px 8px;border:1px solid var(--line);border-radius:var(--r);
+  background:var(--panel);font:inherit;font-size:12px;color:var(--tx)}
+.policy-module .policy-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1px;
+  background:var(--line2);border:1px solid var(--line2);border-radius:var(--r2);overflow:hidden;margin:0 0 12px}
+.policy-module .policy-stat{background:var(--panel);padding:9px 12px}
+.policy-module .policy-stat dt{font-size:12px;color:var(--tx2)}
+.policy-module .policy-stat dd{margin:2px 0 0;font-size:16px;font-weight:600;color:var(--tx);font-variant-numeric:tabular-nums}
+.policy-module .policy-count{font-size:13px;color:var(--tx2);margin:0 0 8px}
+.policy-module .policy-list .v5-scroll{border:1px solid var(--line2);border-radius:var(--r2);background:var(--panel)}
+.policy-module .policy-table td:first-child{min-width:220px}
+.policy-module tbody tr{cursor:pointer}
+.policy-module .policy-name{display:block;width:100%;text-align:left;padding:2px 0;border:0;background:transparent;
+  font:inherit;color:var(--pri);cursor:pointer;overflow-wrap:anywhere}
+.policy-module .policy-name:hover{text-decoration:underline}
+.policy-module .policy-name:focus-visible{outline:2px solid var(--action);outline-offset:2px}
+.policy-module tbody tr:hover{background:var(--bg)}
+.policy-module tbody tr:focus-within{background:var(--bg)}
+.policy-module .policy-tag{display:inline-block;margin-left:6px;padding:0 6px;border-radius:3px;font-size:12px;
+  border:1px solid var(--line2);background:var(--bg);color:var(--tx2);white-space:nowrap}
+.policy-module .policy-tag.is-linked{border-color:var(--pri-b);background:var(--pri-s);color:var(--pri-d)}
+.policy-module .policy-tag.is-pending{white-space:normal}
+.policy-module .policy-list>.button{margin-top:10px}
+.policy-module .policy-detail{margin:0}
+.policy-module .policy-detail>div{display:grid;grid-template-columns:110px minmax(0,1fr);gap:10px;
+  padding:7px 0;border-bottom:1px solid var(--line2)}
+.policy-module .policy-detail dt{font-size:12px;color:var(--tx2)}
+.policy-module .policy-detail dd{margin:0;font-size:13px;overflow-wrap:anywhere}
+.policy-module .policy-detail-id{margin:12px 0 0;font-size:12px;color:var(--tx2);overflow-wrap:anywhere}
+@media(max-width:760px){.policy-module .policy-detail>div{grid-template-columns:1fr;gap:2px}}
+
+
 /* Neutral surface candidate; validated in the sample before application-wide use. */
 :root{--bg:#F2F3F5;--panel:#FFFFFF;--panel2:#E7E9EC;--line:#BCC2C9;--line2:#E1E4E8;--tx:#30363D;--tx2:#454D56;--tx3:#3F464E;--pri:#424C58;--pri-d:#303842;--pri-s:#ECEEF1;--pri-b:#A6AEB8;--action:#424C58;--action-hover:#303842;--selection-bg:#ECEEF1;--selection-text:#30363D;--info-bg:#F5F6F7;--info-text:#454D56;--focus:#586675;--warning:#715B31;--warning-bg:#F6F2E9;--wn:var(--warning);--wn-s:var(--warning-bg);--wn-b:#C8BA99;--danger:#9C3438;--rd:var(--danger);--rd-s:#FBF0F0;--rd-b:#D6ABAE;--chart-1:#456D91;--chart-2:#80668E;--chart-3:#925B60;--chart-4:#687381;--s-3:#365E83;--s-2:#7896B0;--s-1:#C9D7E3;--s0:#F0F1F3;--s1:#E0D5E5;--s2:#AC94BA;--s3:#755B83}
 body{background:var(--bg);color:var(--tx)}
@@ -1393,6 +1431,7 @@ const { mount: mountSolver, readRunSummary, subscribeRunSummary } = __require("s
 const { mountExports, mountAiDraft } = __require("src/modules/exports/index.mjs");
 const { mount: mountChain } = __require("src/modules/chain/index.mjs");
 const { mount: mountAnalysis } = __require("src/modules/analysis/index.mjs");
+const { mount: mountPolicy } = __require("src/modules/policy/index.mjs");
 const { mount: mountRobustness } = __require("src/modules/solver/robustness-panel.mjs");
 const { sendMatrixHandoff } = __require("src/modules/relationships/handoff.mjs");
 const STORAGE_KEY = 'scenario-workbench.project.v1';
@@ -1410,7 +1449,7 @@ try {
 }
 const actions = createActions(store);
 const steps = [['workspace', '项目与研究范围'], ['elements', '描述符与状态'], ['timeline', '政策实施路径'], ['relationships', '关系与依据'], ['solver', '检验与解释']];
-const routes = { workspace: mountWorkspace, elements: mountElements, timeline: mountTimeline, relationships: mountRelationships, solver: mountSolver, exports: mountExports, 'ai-draft': mountAiDraft, chain: mountChain, robustness: mountRobustness, analysis: mountAnalysis };
+const routes = { workspace: mountWorkspace, elements: mountElements, timeline: mountTimeline, relationships: mountRelationships, solver: mountSolver, exports: mountExports, 'ai-draft': mountAiDraft, chain: mountChain, robustness: mountRobustness, analysis: mountAnalysis, policy: mountPolicy };
 const header = el('header', { class: 'topbar' }, el('div', {}, el('span', { class: 'brand' }, '京津冀政策情景快速评估平台')));
 const perspectiveSelect = el('select', { id: 'perspective-select' }, el('option', { value: 'public' }, '普通用户 · 简洁界面'), el('option', { value: 'expert' }, '专家用户 · 完整工作台'));
 const viewSwitch = el('div', { class: 'view-dropdown' }, el('label', { for: 'perspective-select' }, '界面视角'), perspectiveSelect);
@@ -1694,6 +1733,7 @@ subscribeRunSummary(renderContext);
 renderRoute();
 if (recoveryMessage) notify(recoveryMessage);
 
+
 Object.assign(__exports, {  });
 },
 "src/core/project-store.mjs": (__require, __exports) => {
@@ -1916,7 +1956,7 @@ function navigationFor(perspective) {
     { title: '项目与资料', items: [
       item('workspace', '项目与研究范围', true),
       item('elements', '政策要素设置', true),
-      item('policy', '政策库与来源')
+      item('policy', '政策库与来源', true)
     ] },
     { title: '政策关系建模', items: [
       item('relationships', '专家关系输入', true),
@@ -1945,6 +1985,7 @@ function navigationFor(perspective) {
 function navigationItem(module, objectId) {
   return navigationFor('expert').flatMap(group => group.items).find(item => item.module === module && item.objectId === objectId);
 }
+
 
 Object.assign(__exports, { navigationFor, navigationItem });
 },
@@ -14398,6 +14439,248 @@ function pairingConstraints(input, run, all = []) {
 
 Object.assign(__exports, { stateDistribution, pairingConstraints });
 },
+"src/modules/policy/index.mjs": (__require, __exports) => {
+// 政策库与来源：同学数据集的只读检索页。可搜、可筛、可看一条记录的全部字段与关联。
+// 这一页不写项目、不改选择、不生成评分；关联只显示 PATH_LINKS 已建立的部分。
+const { el, infoTip, openDrawer } = __require("src/core/ui.mjs");
+const { datasetSummary, filterRows, groupCounts, summarize } = __require("src/modules/policy/logic.mjs");
+const PAGE = 40;
+const LEVEL_LABEL = { '国家级': '国家级', '省级': '省级', '直辖市级': '直辖市级', '地级市级': '地级市级', '市级': '市级', '区级': '区级', '功能区级': '功能区级', '省直管县级市': '省直管县级市' };
+
+function mount(container, context) {
+  const root = el('section', { class: 'policy-module', 'aria-labelledby': 'policy-title' });
+  container.append(root);
+
+  const project = context.store.read();
+  const nameOf = id => project.data.descriptors.find(d => d.id === id)?.label || id;
+  const { items, source, summary } = datasetSummary(nameOf);
+
+  const state = { province: 'all', category: 'all', level: 'all', link: 'all', query: '', shown: PAGE, sort: 'year' };
+  let listHost, countHost, statHost;
+
+  function current() {
+    const filtered = filterRows(items, state);
+    const sorted = sortRows(filtered, state.sort);
+    return { filtered, sorted };
+  }
+
+  function render() {
+    root.replaceChildren();
+    root.append(head(source, summary));
+    root.append(toolbar());
+    statHost = el('div', { class: 'policy-stats' });
+    root.append(statHost);
+    countHost = el('p', { class: 'policy-count', role: 'status' });
+    listHost = el('div', { class: 'policy-list' });
+    root.append(countHost, listHost);
+    paint();
+  }
+
+  function paint() {
+    const { filtered, sorted } = current();
+    const stats = summarize(filtered);
+    statHost.replaceChildren(...[
+      ['记录', stats.total + ' 条'],
+      ['已关联描述符', stats.linked + ' 条'],
+      ['待匹配', (stats.total - stats.linked) + ' 条'],
+      ['管辖地', stats.jurisdictions + ' 个'],
+      ['生效年', stats.earliest === null ? '未知' : stats.earliest + '–' + stats.latest],
+      ['缺生效年', stats.unknownYear + ' 条']
+    ].map(([k, v]) => el('div', { class: 'policy-stat' }, el('dt', {}, k), el('dd', {}, v))));
+
+    countHost.textContent = '当前显示 ' + Math.min(state.shown, sorted.length) + ' / ' + sorted.length + ' 条' +
+      (sorted.length !== items.length ? '（全库 ' + items.length + ' 条，已按筛选条件缩小）' : '');
+
+    listHost.replaceChildren();
+    if (!sorted.length) {
+      listHost.append(el('div', { class: 'v5-empty' }, el('b', {}, '没有符合当前条件的记录'), '换一个关键词或清空筛选。'));
+      return;
+    }
+    const page = sorted.slice(0, state.shown);
+    const table = el('table', { class: 'v5-table policy-table' },
+      el('thead', {}, el('tr', {},
+        el('th', { scope: 'col' }, '工具名称'),
+        el('th', { scope: 'col' }, '路径'),
+        el('th', { scope: 'col' }, '管辖地'),
+        el('th', { scope: 'col', class: 'num' }, '生效年'),
+        el('th', { scope: 'col' }, '类别'),
+        el('th', { scope: 'col' }, '描述符关联'))));
+    const body = el('tbody');
+    for (const item of page) {
+      body.append(el('tr', { 'data-policy-row': item.id, onclick: () => openDetail(item, nameOf) },
+        el('td', {}, el('button', { class: 'policy-name', type: 'button', onclick: () => openDetail(item, nameOf) }, item.name)),
+        el('td', {}, item.path),
+        el('td', {}, item.jurisdiction, item.isPark ? el('span', { class: 'policy-tag' }, '功能区') : null),
+        el('td', { class: 'num' }, item.startYear === null ? '未知' : String(item.startYear)),
+        el('td', {}, item.category),
+        el('td', {}, item.link
+          ? el('span', { class: 'policy-tag is-linked' }, item.link.level === 'direct' ? '直接' : '部分对应', ' · ' + item.link.labels.join('、'))
+          : el('span', { class: 'policy-tag is-pending' }, '待匹配'))));
+    }
+    table.append(body);
+    listHost.append(el('div', { class: 'v5-scroll' }, table));
+    if (sorted.length > state.shown) {
+      listHost.append(el('button', { class: 'button', type: 'button', onclick: () => { state.shown += PAGE * 2; paint(); } },
+        '再显示 ' + Math.min(PAGE * 2, sorted.length - state.shown) + ' 条'));
+    }
+  }
+
+  function set(key, value) {
+    state[key] = value;
+    state.shown = PAGE;
+    paint();
+  }
+
+  function toolbar() {
+    const host = el('div', { class: 'policy-toolbar' });
+    const search = el('input', { type: 'search', id: 'policy-search', placeholder: '搜索工具名称、路径、文号或管辖地', 'aria-label': '搜索政策工具' });
+    search.addEventListener('input', () => set('query', search.value));
+    host.append(el('div', { class: 'policy-searchrow' }, search));
+    const selects = el('div', { class: 'policy-selects' },
+      select('地区', 'province', [['all', '全部'], ['国家', '国家级'], ...['北京市', '天津市', '河北省'].map(p => [p, p])]),
+      select('类别', 'category', [['all', '全部'], ...groupCounts(items, 'category').map(([k, n]) => [k, k + '（' + n + '）'])]),
+      select('层级', 'level', [['all', '全部'], ...groupCounts(items, 'level').map(([k, n]) => [k, k + '（' + n + '）'])]),
+      select('描述符关联', 'link', [['all', '全部'], ['linked', '已建立关联'], ['pending', '待匹配']]),
+      select('排序', 'sort', [['year', '按生效年'], ['name', '按名称'], ['jurisdiction', '按管辖地']]));
+    host.append(selects);
+    return host;
+
+    function select(label, key, options) {
+      const node = el('select', { 'aria-label': label, onchange: e => set(key, e.target.value) },
+        ...options.map(([value, text]) => el('option', { value }, text)));
+      node.value = state[key];
+      return el('label', { class: 'policy-select' }, label, node);
+    }
+  }
+
+  render();
+  const unsubscribe = context.store.subscribe(render);
+  return { canLeave: () => true, dispose() { unsubscribe?.(); root.remove(); } };
+}
+
+function sortRows(rows, sort) {
+  const copy = [...rows];
+  if (sort === 'name') copy.sort((a, b) => String(a.name).localeCompare(String(b.name), 'zh-Hans'));
+  else if (sort === 'jurisdiction') copy.sort((a, b) => String(a.jurisdiction).localeCompare(String(b.jurisdiction), 'zh-Hans') || String(a.name).localeCompare(String(b.name), 'zh-Hans'));
+  else copy.sort((a, b) => (a.startYear ?? -1) - (b.startYear ?? -1) || String(a.name).localeCompare(String(b.name), 'zh-Hans'));
+  return copy;
+}
+
+function head(source, summary) {
+  return el('div', { class: 'v5-head' },
+    el('p', { class: 'eyebrow' }, 'Tool · Policy library'),
+    el('h1', { id: 'policy-title' }, '政策库与来源',
+      infoTip('这里是同学提供的政策工具数据集只读检索页：' + source.rows + ' 条记录，来源表为「' + source.sheet + '」。缺失字段保持未知，不做推断；描述符关联只显示已建立的路径。', '这一页是什么')),
+    el('p', { class: 'lead' }, '按地区、类别、层级和关键词查政策工具，看每条记录写了什么、关联到哪些描述符。'));
+}
+
+// 一条记录的全部字段放进右侧抽屉，不改动列表状态。
+function openDetail(item, nameOf) {
+  openDrawer(null, item.name, body => {
+    const dl = el('dl', { class: 'policy-detail' });
+    const rows = [
+      ['路径', item.path],
+      ['管辖地', item.jurisdiction + (item.isPark ? '（功能区）' : '')],
+      ['层级', item.level],
+      ['生效年', item.startYear === null ? '未知' : String(item.startYear)],
+      ['终止年', item.endYear === null ? '未知' : String(item.endYear)],
+      ['类别', item.category],
+      ['组别', item.group],
+      ['国家父工具', item.nationalParent],
+      ['地方匹配状态', item.localMatch],
+      ['描述符关联', item.link ? (item.link.level === 'direct' ? '直接对应：' : '部分对应：') + item.link.labels.join('、') + '（' + item.link.note + '）' : '待匹配（未建立关联）'],
+      ['法律文件', item.document]
+    ];
+    for (const [k, v] of rows) dl.append(el('div', {}, el('dt', {}, k), el('dd', {}, String(v))));
+    body.append(dl, el('p', { class: 'policy-detail-id' }, '记录编号：' + item.id));
+  });
+}
+
+
+Object.assign(__exports, { mount });
+},
+"src/modules/policy/logic.mjs": (__require, __exports) => {
+// 政策库与来源：只读同学的《京津冀低碳政策工具数据集》，可搜可筛。
+// 数据口径：N/A 保持 null（未知），不补 0、不向前填充年份；描述符关联只走 PATH_LINKS 已建立的路径，
+// 其余一律标“待匹配”，不硬分配。这一页不写项目、不改选择、不生成评分。
+const { POLICY_LIBRARY_SOURCE, POLICY_ROWS, PATH_LINKS, JURISDICTION_PROVINCE, PARK_JURISDICTIONS } = __require("src/fixtures/policy-library.mjs");
+const { ROW, libraryMeta } = __require("src/modules/map/library.mjs");
+function normalize(text) {
+  return String(text ?? '').toLowerCase().replace(/\s+/g, '');
+}
+
+// 一行记录 → 展示对象。年份缺失就是 null，不写“0”。
+function decorate(row, descriptorName = id => id) {
+  const link = PATH_LINKS[row[ROW.path]] || null;
+  const province = JURISDICTION_PROVINCE[row[ROW.jurisdiction]] ?? null;
+  return {
+    id: row[ROW.id],
+    path: row[ROW.path],
+    name: row[ROW.name],
+    jurisdiction: row[ROW.jurisdiction],
+    level: row[ROW.level],
+    startYear: row[ROW.start],
+    endYear: row[ROW.end],
+    category: row[ROW.category],
+    group: row[ROW.group],
+    nationalParent: row[ROW.parent],
+    localMatch: row[ROW.match],
+    document: row[ROW.doc],
+    province,
+    isPark: PARK_JURISDICTIONS.includes(row[ROW.jurisdiction]),
+    link: link ? { level: link.level, ids: link.ids, note: link.note, labels: link.ids.map(descriptorName) } : null
+  };
+}
+
+// 筛选口径全部显式：省份 / 类别 / 层级 / 是否有描述符关联 / 关键词。
+function filterRows(items, { province = 'all', category = 'all', level = 'all', link = 'all', query = '' } = {}) {
+  const q = normalize(query);
+  return items.filter(item => {
+    if (province !== 'all') {
+      if (province === '国家') { if (item.province !== null) return false; }
+      else if (item.province !== province) return false;
+    }
+    if (category !== 'all' && item.category !== category) return false;
+    if (level !== 'all' && item.level !== level) return false;
+    if (link === 'linked' && !item.link) return false;
+    if (link === 'pending' && item.link) return false;
+    if (q && !normalize([item.name, item.path, item.jurisdiction, item.document, item.group].join(' ')).includes(q)) return false;
+    return true;
+  });
+}
+
+function summarize(items) {
+  const years = items.map(i => i.startYear).filter(Number.isInteger);
+  const linked = items.filter(i => i.link);
+  return {
+    total: items.length,
+    linked: linked.length,
+    direct: linked.filter(i => i.link.level === 'direct').length,
+    partial: linked.filter(i => i.link.level === 'partial').length,
+    unknownYear: items.filter(i => i.startYear === null).length,
+    jurisdictions: new Set(items.map(i => i.jurisdiction)).size,
+    earliest: years.length ? Math.min(...years) : null,
+    latest: years.length ? Math.max(...years) : null
+  };
+}
+
+// 按某个字段汇总，用于筛选下拉里的计数；计数来自当前筛选结果，不是全库。
+function groupCounts(items, field) {
+  const map = new Map();
+  for (const item of items) {
+    const key = item[field] ?? '未标注';
+    map.set(key, (map.get(key) || 0) + 1);
+  }
+  return [...map.entries()].sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])));
+}
+
+function datasetSummary(descriptorName = id => id) {
+  const items = POLICY_ROWS.map(row => decorate(row, descriptorName));
+  return { items, meta: libraryMeta(), source: POLICY_LIBRARY_SOURCE, summary: summarize(items) };
+}
+
+Object.assign(__exports, { normalize, decorate, filterRows, summarize, groupCounts, datasetSummary });
+},
 "src/modules/solver/robustness-panel.mjs": (__require, __exports) => {
 // 稳健性检验：在冻结输入的副本上真的改一格、真的重算，再比较集合差异。
 // 不覆盖基线；不把“数量变了”当成稳健性结论；没有完整基线就明说不比。
@@ -14526,3 +14809,4 @@ __require("src/app.mjs");
 </script>
 </body>
 </html>
+

@@ -20,7 +20,7 @@ export function navigationFor(perspective) {
     { title: '项目与资料', items: [
       item('workspace', '项目与研究范围', true),
       item('elements', '政策要素设置', true),
-      item('policy', '政策库与来源')
+      item('policy', '政策库与来源', true)
     ] },
     { title: '政策关系建模', items: [
       item('relationships', '专家关系输入', true),
@@ -49,3 +49,4 @@ export function navigationFor(perspective) {
 export function navigationItem(module, objectId) {
   return navigationFor('expert').flatMap(group => group.items).find(item => item.module === module && item.objectId === objectId);
 }
+

@@ -1,0 +1,37 @@
+/* 政策库与来源：只读检索页。沿用 v5 卡片/表格令牌，不新增颜色。 */
+.policy-module .policy-toolbar{margin:0 0 12px}
+.policy-module .policy-searchrow{display:flex;gap:8px;align-items:center}
+.policy-module .policy-searchrow input{flex:1 1 auto;min-width:0;height:34px;padding:5px 10px;
+  border:1px solid var(--line);border-radius:var(--r);background:var(--panel);font:inherit;font-size:13px}
+.policy-module .policy-selects{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0 0}
+.policy-module .policy-select{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tx2)}
+.policy-module .policy-select select{height:32px;padding:4px 8px;border:1px solid var(--line);border-radius:var(--r);
+  background:var(--panel);font:inherit;font-size:12px;color:var(--tx)}
+.policy-module .policy-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1px;
+  background:var(--line2);border:1px solid var(--line2);border-radius:var(--r2);overflow:hidden;margin:0 0 12px}
+.policy-module .policy-stat{background:var(--panel);padding:9px 12px}
+.policy-module .policy-stat dt{font-size:12px;color:var(--tx2)}
+.policy-module .policy-stat dd{margin:2px 0 0;font-size:16px;font-weight:600;color:var(--tx);font-variant-numeric:tabular-nums}
+.policy-module .policy-count{font-size:13px;color:var(--tx2);margin:0 0 8px}
+.policy-module .policy-list .v5-scroll{border:1px solid var(--line2);border-radius:var(--r2);background:var(--panel)}
+.policy-module .policy-table td:first-child{min-width:220px}
+.policy-module tbody tr{cursor:pointer}
+.policy-module .policy-name{display:block;width:100%;text-align:left;padding:2px 0;border:0;background:transparent;
+  font:inherit;color:var(--pri);cursor:pointer;overflow-wrap:anywhere}
+.policy-module .policy-name:hover{text-decoration:underline}
+.policy-module .policy-name:focus-visible{outline:2px solid var(--action);outline-offset:2px}
+.policy-module tbody tr:hover{background:var(--bg)}
+.policy-module tbody tr:focus-within{background:var(--bg)}
+.policy-module .policy-tag{display:inline-block;margin-left:6px;padding:0 6px;border-radius:3px;font-size:12px;
+  border:1px solid var(--line2);background:var(--bg);color:var(--tx2);white-space:nowrap}
+.policy-module .policy-tag.is-linked{border-color:var(--pri-b);background:var(--pri-s);color:var(--pri-d)}
+.policy-module .policy-tag.is-pending{white-space:normal}
+.policy-module .policy-list>.button{margin-top:10px}
+.policy-module .policy-detail{margin:0}
+.policy-module .policy-detail>div{display:grid;grid-template-columns:110px minmax(0,1fr);gap:10px;
+  padding:7px 0;border-bottom:1px solid var(--line2)}
+.policy-module .policy-detail dt{font-size:12px;color:var(--tx2)}
+.policy-module .policy-detail dd{margin:0;font-size:13px;overflow-wrap:anywhere}
+.policy-module .policy-detail-id{margin:12px 0 0;font-size:12px;color:var(--tx2);overflow-wrap:anywhere}
+@media(max-width:760px){.policy-module .policy-detail>div{grid-template-columns:1fr;gap:2px}}
+

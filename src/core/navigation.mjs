@@ -39,7 +39,7 @@ export function navigationFor(perspective) {
       item('robustness', '稳健性检验', true),
       item('methods', '方法与帮助', true),
       item('about', '关于平台／版本说明', true),
-      item('importance', 'AHP重要性判断'),
+      item('importance', 'AHP重要性判断', true),
       item('ai-draft', 'AI草案', true),
       item('knowledge', '知识库', true)
     ] }
@@ -49,6 +49,7 @@ export function navigationFor(perspective) {
 export function navigationItem(module, objectId) {
   return navigationFor('expert').flatMap(group => group.items).find(item => item.module === module && item.objectId === objectId);
 }
+
 
 
 

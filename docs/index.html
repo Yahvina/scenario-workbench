@@ -849,6 +849,33 @@
 .knowledge-module .knowledge-detail dd{margin:0;font-size:13px;overflow-wrap:anywhere}
 @media(max-width:760px){.knowledge-module .knowledge-detail>div{grid-template-columns:1fr;gap:2px}}
 
+/* AHP 重要性判断：两两比较 + 权重 + 一致性。沿用 v5 令牌，不新增颜色。 */
+.importance-module .importance-pairs .v5-scroll{border:1px solid var(--line2);border-radius:var(--r2);background:var(--panel)}
+.importance-module .importance-pairs select{height:30px;padding:2px 6px;border:1px solid var(--line);border-radius:var(--r);
+  background:var(--panel);font:inherit;font-size:12px;color:var(--tx);max-width:100%}
+.importance-module .importance-pairs td:last-child{width:340px}
+.importance-module .importance-result{margin-top:12px}
+.importance-module .importance-hands{margin:0 0 14px}
+.importance-module .importance-hand{display:grid;grid-template-columns:58px minmax(0,1fr) minmax(120px,auto);gap:10px;
+  align-items:center;margin:4px 0;font-size:13px}
+.importance-module .importance-weight{font-variant-numeric:tabular-nums;font-weight:600;color:var(--pri-d);text-align:right}
+.importance-module .importance-bar{height:14px;border-radius:3px;background:var(--bg);border:1px solid var(--line2);overflow:hidden}
+.importance-module .importance-bar i{display:block;height:100%;background:var(--pri);border-radius:2px 0 0 2px}
+.importance-module .importance-label{overflow-wrap:anywhere}
+.importance-module .importance-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;
+  background:var(--line2);border:1px solid var(--line2);border-radius:var(--r2);overflow:hidden;margin:0}
+.importance-module .importance-facts>div{background:var(--panel);padding:8px 12px}
+.importance-module .importance-facts dt{font-size:12px;color:var(--tx2)}
+.importance-module .importance-facts dd{margin:2px 0 0;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.importance-module .importance-note{font-size:12px;color:var(--tx2);line-height:1.7;margin:10px 0 0}
+.importance-module .importance-warn{font-size:12px;color:var(--wn);border-left:3px solid var(--wn-b);background:var(--wn-s);
+  padding:6px 10px;margin:0 0 10px}
+.importance-module .importance-status{font-size:13px;color:var(--tx2);margin:10px 0 0}
+.importance-module .importance-missing{list-style:none;margin:0;padding:0;font-size:13px}
+.importance-module .importance-missing li{padding:4px 0;border-bottom:1px solid var(--line2)}
+@media(max-width:640px){.importance-module .importance-hand{grid-template-columns:1fr}}
+
+
 /* Neutral surface candidate; validated in the sample before application-wide use. */
 :root{--bg:#F2F3F5;--panel:#FFFFFF;--panel2:#E7E9EC;--line:#BCC2C9;--line2:#E1E4E8;--tx:#30363D;--tx2:#454D56;--tx3:#3F464E;--pri:#424C58;--pri-d:#303842;--pri-s:#ECEEF1;--pri-b:#A6AEB8;--action:#424C58;--action-hover:#303842;--selection-bg:#ECEEF1;--selection-text:#30363D;--info-bg:#F5F6F7;--info-text:#454D56;--focus:#586675;--warning:#715B31;--warning-bg:#F6F2E9;--wn:var(--warning);--wn-s:var(--warning-bg);--wn-b:#C8BA99;--danger:#9C3438;--rd:var(--danger);--rd-s:#FBF0F0;--rd-b:#D6ABAE;--chart-1:#456D91;--chart-2:#80668E;--chart-3:#925B60;--chart-4:#687381;--s-3:#365E83;--s-2:#7896B0;--s-1:#C9D7E3;--s0:#F0F1F3;--s1:#E0D5E5;--s2:#AC94BA;--s3:#755B83}
 body{background:var(--bg);color:var(--tx)}
@@ -1514,6 +1541,7 @@ const { mount: mountAnalysis } = __require("src/modules/analysis/index.mjs");
 const { mount: mountPolicy } = __require("src/modules/policy/index.mjs");
 const { mount: mountReview } = __require("src/modules/review/index.mjs");
 const { mount: mountKnowledge } = __require("src/modules/knowledge/index.mjs");
+const { mount: mountImportance } = __require("src/modules/importance/index.mjs");
 const { mount: mountRobustness } = __require("src/modules/solver/robustness-panel.mjs");
 const { sendMatrixHandoff } = __require("src/modules/relationships/handoff.mjs");
 const STORAGE_KEY = 'scenario-workbench.project.v1';
@@ -1531,7 +1559,7 @@ try {
 }
 const actions = createActions(store);
 const steps = [['workspace', '项目与研究范围'], ['elements', '描述符与状态'], ['timeline', '政策实施路径'], ['relationships', '关系与依据'], ['solver', '检验与解释']];
-const routes = { workspace: mountWorkspace, elements: mountElements, timeline: mountTimeline, relationships: mountRelationships, solver: mountSolver, exports: mountExports, 'ai-draft': mountAiDraft, chain: mountChain, robustness: mountRobustness, analysis: mountAnalysis, policy: mountPolicy, review: mountReview, knowledge: mountKnowledge };
+const routes = { workspace: mountWorkspace, elements: mountElements, timeline: mountTimeline, relationships: mountRelationships, solver: mountSolver, exports: mountExports, 'ai-draft': mountAiDraft, chain: mountChain, robustness: mountRobustness, analysis: mountAnalysis, policy: mountPolicy, review: mountReview, knowledge: mountKnowledge, importance: mountImportance };
 const header = el('header', { class: 'topbar' }, el('div', {}, el('span', { class: 'brand' }, '京津冀政策情景快速评估平台')));
 const perspectiveSelect = el('select', { id: 'perspective-select' }, el('option', { value: 'public' }, '普通用户 · 简洁界面'), el('option', { value: 'expert' }, '专家用户 · 完整工作台'));
 const viewSwitch = el('div', { class: 'view-dropdown' }, el('label', { for: 'perspective-select' }, '界面视角'), perspectiveSelect);
@@ -1818,6 +1846,7 @@ if (recoveryMessage) notify(recoveryMessage);
 
 
 
+
 Object.assign(__exports, {  });
 },
 "src/core/project-store.mjs": (__require, __exports) => {
@@ -2059,7 +2088,7 @@ function navigationFor(perspective) {
       item('robustness', '稳健性检验', true),
       item('methods', '方法与帮助', true),
       item('about', '关于平台／版本说明', true),
-      item('importance', 'AHP重要性判断'),
+      item('importance', 'AHP重要性判断', true),
       item('ai-draft', 'AI草案', true),
       item('knowledge', '知识库', true)
     ] }
@@ -2069,6 +2098,7 @@ function navigationFor(perspective) {
 function navigationItem(module, objectId) {
   return navigationFor('expert').flatMap(group => group.items).find(item => item.module === module && item.objectId === objectId);
 }
+
 
 
 
@@ -15292,6 +15322,219 @@ function citationIndex(project) {
 
 Object.assign(__exports, { normalize, projectEntries, libraryEntries, counts, search, citationIndex });
 },
+"src/modules/importance/index.mjs": (__require, __exports) => {
+// AHP 重要性判断：两两比较 → 权重 → 一致性。只做对照，不改关系评分、不覆盖 CIB。
+const { el, infoTip } = __require("src/core/ui.mjs");
+const { buildMatrix, priorityVector, consistency, rankedWeights, SCALE_LABELS, SAATY_VALUES, RI_TABLE } = __require("src/modules/importance/logic.mjs");
+const MAX_FACTORS = 8;
+
+function mount(container, context) {
+  const root = el('section', { class: 'importance-module', 'aria-labelledby': 'importance-title' });
+  container.append(root);
+
+  const project = context.store.read();
+  const ids = [...project.selection.descriptorIds].slice(0, MAX_FACTORS);
+  const labels = Object.fromEntries(project.data.descriptors.map(d => [d.id, d.label]));
+  const pairs = {};
+  let resultHost, statusHost, tableHost;
+
+  function render() {
+    root.replaceChildren();
+    root.append(head(project, ids.length, project.selection.descriptorIds.length));
+    if (ids.length < 2) {
+      root.append(el('div', { class: 'v5-empty' }, el('b', {}, '至少要选两个因素才能做重要性比较'),
+        '这页比较的是你已经选中的计算变量。',
+        el('button', { class: 'button', onclick: () => context.navigate('elements') }, '去选因素')));
+      return;
+    }
+    if (ids.length > MAX_FACTORS) {
+      root.append(el('p', { class: 'importance-warn' }, '已选 ' + project.selection.descriptorIds.length + ' 个因素，超过 ' + MAX_FACTORS + ' 个时两两比较会让人填到麻木；这里只取前 ' + MAX_FACTORS + ' 个。'));
+    }
+    statusHost = el('p', { class: 'importance-status', role: 'status' });
+    tableHost = el('div', { class: 'importance-pairs' });
+    resultHost = el('section', { class: 'v5-card importance-result' });
+    root.append(tableHost, resultHost, statusHost, footNote());
+    buildPairs();
+    update();
+  }
+
+  function buildPairs() {
+    const table = el('table', { class: 'v5-table' }, el('thead', {}, el('tr', {},
+      el('th', { scope: 'col' }, '比较（左边 ↔ 右边）'), el('th', { scope: 'col' }, '重要性（左边相对右边）'))));
+    const tbody = el('tbody');
+    for (let i = 0; i < ids.length; i += 1) {
+      for (let j = i + 1; j < ids.length; j += 1) {
+        const key = ids[i] + '|' + ids[j];
+        const select = el('select', { 'aria-label': labels[ids[i]] + ' 相对 ' + labels[ids[j]], 'data-pair': key });
+        select.append(el('option', { value: '' }, '未填'));
+        for (const [text, value] of SAATY_VALUES) {
+          select.append(el('option', { value: String(value) }, text + '（' + (SCALE_LABELS[text] || '') + '）'));
+        }
+        select.addEventListener('change', () => { pairs[key] = select.value; update(); });
+        tbody.append(el('tr', {},
+          el('td', {}, labels[ids[i]] + ' ↔ ' + labels[ids[j]]),
+          el('td', {}, select)));
+      }
+    }
+    table.append(tbody);
+    tableHost.replaceChildren(el('div', { class: 'v5-scroll' }, table));
+  }
+
+  function update() {
+    const { A, missing, complete } = buildMatrix(ids, pairs);
+    const solved = complete ? priorityVector(A) : { weights: [], lambdaMax: null };
+    const stats = complete ? consistency(A, solved.weights) : null;
+    resultHost.replaceChildren(
+      el('div', { class: 'hd' },
+        el('h3', {}, '权重与一致性'),
+        el('span', { class: 'note' }, complete ? '比较已填齐' : '还差 ' + missing.length + ' 项')),
+      el('div', { class: 'bd' }, ...body(complete, solved, stats, missing)));
+    statusHost.textContent = complete
+      ? (stats?.applies && !stats.acceptable ? '一致性比率超过 0.10：这些比较里有互相矛盾的地方，建议回去看最强的那几条。' : '比较自洽，可以用来对照。')
+      : '把每对比完再看得出的权重；缺的项会单独列出，不替你补 1。';
+  }
+
+  function body(complete, solved, stats, missing) {
+    if (!complete) {
+      return [el('p', { class: 'importance-note' }, '还缺这些比较：'),
+        el('ul', { class: 'importance-missing' }, ...missing.map(m => el('li', {}, labels[m.a] + ' ↔ ' + labels[m.b])))];
+    }
+    const ranked = rankedWeights(ids, labels, solved.weights);
+    const hands = el('div', { class: 'importance-hands' });
+    for (const item of ranked) {
+      hands.append(el('div', { class: 'importance-hand' },
+        el('span', { class: 'importance-weight' }, (item.weight * 100).toFixed(1) + '%'),
+        el('span', { class: 'importance-bar' }, el('i', { style: 'width:' + (item.weight * 100).toFixed(1) + '%' })),
+        el('span', { class: 'importance-label' }, item.label)));
+    }
+    const facts = el('dl', { class: 'importance-facts' });
+    const rows = [
+      ['最大特征值 λmax', stats.lambdaMax.toFixed(4)],
+      ['一致性指标 CI', stats.ci.toFixed(4)],
+      ['随机指标 RI', stats.ri === null ? '不适用' : String(stats.ri)],
+      ['一致性比率 CR', stats.cr === null ? 'n≤2 不适用' : stats.cr.toFixed(4)],
+      ['判断', stats.cr === null ? '两两比较必然一致' : (stats.acceptable ? 'CR ≤ 0.10，可接受' : 'CR > 0.10，建议重看比较')]
+    ];
+    for (const [k, v] of rows) facts.append(el('div', {}, el('dt', {}, k), el('dd', {}, v)));
+    return [hands, facts, el('p', { class: 'importance-note' }, '权重是这套比较的相对结果，不是重要性评分，也不改变 CIB 的关系矩阵；AHP–CIB 加权规则尚未核实，本页不作用到计算结果。')];
+  }
+
+  const unsubscribe = context.store.subscribe(render);
+  render();
+  return { canLeave: () => true, dispose() { unsubscribe?.(); root.remove(); } };
+}
+
+function head(project, used, total) {
+  return el('div', { class: 'v5-head' },
+    el('p', { class: 'eyebrow' }, 'Tool · AHP'),
+    el('h1', { id: 'importance-title' }, 'AHP 重要性判断',
+      infoTip('对已选因素做两两重要性比较，算相对权重与一致性比率 CR。' + RI_TABLE.source + '。这一页只做对照：不改关系评分，不把权重作用到 CIB 结果。', '这一页做什么')),
+    el('p', { class: 'lead' }, '用 ' + used + ' 个因素做两两比较' + (total > used ? '（共选 ' + total + ' 个，这里取前 ' + used + '）' : '') + '，看权重和这些比较是否自相矛盾。'));
+}
+
+function footNote() {
+  return el('p', { class: 'importance-note' }, '标度用 Saaty 1–9 及其倒数：“左边比右边重要”选大于 1，“右边更重要”选小于 1。');
+}
+
+Object.assign(__exports, { mount });
+},
+"src/modules/importance/logic.mjs": (__require, __exports) => {
+// AHP 重要性判断（对照用）：两两比较 → 权重 → 一致性比率 CR。
+// 方法口径：Saaty 层次分析法（1–9 标度、正互反矩阵、主特征向量作权重、CI=(λmax−n)/(n−1)、CR=CI/RI）。
+// 这一页只算权重与一致性，不改关系评分、不覆盖 CIB 基线；AHP–CIB 加权规则未核，不在这里做。
+
+// 标度值：Saaty 1–9 及其倒数。只用这些值，避免出现没有依据的中间刻度。
+const SAATY_VALUES = [
+  ['1/9', 1 / 9], ['1/8', 1 / 8], ['1/7', 1 / 7], ['1/6', 1 / 6], ['1/5', 1 / 5],
+  ['1/4', 1 / 4], ['1/3', 1 / 3], ['1/2', 1 / 2],
+  ['1', 1],
+  ['2', 2], ['3', 3], ['4', 4], ['5', 5], ['6', 6], ['7', 7], ['8', 8], ['9', 9]
+];
+
+// 两两比较的语义：判断 i 相对 j 有多重要。
+const SCALE_LABELS = {
+  '1/9': 'j 绝对更重要', '1/8': 'j 强烈更重要', '1/7': 'j 明显更重要', '1/6': 'j 较强更重要', '1/5': 'j 明显更重要',
+  '1/4': 'j 较重要', '1/3': 'j 略重要', '1/2': 'j 稍重要',
+  '1': '同等重要',
+  '2': 'i 稍重要', '3': 'i 略重要', '4': 'i 较重要', '5': 'i 明显更重要', '6': 'i 较强更重要',
+  '7': 'i 明显更重要', '8': 'i 强烈更重要', '9': 'i 绝对更重要'
+};
+
+// 随机一致性指标 RI。来源：Saaty (1980) 常用表，n=1..15；n≤2 时 CR 不适用（任何两两比较都完全一致）。
+const RI_TABLE = {
+  source: 'Saaty (1980) The Analytic Hierarchy Process 常用 RI 表（n=1–15）',
+  values: [0, 0, 0.58, 0.90, 1.12, 1.24, 1.32, 1.41, 1.45, 1.49, 1.51, 1.48, 1.56, 1.57, 1.59]
+};
+
+function riFor(n) {
+  if (!Number.isInteger(n) || n < 1 || n > RI_TABLE.values.length) return null;
+  return RI_TABLE.values[n - 1];
+}
+
+// 把「只填上三角」的输入组成完整的正互反矩阵。
+// pairs: { 'a|b': value }，a、b 是描述符 ID；缺项视为未填。
+function buildMatrix(ids, pairs) {
+  const n = ids.length;
+  const A = Array.from({ length: n }, () => Array(n).fill(null));
+  const missing = [];
+  for (let i = 0; i < n; i += 1) {
+    A[i][i] = 1;
+    for (let j = i + 1; j < n; j += 1) {
+      const raw = pairs?.[ids[i] + '|' + ids[j]];
+      const value = raw === '' || raw === null || raw === undefined ? null : Number(raw);
+      if (value === null || !Number.isFinite(value) || value <= 0) { missing.push({ a: ids[i], b: ids[j] }); continue; }
+      A[i][j] = value;
+      A[j][i] = 1 / value;
+    }
+  }
+  return { A, missing, complete: missing.length === 0 };
+}
+
+// 主特征向量：幂法迭代到收敛。返回归一化权重（和为 1）。
+function priorityVector(A, { maxIterations = 1000, tolerance = 1e-12 } = {}) {
+  const n = A.length;
+  if (!n) return { weights: [], lambdaMax: null, iterations: 0, converged: false };
+  let w = Array(n).fill(1 / n);
+  let lambdaMax = null, converged = false, iterations = 0;
+  for (; iterations < maxIterations; iterations += 1) {
+    const next = A.map(row => row.reduce((sum, value, j) => sum + value * w[j], 0));
+    const total = next.reduce((a, b) => a + b, 0);
+    if (!Number.isFinite(total) || total <= 0) break;
+    const scaled = next.map(v => v / total);
+    const delta = scaled.reduce((m, v, i) => Math.max(m, Math.abs(v - w[i])), 0);
+    lambdaMax = A.reduce((sum, row, i) => sum + (row.reduce((s, value, j) => s + value * scaled[j], 0)) / scaled[i], 0) / n;
+    w = scaled;
+    if (delta < tolerance) { converged = true; iterations += 1; break; }
+  }
+  return { weights: w, lambdaMax, iterations, converged };
+}
+
+// 一致性与比率。n≤2 时 CR 不适用。CR>0.10 按惯例视为比较过于矛盾。
+function consistency(A, weights = null) {
+  const n = A.length;
+  if (n < 3) return { n, lambdaMax: n, ci: 0, ri: riFor(n), cr: null, applies: false, acceptable: true };
+  const solved = weights ? { weights, lambdaMax: null } : priorityVector(A);
+  const lambdaMax = solved.lambdaMax ?? powerLambda(A, weights);
+  const ci = (lambdaMax - n) / (n - 1);
+  const ri = riFor(n);
+  const cr = ri ? ci / ri : null;
+  return { n, lambdaMax, ci, ri, cr, applies: cr !== null, acceptable: cr === null ? true : cr <= 0.1 };
+}
+
+// 给定权重时算 λmax：λmax = 平均((Aw)ᵢ / wᵢ)。
+function powerLambda(A, weights) {
+  const n = A.length;
+  return A.reduce((sum, row, i) => sum + row.reduce((s, value, j) => s + value * weights[j], 0) / weights[i], 0) / n;
+}
+
+// 权重排序（只用于展示，不改权重）。
+function rankedWeights(ids, labels, weights) {
+  return ids.map((id, i) => ({ id, label: labels[id] || id, weight: weights[i] }))
+    .sort((a, b) => b.weight - a.weight);
+}
+
+Object.assign(__exports, { SAATY_VALUES, SCALE_LABELS, RI_TABLE, riFor, buildMatrix, priorityVector, consistency, rankedWeights });
+},
 "src/modules/solver/robustness-panel.mjs": (__require, __exports) => {
 // 稳健性检验：在冻结输入的副本上真的改一格、真的重算，再比较集合差异。
 // 不覆盖基线；不把“数量变了”当成稳健性结论；没有完整基线就明说不比。
@@ -15420,6 +15663,7 @@ __require("src/app.mjs");
 </script>
 </body>
 </html>
+
 
 
 

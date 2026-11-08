@@ -1,0 +1,26 @@
+/* AHP 重要性判断：两两比较 + 权重 + 一致性。沿用 v5 令牌，不新增颜色。 */
+.importance-module .importance-pairs .v5-scroll{border:1px solid var(--line2);border-radius:var(--r2);background:var(--panel)}
+.importance-module .importance-pairs select{height:30px;padding:2px 6px;border:1px solid var(--line);border-radius:var(--r);
+  background:var(--panel);font:inherit;font-size:12px;color:var(--tx);max-width:100%}
+.importance-module .importance-pairs td:last-child{width:340px}
+.importance-module .importance-result{margin-top:12px}
+.importance-module .importance-hands{margin:0 0 14px}
+.importance-module .importance-hand{display:grid;grid-template-columns:58px minmax(0,1fr) minmax(120px,auto);gap:10px;
+  align-items:center;margin:4px 0;font-size:13px}
+.importance-module .importance-weight{font-variant-numeric:tabular-nums;font-weight:600;color:var(--pri-d);text-align:right}
+.importance-module .importance-bar{height:14px;border-radius:3px;background:var(--bg);border:1px solid var(--line2);overflow:hidden}
+.importance-module .importance-bar i{display:block;height:100%;background:var(--pri);border-radius:2px 0 0 2px}
+.importance-module .importance-label{overflow-wrap:anywhere}
+.importance-module .importance-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;
+  background:var(--line2);border:1px solid var(--line2);border-radius:var(--r2);overflow:hidden;margin:0}
+.importance-module .importance-facts>div{background:var(--panel);padding:8px 12px}
+.importance-module .importance-facts dt{font-size:12px;color:var(--tx2)}
+.importance-module .importance-facts dd{margin:2px 0 0;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.importance-module .importance-note{font-size:12px;color:var(--tx2);line-height:1.7;margin:10px 0 0}
+.importance-module .importance-warn{font-size:12px;color:var(--wn);border-left:3px solid var(--wn-b);background:var(--wn-s);
+  padding:6px 10px;margin:0 0 10px}
+.importance-module .importance-status{font-size:13px;color:var(--tx2);margin:10px 0 0}
+.importance-module .importance-missing{list-style:none;margin:0;padding:0;font-size:13px}
+.importance-module .importance-missing li{padding:4px 0;border-bottom:1px solid var(--line2)}
+@media(max-width:640px){.importance-module .importance-hand{grid-template-columns:1fr}}
+

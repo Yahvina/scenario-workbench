@@ -388,7 +388,7 @@ export function mount(container,context){
   const envelope={archiveVersion:1,RunInput:pre.input?structuredClone(pre.input):null,RunResult:null,projectInputSnapshot:currentSnapshot(p),preflightDiagnostics:structuredClone(pre.diagnostics),assumptionAcknowledgements:{currentAssumptions:session.assumptions,unknownStateScope:session.unknown},selectionOfJudgments:session.selected.map(id=>{const j=p.data.judgments.find(j=>j.id===id);return {id,version:j?.version??null,evidenceRefs:structuredClone(j?.evidenceRefs||[])};})};
   session.archives.push(envelope);progress=null;session.progress=null;session.running=false;session.scenarioLimit=12;
   if(!pre.input){render();return;}
-  job=createEnumeration(pre.input);session.running=true;const active=job,batch=Math.max(1,Math.min(250,Math.floor(20000/(pre.input.stateDefinitions.length*(pre.input.activeDescriptorIds.length-1)))));
+  job=createEnumeration(pre.input,{keepLimit:100000});session.running=true;const active=job,batch=Math.max(1,Math.min(250,Math.floor(20000/(pre.input.stateDefinitions.length*(pre.input.activeDescriptorIds.length-1)))));
   function tick(){if(disposed||job!==active)return;try{progress=active.step(batch);session.progress=progress;envelope.partialFound=progress.found;
     if(progress.done){envelope.RunResult=progress.result;session.running=false;job=null;timer=null;render();}
     else{const bar=root.querySelector('[data-solver-progress]');if(bar)bar.textContent='已检查 '+progress.result.checked+' / '+(pre.space?pre.space.constrained:'?')+' 种组合，正在计算……未完成前不给自洽总数。';summaryChanged();timer=setTimeout(tick,0);}}

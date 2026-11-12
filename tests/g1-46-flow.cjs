@@ -10,7 +10,7 @@ const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Applic
 
 (async () => {
   const browser = await chromium.launch({ executablePath: CHROME, headless: true, args: ['--disable-gpu', '--no-sandbox'] });
-  const ctx = await browser.newContext({ viewport: { width: 1440, height: 960 } });
+  const ctx = await browser.newContext({ acceptDownloads: true, viewport: { width: 1440, height: 960 } });
   await ctx.addInitScript(() => { window.confirm = () => true; });
   const page = await ctx.newPage();
   page.setDefaultTimeout(Number(process.env.G1_TIMEOUT_MS || 8000));
@@ -161,6 +161,31 @@ const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Applic
     const summary = await page.locator('[data-solver-summary]').innerText();
     assert.match(summary, /共找到 9 种自洽组合/, '实际结果来自 RunResult：' + summary.replace(/\s+/g, ' ').slice(0, 80));
     assert.match(summary, /我的方案/);
+  });
+
+  await step('逐格稳健性：单格修改、完整解集比较与JSON导出', async () => {
+    await nav('稳健性检验');
+    const before = JSON.stringify(await project());
+    const selected = page.locator('select[aria-label="要改的评分格"]');
+    assert.ok(await selected.count());
+    await page.locator('select[aria-label="新评分"]').selectOption({ index: 0 });
+    await page.locator('button', { hasText: '重算并比较' }).click();
+    assert.match(await page.locator('.robust-out').innerText(), /基线自洽组合/);
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('button', { hasText: '导出这次比较' }).click();
+    const download = await downloadPromise;
+    const fs = require('node:fs');
+    const exported = JSON.parse(fs.readFileSync(await download.path(), 'utf8'));
+    assert.equal(exported.checked.baseline, 9);
+    assert.equal(exported.baselineCount, 9);
+    assert.equal(exported.input.matrix.entries.filter((e, i) => e.score !== exported.variantInput.matrix.entries[i].score).length, 1);
+    assert.equal(exported.kept.length + exported.added.length, exported.variantCount);
+    assert.equal(exported.kept.length + exported.removed.length, exported.baselineCount);
+    assert.equal(JSON.stringify(await project()), before);
+    if (process.env.SCORE_SHOT) await page.screenshot({ path: process.env.SCORE_SHOT, fullPage: true });
+    await page.setViewportSize({ width: 390, height: 900 });
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    await page.setViewportSize({ width: 1440, height: 960 });
   });
 
   await step('白箱追踪：节点 4 读到本次 2030 检验，写明解释对象', async () => {

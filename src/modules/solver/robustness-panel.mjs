@@ -1,117 +1,116 @@
-// 稳健性检验：在冻结输入的副本上真的改一格、真的重算，再比较集合差异。
-// 不覆盖基线；不把“数量变了”当成稳健性结论；没有完整基线就明说不比。
 import { el, infoTip } from '../../core/ui.mjs';
-import { readRunArchive } from './index.mjs';
-import { createEnumeration, explain } from './engine.mjs';
+import { readRunArchive, readRunSummary } from './index.mjs';
+import { compareScore } from './score-sensitivity.mjs';
+import { explain } from './engine.mjs';
+import { downloadJson } from '../exports/download.mjs';
 import { planAtYear } from '../elements/state-plan.mjs';
-
-const key = config => Object.entries(config).sort(([a], [b]) => a.localeCompare(b)).map(([d, s]) => d + '=' + s).join('|');
-
-function solve(input) {
-  const job = createEnumeration(input, { displayLimit: 100000, keepLimit: 100000 });
-  let step = job.step(1000);
-  while (!step.done) step = job.step(1000);
-  return step.result;
-}
 
 export function mount(container, context) {
   const root = el('section', { class: 'robustness-module' });
   container.append(root);
-  let result = null;
 
   function render() {
-    const p = context.store.read();
-    const archive = readRunArchive(context.store);
     root.replaceChildren(el('div', { class: 'v5-head' },
       el('p', { class: 'eyebrow' }, 'Tool · Robustness'),
-      el('h1', {}, '稳健性检验', infoTip('在冻结输入的副本上改动一处评分或一条假设，真的重新枚举，再比较自洽组合的新增、消失与保留。基线结果保持不变。', '稳健性检验怎么算'))));
-
+      el('h1', {}, '稳健性检验', infoTip('在冻结输入副本上改单格评分，再完整枚举。比较全部自洽组合的新增、移出与保留。', '怎么算'))));
+    const project = context.store.read();
+    const archive = readRunArchive(context.store);
     if (!archive?.RunInput || archive.RunResult?.status !== 'completed') {
       root.append(el('div', { class: 'v5-empty' }, el('b', {}, '还没有可用的基线'),
         el('button', { class: 'button', onclick: () => context.navigate('solver') }, '去检验与结果')));
       return;
     }
-
     const input = archive.RunInput;
-    const base = archive.RunResult;
-    const ids = input.activeDescriptorIds;
-    const name = id => p.data.descriptors.find(d => d.id === id)?.label || id;
-    const stateName = id => p.data.states.find(s => s.id === id)?.label || id;
-
-    // 可扰动的方向：按源→目标分组矩阵单元
-    const stateDescriptor = id => p.data.states.find(s => s.id === id)?.descriptorId || id;
+    const stale = readRunSummary(context.store)?.stale;
+    const snapshot = archive.projectInputSnapshot || project;
+    const name = id => snapshot.data.descriptors.find(d => d.id === id)?.label || id;
+    const stateName = id => snapshot.data.states.find(s => s.id === id)?.label || id;
+    const stateDescriptor = id => input.stateDefinitions.find(s => s.id === id)?.descriptorId;
     const groups = [];
-    for (const entry of input.matrix.entries) {
+    input.matrix.entries.forEach((entry, index) => {
       const from = stateDescriptor(entry.sourceStateId), to = stateDescriptor(entry.targetStateId);
-      const dir = from + '>' + to;
-      let group = groups.find(g => g.id === dir);
-      if (!group) { group = { id: dir, entries: [], from, to }; groups.push(group); }
-      group.entries.push(entry);
+      let group = groups.find(g => g.from === from && g.to === to);
+      if (!group) { group = { from, to, indices: [] }; groups.push(group); }
+      group.indices.push(index);
+    });
+    const direction = el('select', { 'aria-label': '评分方向' },
+      ...groups.map((g, i) => el('option', { value: i }, name(g.from) + ' → ' + name(g.to))));
+    const cell = el('select', { 'aria-label': '要改的评分格' });
+    const score = el('select', { 'aria-label': '新评分' });
+    const message = el('p', { role: 'status' });
+    const output = el('div', { class: 'robust-out', 'aria-live': 'polite' });
+    let result = null;
+
+    function resetScores() {
+      const current = input.matrix.entries[Number(cell.value)].score;
+      score.replaceChildren(...[-3, -2, -1, 0, 1, 2, 3].filter(n => n !== current)
+        .map(n => el('option', { value: n }, String(n))));
+      score.value = String(current > -3 ? current - 1 : current + 1);
+      message.textContent = '原评分 ' + current;
+      output.replaceChildren();
+      result = null;
     }
+    function resetCells() {
+      cell.replaceChildren(...groups[Number(direction.value)].indices.map(i => {
+        const entry = input.matrix.entries[i];
+        return el('option', { value: i }, stateName(entry.sourceStateId) + ' → ' + stateName(entry.targetStateId));
+      }));
+      resetScores();
+    }
+    direction.addEventListener('change', resetCells);
+    cell.addEventListener('change', resetScores);
+    score.addEventListener('change', () => { output.replaceChildren(); result = null; });
+    resetCells();
 
-    const pick = el('select', { 'aria-label': '选择要扰动的方向' },
-      ...groups.map(g => el('option', { value: g.id }, name(g.from) + ' → ' + name(g.to) + '（' + g.entries.length + ' 格）')));
-    const delta = el('select', { 'aria-label': '扰动量' }, el('option', { value: '1' }, '每条 +1（上限 +3）'), el('option', { value: '-1' }, '每条 −1（下限 −3）'));
-    const out = el('div', { class: 'robust-out' });
-    const message = el('p', { class: 'robust-msg', role: 'status' });
-
+    function download() {
+      downloadJson('稳健性比较_' + input.year + '.json', result);
+    }
     function run() {
       try {
-        const group = groups.find(g => g.id === pick.value) || groups[0];
-        const step = Number(delta.value);
-        const clone = structuredClone(input);
-        let changed = 0;
-        for (const entry of clone.matrix.entries) {
-          if (!group.entries.some(e => e.sourceStateId === entry.sourceStateId && e.targetStateId === entry.targetStateId)) continue;
-          const next = Math.max(-3, Math.min(3, entry.score + step));
-          if (next !== entry.score) { entry.score = next; changed++; }
+        result = compareScore(input, Number(cell.value), Number(score.value));
+        const stats = [
+          ['基线自洽组合', result.baselineCount], ['重算后', result.variantCount],
+          ['保留', result.kept.length], ['新增', result.added.length], ['移出', result.removed.length]
+        ];
+        output.replaceChildren(el('div', { class: 'robust-stats' },
+          ...stats.map(([label, value]) => el('div', {}, el('b', {}, String(value)), el('span', {}, label)))));
+        const plan = planAtYear(project, input.year);
+        if (plan.complete && !stale) {
+          const before = explain(input, plan.config), after = explain(result.variantInput, plan.config);
+          output.append(el('p', {}, '我的方案 ' + (before.consistent ? '自洽' : '有冲突') + ' → ' + (after.consistent ? '自洽' : '有冲突')));
         }
-        if (!changed) throw new Error('这条方向的评分已经在边界上，无法再移动');
-        const variant = solve(clone);
-        if (variant.status !== 'completed') throw new Error('扰动后的重算没有完成，不能比较');
-        const baseSet = new Set((base.all || base.scenarios).map(key));
-        const nextSet = new Set((variant.all || variant.scenarios).map(key));
-        const kept = [...baseSet].filter(k => nextSet.has(k)).length;
-        const added = [...nextSet].filter(k => !baseSet.has(k)).length;
-        const removed = [...baseSet].filter(k => !nextSet.has(k)).length;
-        let planNote = '这一年的方案状态不全，无法比较我的方案结论。';
-        const plan = planAtYear(p, input.year);
-        if (plan.complete) {
-          const before = explain(input, plan.config), after = explain(clone, plan.config);
-          planNote = '我的方案：' + (before.consistent ? '自洽' : '有 ' + before.conflicts.length + ' 个因素冲突') + ' → '
-            + (after.consistent ? '自洽' : '有 ' + after.conflicts.length + ' 个因素冲突');
-        }
-        result = { group, step, changed, base: base.count, variant: variant.count, kept, added, removed, planNote };
-        out.replaceChildren(
-          el('div', { class: 'robust-stats' },
-            el('div', {}, el('b', {}, String(base.count)), el('span', {}, '基线自洽组合')),
-            el('div', {}, el('b', {}, String(variant.count)), el('span', {}, '扰动后自洽组合')),
-            el('div', {}, el('b', {}, String(kept)), el('span', {}, '保留')),
-            el('div', {}, el('b', {}, '+ ' + added), el('span', {}, '新增')),
-            el('div', {}, el('b', {}, '− ' + removed), el('span', {}, '消失'))),
-          el('p', {}, planNote),
-                    );
-        message.textContent = '已重算完成；比较基于两次完整枚举。';
+        const changed = [...result.added.map(config => ['新增', config]), ...result.removed.map(config => ['移出', config])];
+        if (changed.length) {
+          const table = el('table', { class: 'v5-table' }, el('thead', {}, el('tr', {},
+            el('th', { scope: 'col' }, '变化'), ...input.activeDescriptorIds.map(id => el('th', { scope: 'col' }, name(id))))));
+          table.append(el('tbody', {}, ...changed.slice(0, 20).map(([label, config]) => el('tr', {},
+            el('td', {}, label), ...input.activeDescriptorIds.map(id => el('td', {}, stateName(config[id])))))));
+          output.append(el('div', { class: 'v5-scroll' }, table));
+          if (changed.length > 20) output.append(el('p', {}, '共 ' + changed.length + ' 条变化，表内展示前 20 条；导出含全部变化。'));
+        } else output.append(el('p', {}, '本次评分改动后，自洽组合相同。'));
+        output.append(el('button', { class: 'button', onclick: download }, '导出这次比较'));
+        message.textContent = '评分 ' + result.change.previousScore + ' → ' + result.change.score +
+          '，两次各检查 ' + result.checked.baseline + ' 个候选组合。';
       } catch (error) {
-        out.replaceChildren();
-        message.textContent = '未完成：' + error.message;
+        output.replaceChildren();
+        result = null;
+        message.textContent = '未完成 ' + error.message;
       }
     }
-
-    root.append(el('div', { class: 'v5-card' }, el('div', { class: 'hd' }, el('h2', {}, '基线'), el('span', { class: 'note' }, '冻结于 ' + (base.createdAt || '未记录'))),
-      el('div', { class: 'bd' },
-        el('p', {}, input.year + ' 年 · ' + name(ids[0]) + (ids[1] ? '、' + name(ids[1]) : '') + (ids.length > 2 ? ' 等 ' + ids.length + ' 个因素' : '') + ' · 已检查 ' + base.checked + ' 种组合 · 自洽 ' + base.count),
-        el('p', { class: 'v5-hint' }, '基线来自「检验与结果」的本次结果；刷新后需重新计算。'))),
-      el('div', { class: 'v5-card' }, el('div', { class: 'hd' }, el('h2', {}, '扰动一处并重算')),
+    root.append(el('div', { class: 'v5-card' },
+      el('div', { class: 'hd' }, el('h2', {}, '基线')),
+      el('div', { class: 'bd' }, input.year + ' 年 · ' + input.activeDescriptorIds.map(name).join('、') +
+        ' · ' + archive.RunResult.count + ' 个自洽组合' + (stale ? ' · 历史输入，当前设定已改变' : ''))),
+      el('div', { class: 'v5-card' }, el('div', { class: 'hd' }, el('h2', {}, '改单格并重算')),
         el('div', { class: 'bd' },
-          el('label', { class: 'robust-field' }, '方向', pick),
-          el('label', { class: 'robust-field' }, '扰动量', delta),
+          el('label', { class: 'robust-field' }, '方向', direction),
+          el('label', { class: 'robust-field' }, '评分格', cell),
+          el('label', { class: 'robust-field' }, '新评分', score),
           el('div', { class: 'robust-actions' }, el('button', { class: 'button primary-action', onclick: run }, '重算并比较')),
-          message, out)),
-      );
+          message, output)));
   }
-
   const off = context.store.subscribe(render);
   render();
   return () => { off(); root.remove(); };
 }
+

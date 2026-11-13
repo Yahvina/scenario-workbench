@@ -60,12 +60,21 @@ export function buildJudgmentChange(project, sourceId, targetId, original, draft
   return next;
 }
 
-export function buildMatrix(project, {year,selectedJudgmentIds=[]} = {}) {
+export function buildMatrix(project, {year,selectedJudgmentIds=[],conditionedStateIds=[]} = {}) {
   const diagnostics=[];
   const report=(code,message,recordIds=[])=>diagnostics.push({code,message,recordIds});
   if (!Number.isInteger(year) || !project.scope.years.includes(year)) report('YEAR_REQUIRED','请显式选择项目研究年份');
   if (!project.scope.regionId) report('REGION_REQUIRED','项目研究地区未指定，未知范围不能当通用');
   const descriptorIds=[...project.selection.descriptorIds];
+  const conditioned=new Map();
+  if(!Array.isArray(conditionedStateIds)) report('INVALID_CONDITION','给定状态须为数组');
+  else for(const id of conditionedStateIds){
+    const state=project.data.states.find(s=>s.id===id);
+    if(!state||!descriptorIds.includes(state.descriptorId)||conditioned.has(state.descriptorId))report('INVALID_CONDITION','给定状态缺失、非活动或同因素重复',[id]);
+    else conditioned.set(state.descriptorId,id);
+  }
+  if(conditioned.size&&conditioned.size===descriptorIds.length)report('INVALID_CONDITION','至少保留一个参与自洽判定的因素');
+  if(diagnostics.some(d=>d.code==='INVALID_CONDITION'))return {snapshot:null,diagnostics};
   if(descriptorIds.length<2) report('DESCRIPTORS_REQUIRED','至少需要两个活动变量');
   if(diagnostics.some(d=>['YEAR_REQUIRED','REGION_REQUIRED'].includes(d.code))) return {snapshot:null,diagnostics};
   const stateIdsByDescriptor=Object.fromEntries(descriptorIds.map(id=>[id,[]]));
@@ -90,7 +99,7 @@ export function buildMatrix(project, {year,selectedJudgmentIds=[]} = {}) {
   }
   const entries=[], evidence=new Set();
   for(const sourceId of descriptorIds) for(const targetId of descriptorIds) {
-    if(sourceId===targetId) continue;
+    if(sourceId===targetId||conditioned.has(targetId)) continue;
     const records=project.data.judgments.filter(j=>j.sourceDescriptorId===sourceId && j.targetDescriptorId===targetId);
     const applicable=[];
     for(const record of records) {
@@ -123,6 +132,7 @@ export function buildMatrix(project, {year,selectedJudgmentIds=[]} = {}) {
       if(!external.some(e=>e.kind==='paper'||e.kind==='historical-data')) report('RELATION_EVIDENCE_GAP','尚缺关系规律的论文/历史数据依据；政策或修改记录不能替代',[chosen.id]);
       for(const id of chosen.evidenceRefs||[]) {if(project.data.evidence.some(e=>e.id===id)) evidence.add(id); else report('EVIDENCE_MISSING','判断引用缺失依据',[chosen.id,id]);}
       for(const entry of chosen.entries||[]) {
+        if(conditioned.has(sourceId)&&entry.sourceStateId!==conditioned.get(sourceId))continue;
         const key=pairKey(entry.sourceStateId,entry.targetStateId);
         if(!stateIdsByDescriptor[sourceId].includes(entry.sourceStateId)||!stateIdsByDescriptor[targetId].includes(entry.targetStateId)) {report('STALE_STATE_REFERENCE','判断包含旧状态或跨变量引用，忽略该行',[chosen.id,entry.sourceStateId,entry.targetStateId]);continue;}
         if(scoreMap.has(key)) {scoreMap.set(key,null);report('DUPLICATE_ENTRY','同一状态对重复，不采用其分数',[chosen.id,entry.sourceStateId,entry.targetStateId]);}
@@ -130,7 +140,7 @@ export function buildMatrix(project, {year,selectedJudgmentIds=[]} = {}) {
         else scoreMap.set(key,entry.score);
       }
     }
-    for(const sourceStateId of stateIdsByDescriptor[sourceId]) for(const targetStateId of stateIdsByDescriptor[targetId]) entries.push({sourceStateId,targetStateId,score:scoreMap.get(pairKey(sourceStateId,targetStateId))??null,judgmentId:chosen?.id||null});
+    for(const sourceStateId of stateIdsByDescriptor[sourceId].filter(id=>!conditioned.has(sourceId)||id===conditioned.get(sourceId))) for(const targetStateId of stateIdsByDescriptor[targetId]) entries.push({sourceStateId,targetStateId,score:scoreMap.get(pairKey(sourceStateId,targetStateId))??null,judgmentId:chosen?.id||null});
   }
   const missingPairs=entries.filter(e=>e.score===null).map(e=>({sourceStateId:e.sourceStateId,targetStateId:e.targetStateId}));
   return {snapshot:{version:1,descriptorIds,stateIdsByDescriptor,year,entries,coverage:{required:entries.length,judged:entries.length-missingPairs.length,missingPairs},evidenceRefs:[...evidence]},diagnostics};

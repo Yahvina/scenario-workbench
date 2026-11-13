@@ -128,6 +128,10 @@ export function buildReport({project = null, archive = null, generatedAt = null}
   const input = archive.RunInput;
   const coverage = isObject(input) && isObject(input.matrix) ? input.matrix.coverage : null;
   const coverageLines = [];
+  if(Array.isArray(input?.conditionedStateIds)&&input.conditionedStateIds.length){
+    coverageLines.push('给定条件（只提供影响，自身免于判定）：'+input.conditionedStateIds.map(id=>{const state=data.states.find(s=>s.id===id);return (data.descriptors.find(d=>d.id===state?.descriptorId)?.label||state?.descriptorId)+'='+(state?.label||id);}).join('、')+'。',
+      '覆盖数只针对本次条件计算实际需要的评分，不表示全矩阵已填齐。');
+  }
   if (!isObject(coverage)) {
     coverageLines.push('矩阵覆盖：未定（归档没有可读的 RunInput 矩阵）。', '未判断单元：未定；未定不等于没有未判断单元。');
     gaps.push('归档没有矩阵覆盖记录：未判断单元数量未定。');

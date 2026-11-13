@@ -213,6 +213,11 @@ export function compareRuns({left = null, right = null} = {}) {
   const leftResult = isObject(leftArchive.RunResult) ? leftArchive.RunResult : null;
   const rightResult = isObject(rightArchive.RunResult) ? rightArchive.RunResult : null;
   const rows = [];
+  if(leftInput?.conditionedStateIds?.length||rightInput?.conditionedStateIds?.length){
+    const left=[...(leftInput?.conditionedStateIds||[])].sort(),right=[...(rightInput?.conditionedStateIds||[])].sort();
+    const label=(ids,snapshot)=>ids.map(id=>{const s=snapshot?.data?.states?.find(s=>s.id===id);return (snapshot?.data?.descriptors?.find(d=>d.id===s?.descriptorId)?.label||s?.descriptorId||'因素')+'='+(s?.label||id);}).join('、')||'无';
+    rows.push(row(JSON.stringify(left)===JSON.stringify(right)?'same':'changed','给定条件（免于自身判定）',label(left,leftSnapshot),label(right,rightSnapshot),{leftId:left,rightId:right}));
+  }
 
   // 冻结修订：两份归档各自冻结时的项目修订，不是当前项目。
   const leftRevision = leftSnapshot?.revision, rightRevision = rightSnapshot?.revision;

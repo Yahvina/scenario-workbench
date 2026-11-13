@@ -1,6 +1,7 @@
 import {buildMatrix} from '../relationships/logic.mjs';
 import {validateProject} from '../../core/contracts.mjs';
 export const engineVersion='cib-exact-1.0.0';
+export const conditionedEngineVersion='cib-conditioned-1.0.0';
 export const maxSpace=100000;
 export const diagnosticClasses={
  YEAR_REQUIRED:'block',REGION_REQUIRED:'block',DESCRIPTORS_REQUIRED:'block',STATES_MISSING:'block',STATE_REFERENCE_MISSING:'block',STATE_YEARS_INVALID:'block',STATE_YEAR_MISMATCH:'block',STATE_REGION_MISMATCH:'block',STATE_YEARS_UNKNOWN:'unknown-state',STATE_REGION_UNKNOWN:'unknown-state',JUDGMENT_NOT_FOUND:'block',INACTIVE_JUDGMENT:'block',MULTIPLE_SELECTED:'block',SELECTED_INAPPLICABLE:'block',CONFLICT:'block',NO_APPLICABLE_JUDGMENT:'block',STALE_STATE_REFERENCE:'block',DUPLICATE_ENTRY:'block',INVALID_SCORE:'block',EVIDENCE_MISSING:'block',
@@ -17,7 +18,7 @@ const year=value=>Number.isInteger(value)&&value>=1900&&value<=2300;
 const years=value=>Array.isArray(value)&&Array.from(value).every(year)&&new Set(value).size===value.length;
 export function freeze(value){if(value&&typeof value==='object'){Object.values(value).forEach(freeze);Object.freeze(value);}return value;}
 function dimensions(input){
- need(record(input)&&input.schemaVersion===1&&input.contractVersion==='1.0.0'&&input.method==='cib'&&input.engineVersion===engineVersion&&input.seed===null,'输入/方法版本不支持');
+ need(record(input)&&input.schemaVersion===1&&input.contractVersion==='1.0.0'&&input.method==='cib'&&[engineVersion,conditionedEngineVersion].includes(input.engineVersion)&&input.seed===null,'输入/方法版本不支持');
  need(id(input.projectId)&&Number.isSafeInteger(input.revision)&&input.revision>=0,'项目ID须为非空字符串，revision须为非负安全整数','INVALID_RUN_METADATA');
  need(record(input.solverConfig)&&input.solverConfig.mode==='enumerate','仅支持精确枚举，不支持sample');
  const limit=input.solverConfig.limit??maxSpace;need(Number.isInteger(limit)&&limit>0&&limit<=maxSpace,'规模限制须为1—100000');
@@ -41,41 +42,49 @@ function dimensions(input){
  for(const id of descriptorIds){const list=states.filter(s=>s.descriptorId===id).map(s=>s.id),declared=matrix.stateIdsByDescriptor[id];need(list.length&&ids(declared)&&list.length===declared.length&&list.every(s=>declared.includes(s)),'状态集合/归属不匹配');byDescriptor.set(id,list);unrestricted*=BigInt(list.length);}
  const locks=input.lockedStateIds;need(ids(locks),'锁定重复或无效');
  const locked=new Map();for(const stateId of locks){const s=states.find(s=>s.id===stateId);need(s&&!locked.has(s.descriptorId),'锁定非活动状态或同变量多锁');locked.set(s.descriptorId,stateId);}
+ const conditionIds=input.conditionedStateIds??[];need(ids(conditionIds),'给定状态重复或无效');
+ need(!conditionIds.length||input.engineVersion===conditionedEngineVersion,'给定条件必须使用专用方法版本');
+ const conditioned=new Map();for(const stateId of conditionIds){const s=states.find(s=>s.id===stateId);need(s&&!conditioned.has(s.descriptorId),'给定非活动状态或同因素多次给定');need(!locked.has(s.descriptorId)||locked.get(s.descriptorId)===stateId,'给定状态与原锁定状态冲突');conditioned.set(s.descriptorId,stateId);locked.set(s.descriptorId,stateId);}
+ need(conditioned.size<descriptorIds.length,'至少保留一个参与自洽判定的因素');
  for(const id of descriptorIds)space*=BigInt(locked.has(id)?1:byDescriptor.get(id).length);
- return {ids:descriptorIds,states,byDescriptor,locked,space,unrestricted,limit,scopeDiagnostics};
+ return {ids:descriptorIds,states,byDescriptor,locked,conditioned,space,unrestricted,limit,scopeDiagnostics};
 }
 export function inspectInput(input){
  const compiled=dimensions(input),{ids,states,byDescriptor}=compiled,matrix=input.matrix;
  const entries=new Map();need(Array.isArray(matrix.entries),'矩阵缺失');
  for(const e of matrix.entries){need(record(e)&&id(e.sourceStateId)&&id(e.targetStateId),'矩阵单元/状态ID无效');const a=states.find(s=>s.id===e.sourceStateId),b=states.find(s=>s.id===e.targetStateId);need(a&&b&&a.descriptorId!==b.descriptorId&&!entries.has(key(a.id,b.id)),'矩阵重复、归属错误或包含自影响');need(Number.isInteger(e.score)&&Math.abs(e.score)<=3&&id(e.judgmentId),'有格子还没给分，或分数不是 −3…+3 的整数');entries.set(key(a.id,b.id),e);}
- let required=0;for(const a of ids)for(const b of ids)if(a!==b)for(const x of byDescriptor.get(a))for(const y of byDescriptor.get(b)){required++;need(entries.has(key(x,y)),'矩阵不完整，不能补0');}
+ let required=0;for(const a of ids)for(const b of ids)if(a!==b&&!compiled.conditioned.has(b))for(const x of compiled.conditioned.has(a)?[compiled.conditioned.get(a)]:byDescriptor.get(a))for(const y of byDescriptor.get(b)){required++;need(entries.has(key(x,y)),'矩阵不完整，不能补0');}
  need(entries.size===required,'额外矩阵单元');
  const coverage={required,judged:entries.size,missingPairs:[]},declared=matrix.coverage;
  need(record(declared)&&Number.isSafeInteger(declared.required)&&Number.isSafeInteger(declared.judged)&&declared.required===coverage.required&&declared.judged===coverage.judged&&Array.isArray(declared.missingPairs)&&declared.missingPairs.length===0,'coverage与实际完整矩阵不一致','COVERAGE_MISMATCH');
  return {...compiled,entries,coverage};
 }
-export function prepareRun(project,{year,selectedJudgmentIds=[],assumptionAcknowledgements={},limit=maxSpace}){
+export function prepareRun(project,{year,selectedJudgmentIds=[],assumptionAcknowledgements={},limit=maxSpace,conditionedStateIds=[]}){
  const diagnostics=[];let snapshot=null;const add=(code,message)=>diagnostics.push({code,message,recordIds:[],classification:'block'});
  try{validateProject(project);}catch(error){add('INVALID_PROJECT',error.message);return {input:null,diagnostics,space:null};}
- const result=buildMatrix(project,{year,selectedJudgmentIds});snapshot=result.snapshot;
+ const result=buildMatrix(project,{year,selectedJudgmentIds,conditionedStateIds});snapshot=result.snapshot;
  for(const d of result.diagnostics)diagnostics.push({...d,classification:classifyDiagnostic(d,selectedJudgmentIds)});
  if(!snapshot)add('MATRIX_REQUIRED','无法准备当前矩阵');
  if(snapshot&&snapshot.coverage.missingPairs.length)add('MISSING_SCORES','还有 '+snapshot.coverage.missingPairs.length+' 格没填评分（空白＝未判断，不等于 0）');
  if(diagnostics.some(d=>d.classification==='warning')&&assumptionAcknowledgements.currentAssumptions!==true)add('ASSUMPTIONS_REQUIRED','请明确同意按当前草案/依据不足/量表假设检算');
  if(diagnostics.some(d=>d.classification==='unknown-state')&&assumptionAcknowledgements.unknownStateScope!==true)add('STATE_ASSUMPTIONS_REQUIRED','请明确同意把未声明的状态范围作为当前截面假设');
  const input={schemaVersion:1,contractVersion:project.contractVersion,projectId:project.id,revision:project.revision,scope:structuredClone(project.scope),year,activeDescriptorIds:[...project.selection.descriptorIds],stateDefinitions:structuredClone(project.data.states.filter(s=>project.selection.descriptorIds.includes(s.descriptorId))),matrix:structuredClone(snapshot),lockedStateIds:[...project.selection.lockedStateIds],method:'cib',engineVersion,solverConfig:{mode:'enumerate',limit},seed:null};
+ if(Array.isArray(conditionedStateIds)&&conditionedStateIds.length){input.conditionedStateIds=[...conditionedStateIds];input.engineVersion=conditionedEngineVersion;}
  let space=null;
  if(snapshot)try{const inspected=dimensions(input);space={unconstrained:inspected.unrestricted.toString(),constrained:inspected.space.toString(),limit};if(inspected.space>BigInt(limit))add('SPACE_LIMIT','精确空间'+inspected.space+'超过安全上限'+limit+'；无约束空间'+inspected.unrestricted);inspectInput(input);}catch(error){add('INVALID_RUN_INPUT',error.message);}
  return {input:diagnostics.some(d=>d.classification==='block')?null:freeze(input),diagnostics,space};
 }
 function evaluateCompiled(input,c,configuration){
  need(configuration&&Object.keys(configuration).length===c.ids.length&&c.ids.every(id=>c.byDescriptor.get(id).includes(configuration[id])),'配置必须为每个变量指定有效状态');
- const balances=c.ids.map(target=>{
+ const conditionMismatch=[...c.conditioned].filter(([id,state])=>configuration[id]!==state).map(([id])=>id);
+ if(conditionMismatch.length)return {configuration:structuredClone(configuration),consistent:false,conflicts:conditionMismatch,violatesLocks:true,balances:[],conditionedStateIds:[...c.conditioned.values()],violatesConditions:conditionMismatch};
+ const balances=c.ids.filter(target=>!c.conditioned.has(target)).map(target=>{
    const candidates=c.byDescriptor.get(target).map(stateId=>{const contributions=c.ids.filter(source=>source!==target).map(source=>{const e=c.entries.get(key(configuration[source],stateId));return {sourceDescriptorId:source,sourceStateId:configuration[source],score:e.score,judgmentId:e.judgmentId};});return {stateId,support:contributions.reduce((sum,x)=>sum+x.score,0),contributions};});
    const maximum=candidates.reduce((m,x)=>Math.max(m,x.support),-Infinity),selectedSupport=candidates.find(x=>x.stateId===configuration[target]).support;
    return {descriptorId:target,selectedStateId:configuration[target],selectedSupport,maximum,gap:maximum-selectedSupport,consistent:selectedSupport===maximum,candidates};
  });
- return {configuration:structuredClone(configuration),consistent:balances.every(b=>b.consistent),conflicts:balances.filter(b=>!b.consistent).map(b=>b.descriptorId),violatesLocks:[...c.locked].some(([id,state])=>configuration[id]!==state),balances};
+ const violatesConditions=[...c.conditioned].filter(([id,state])=>configuration[id]!==state).map(([id])=>id);
+ return {configuration:structuredClone(configuration),consistent:balances.every(b=>b.consistent)&&!violatesConditions.length,conflicts:[...balances.filter(b=>!b.consistent).map(b=>b.descriptorId),...violatesConditions],violatesLocks:[...c.locked].some(([id,state])=>configuration[id]!==state),balances,...(c.conditioned.size?{conditionedStateIds:[...c.conditioned.values()],violatesConditions}: {})};
 }
 export function explain(input,configuration){return evaluateCompiled(input,inspectInput(input),configuration);}
 export function createEnumeration(rawInput,{displayLimit=100,keepLimit=displayLimit}={}){

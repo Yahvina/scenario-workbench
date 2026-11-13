@@ -15,6 +15,11 @@ export const FORMULAS = [
       const n = ids.length, pairs = m.reduce((s, x) => s + x, 0);
       const cells = m.reduce((s, x, i) => s + x * (pairs - m[i]), 0);
       const locks = ctx.input.lockedStateIds?.length || 0;
+      if(ctx.input.conditionedStateIds?.length){
+        const fixed=new Set([...(ctx.input.lockedStateIds||[]),...ctx.input.conditionedStateIds].map(id=>ctx.input.stateDefinitions.find(s=>s.id===id)?.descriptorId));
+        const candidates=ids.reduce((total,id,i)=>total*(fixed.has(id)?1:m[i]),1);
+        return '无约束 N = '+m.reduce((a,b)=>a*b,1)+'；给定 '+ctx.input.conditionedStateIds.length+' 个因素；本次候选 '+candidates+' 个；本次实际需要 '+ctx.input.matrix.entries.length+' 格评分（不要求给定目标及未选来源行）。';
+      }
       return 'm = [' + m.join(', ') + ']；N = ' + m.reduce((a, b) => a * b, 1) + '；方向数 = ' + n * (n - 1) + '；状态对格数 = ' + cells + (locks ? '；已锁定 ' + locks + ' 个状态' : '；未锁定');
     }
   },
@@ -30,7 +35,7 @@ export const FORMULAS = [
   },
   {
     id: 'consistent', group: '自洽判据', title: '内部一致性判据',
-    meaning: '一个配置自洽，指每个变量所选状态的支持分，都不低于它任何替代状态的支持分。允许并列。',
+    meaning: '一个配置自洽，指每个接受判定的变量所选状态的支持分，都不低于它任何替代状态的支持分。允许并列。给定条件自身免检，锁定状态仍接受判定。',
     expr: '∀j, l：Iⱼ(sⱼ | s) ≥ Iⱼ(l | s)',
     symbols: [['sⱼ', '配置里 j 实际取的状态'], ['l', 'j 的任意候选状态']],
     source: 'Weimer-Jehle (2009) Eq.8；engine.mjs consistent',

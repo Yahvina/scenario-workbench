@@ -141,7 +141,7 @@ export function buildChain({ project, archive, fresh, planChecks = {} }) {
     id: 'solve', no: 7, title: 'CIB 检验', module: 'solver',
     status: !archive ? 'empty' : run?.status === 'completed' ? (fresh ? 'ok' : 'stale') : run?.status === 'blocked' ? 'gap' : 'gap',
     input: [['年份', archive?.RunInput?.year ?? '未开始'], ['枚举上限', archive?.RunInput?.solverConfig?.limit ?? '—'], ['锁定', (archive?.RunInput?.lockedStateIds || []).length + ' 个']],
-    did: '逐个枚举配置，对每个变量比较“所选状态”和“任何替代状态”的支持分。',
+    did: archive?.RunInput?.conditionedStateIds?.length?'固定给定状态，只对其余因素比较所选与替代状态的支持分；给定因素继续提供影响。':'逐个枚举配置，对每个变量比较“所选状态”和“任何替代状态”的支持分。',
     output: !run ? ['还没有检算归档'] : [run.status === 'completed' ? '完成：检查 ' + run.checked + ' 个，自洽 ' + run.count + ' 个' : run.status === 'failed' ? '未完成：已检查 ' + run.checked + '，不能报全空间结论' : '阻断：未开始，成立数未定'],
     source: 'RunResult · ' + (archive?.RunInput?.engineVersion || '引擎版本未知') + (archive ? ' · ' + run?.id : ''),
     gaps: !run ? ['尚未运行 CIB'] : run.truncated ? ['展示列表截断：计数完整，但逐条分析只覆盖前 ' + run.scenarios.length + ' 个'] : []

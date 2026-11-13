@@ -444,6 +444,9 @@
 /* 稳健性检验 */
 .robustness-module .v5-head{margin-bottom:12px}
 .robustness-module .robust-field{display:flex;gap:10px;align-items:center;font-size:13px;margin:6px 0}
+.solver-module [data-condition-settings]{padding:12px;margin:12px 0}
+.solver-module [data-condition-settings] .robust-field{display:flex;flex-direction:row;align-items:center;gap:10px;margin:8px 0;font-size:13px;flex-wrap:wrap}
+.solver-module [data-condition-settings] select{min-width:160px;padding:6px}
 .robustness-module .robust-field select{flex:1 1 240px;padding:6px 8px}
 .robustness-module .robust-actions{margin:10px 0 0}
 .robustness-module .robust-msg{font-size:12px;color:var(--tx2);margin:8px 0 0;min-height:18px}
@@ -2538,12 +2541,21 @@ function buildJudgmentChange(project, sourceId, targetId, original, draft, newId
   return next;
 }
 
-function buildMatrix(project, {year,selectedJudgmentIds=[]} = {}) {
+function buildMatrix(project, {year,selectedJudgmentIds=[],conditionedStateIds=[]} = {}) {
   const diagnostics=[];
   const report=(code,message,recordIds=[])=>diagnostics.push({code,message,recordIds});
   if (!Number.isInteger(year) || !project.scope.years.includes(year)) report('YEAR_REQUIRED','请显式选择项目研究年份');
   if (!project.scope.regionId) report('REGION_REQUIRED','项目研究地区未指定，未知范围不能当通用');
   const descriptorIds=[...project.selection.descriptorIds];
+  const conditioned=new Map();
+  if(!Array.isArray(conditionedStateIds)) report('INVALID_CONDITION','给定状态须为数组');
+  else for(const id of conditionedStateIds){
+    const state=project.data.states.find(s=>s.id===id);
+    if(!state||!descriptorIds.includes(state.descriptorId)||conditioned.has(state.descriptorId))report('INVALID_CONDITION','给定状态缺失、非活动或同因素重复',[id]);
+    else conditioned.set(state.descriptorId,id);
+  }
+  if(conditioned.size&&conditioned.size===descriptorIds.length)report('INVALID_CONDITION','至少保留一个参与自洽判定的因素');
+  if(diagnostics.some(d=>d.code==='INVALID_CONDITION'))return {snapshot:null,diagnostics};
   if(descriptorIds.length<2) report('DESCRIPTORS_REQUIRED','至少需要两个活动变量');
   if(diagnostics.some(d=>['YEAR_REQUIRED','REGION_REQUIRED'].includes(d.code))) return {snapshot:null,diagnostics};
   const stateIdsByDescriptor=Object.fromEntries(descriptorIds.map(id=>[id,[]]));
@@ -2568,7 +2580,7 @@ function buildMatrix(project, {year,selectedJudgmentIds=[]} = {}) {
   }
   const entries=[], evidence=new Set();
   for(const sourceId of descriptorIds) for(const targetId of descriptorIds) {
-    if(sourceId===targetId) continue;
+    if(sourceId===targetId||conditioned.has(targetId)) continue;
     const records=project.data.judgments.filter(j=>j.sourceDescriptorId===sourceId && j.targetDescriptorId===targetId);
     const applicable=[];
     for(const record of records) {
@@ -2601,6 +2613,7 @@ function buildMatrix(project, {year,selectedJudgmentIds=[]} = {}) {
       if(!external.some(e=>e.kind==='paper'||e.kind==='historical-data')) report('RELATION_EVIDENCE_GAP','尚缺关系规律的论文/历史数据依据；政策或修改记录不能替代',[chosen.id]);
       for(const id of chosen.evidenceRefs||[]) {if(project.data.evidence.some(e=>e.id===id)) evidence.add(id); else report('EVIDENCE_MISSING','判断引用缺失依据',[chosen.id,id]);}
       for(const entry of chosen.entries||[]) {
+        if(conditioned.has(sourceId)&&entry.sourceStateId!==conditioned.get(sourceId))continue;
         const key=pairKey(entry.sourceStateId,entry.targetStateId);
         if(!stateIdsByDescriptor[sourceId].includes(entry.sourceStateId)||!stateIdsByDescriptor[targetId].includes(entry.targetStateId)) {report('STALE_STATE_REFERENCE','判断包含旧状态或跨变量引用，忽略该行',[chosen.id,entry.sourceStateId,entry.targetStateId]);continue;}
         if(scoreMap.has(key)) {scoreMap.set(key,null);report('DUPLICATE_ENTRY','同一状态对重复，不采用其分数',[chosen.id,entry.sourceStateId,entry.targetStateId]);}
@@ -2608,7 +2621,7 @@ function buildMatrix(project, {year,selectedJudgmentIds=[]} = {}) {
         else scoreMap.set(key,entry.score);
       }
     }
-    for(const sourceStateId of stateIdsByDescriptor[sourceId]) for(const targetStateId of stateIdsByDescriptor[targetId]) entries.push({sourceStateId,targetStateId,score:scoreMap.get(pairKey(sourceStateId,targetStateId))??null,judgmentId:chosen?.id||null});
+    for(const sourceStateId of stateIdsByDescriptor[sourceId].filter(id=>!conditioned.has(sourceId)||id===conditioned.get(sourceId))) for(const targetStateId of stateIdsByDescriptor[targetId]) entries.push({sourceStateId,targetStateId,score:scoreMap.get(pairKey(sourceStateId,targetStateId))??null,judgmentId:chosen?.id||null});
   }
   const missingPairs=entries.filter(e=>e.score===null).map(e=>({sourceStateId:e.sourceStateId,targetStateId:e.targetStateId}));
   return {snapshot:{version:1,descriptorIds,stateIdsByDescriptor,year,entries,coverage:{required:entries.length,judged:entries.length-missingPairs.length,missingPairs},evidenceRefs:[...evidence]},diagnostics};
@@ -3676,6 +3689,11 @@ const FORMULAS = [
       const n = ids.length, pairs = m.reduce((s, x) => s + x, 0);
       const cells = m.reduce((s, x, i) => s + x * (pairs - m[i]), 0);
       const locks = ctx.input.lockedStateIds?.length || 0;
+      if(ctx.input.conditionedStateIds?.length){
+        const fixed=new Set([...(ctx.input.lockedStateIds||[]),...ctx.input.conditionedStateIds].map(id=>ctx.input.stateDefinitions.find(s=>s.id===id)?.descriptorId));
+        const candidates=ids.reduce((total,id,i)=>total*(fixed.has(id)?1:m[i]),1);
+        return '无约束 N = '+m.reduce((a,b)=>a*b,1)+'；给定 '+ctx.input.conditionedStateIds.length+' 个因素；本次候选 '+candidates+' 个；本次实际需要 '+ctx.input.matrix.entries.length+' 格评分（不要求给定目标及未选来源行）。';
+      }
       return 'm = [' + m.join(', ') + ']；N = ' + m.reduce((a, b) => a * b, 1) + '；方向数 = ' + n * (n - 1) + '；状态对格数 = ' + cells + (locks ? '；已锁定 ' + locks + ' 个状态' : '；未锁定');
     }
   },
@@ -3691,7 +3709,7 @@ const FORMULAS = [
   },
   {
     id: 'consistent', group: '自洽判据', title: '内部一致性判据',
-    meaning: '一个配置自洽，指每个变量所选状态的支持分，都不低于它任何替代状态的支持分。允许并列。',
+    meaning: '一个配置自洽，指每个接受判定的变量所选状态的支持分，都不低于它任何替代状态的支持分。允许并列。给定条件自身免检，锁定状态仍接受判定。',
     expr: '∀j, l：Iⱼ(sⱼ | s) ≥ Iⱼ(l | s)',
     symbols: [['sⱼ', '配置里 j 实际取的状态'], ['l', 'j 的任意候选状态']],
     source: 'Weimer-Jehle (2009) Eq.8；engine.mjs consistent',
@@ -3829,7 +3847,7 @@ Object.assign(__exports, { FORMULAS, formulaById });
 "src/modules/chain/index.mjs": (__require, __exports) => {
 const { el } = __require("src/core/ui.mjs");
 const { buildChain, CHAIN_STATUS } = __require("src/modules/chain/nodes.mjs");
-const { readRunArchive } = __require("src/modules/solver/index.mjs");
+const { readRunArchive, readRunSummary } = __require("src/modules/solver/index.mjs");
 const { readPlanChecks } = __require("src/modules/solver/plan-check-store.mjs");
 const { gammaOf, tisOf } = __require("src/core/analytics.mjs");
 const { planAtYear } = __require("src/modules/elements/state-plan.mjs");
@@ -3848,8 +3866,9 @@ function mount(container, context) {
     if (disposed) return;
     const p = context.store.read();
     const archive = readRunArchive(context.store);
-    const fresh = archive ? context.store.isCurrent(archive.projectInputSnapshot) : false;
-    const nodes = buildChain({ project: p, archive, fresh, storeCurrent: fresh, planChecks: readPlanChecks(p.id) });
+    const fresh = archive ? context.store.isCurrent(archive.projectInputSnapshot)&&!readRunSummary(context.store)?.stale : false;
+    const conditioned=!!(archive?.RunInput?.conditionedStateIds?.length||archive?.analysisConditions?.conditionedStateIds?.length);
+    const nodes = buildChain({ project: p, archive, fresh, storeCurrent: fresh, planChecks: conditioned?{}:readPlanChecks(p.id) });
     root.replaceChildren();
 
     const run = archive?.RunResult;
@@ -3869,6 +3888,7 @@ function mount(container, context) {
         archive ? el('button', { class: 'button', onclick: () => context.navigate('solver') }, '返回对应的检验结果') : el('button', { class: 'button', onclick: () => context.navigate('solver') }, '去检验与结果'),
         el('button', { class: 'button text', onclick: () => context.navigate('robustness') }, '稳健性检验'))));
     root.append(contextBar);
+    if(archive?.RunInput?.conditionedStateIds?.length)root.append(el('p',{},'本次给定条件：'+archive.RunInput.conditionedStateIds.map(id=>archive.projectInputSnapshot.data.states.find(s=>s.id===id)?.label||id).join('、')+'。只判定其余因素；判断库的全矩阵缺项与这次条件计算的必需评分范围分别清点。'+(!fresh?'当前设定已变，这份结果为历史输入。':'')));
 
     root.append(el('div', { class: 'v5-steps' }, ...nodes.map((node, i) => {
       const done = node.status === 'ok';
@@ -3915,7 +3935,7 @@ function mount(container, context) {
             : el('span', { class: 'v5-hint' }, '「' + moduleTitle(node.module) + '」页面在后续包接入；这里先如实清点已有记录。')));
         if (node.id === 'solve') {
           if (run?.scenarios?.length) body.append(scenarioReverse(p, archive));
-          else {
+          else if(!conditioned) {
             // 刷新后全空间归档不再在会话里，但“检验我的方案”的记录还在：
             // 用它反查某一条评分，仍然指到具体的判断与矩阵原值。
             const records = Object.values(readPlanChecks(p.id)).filter(r => r?.trace?.balances?.length);
@@ -3997,6 +4017,7 @@ function moduleTitle(module) {
 function formulaContext(p, archive) {
   const input = archive?.RunInput;
   const ctx = { input, run: archive?.RunResult || null };
+  if(!input&&archive?.analysisConditions?.conditionedStateIds?.length)return ctx;
   const name = id => p.data.descriptors.find(d => d.id === id)?.label || id;
   const stateName = id => p.data.states.find(s => s.id === id)?.label || id;
   if (input) {
@@ -4186,7 +4207,7 @@ function buildChain({ project, archive, fresh, planChecks = {} }) {
     id: 'solve', no: 7, title: 'CIB 检验', module: 'solver',
     status: !archive ? 'empty' : run?.status === 'completed' ? (fresh ? 'ok' : 'stale') : run?.status === 'blocked' ? 'gap' : 'gap',
     input: [['年份', archive?.RunInput?.year ?? '未开始'], ['枚举上限', archive?.RunInput?.solverConfig?.limit ?? '—'], ['锁定', (archive?.RunInput?.lockedStateIds || []).length + ' 个']],
-    did: '逐个枚举配置，对每个变量比较“所选状态”和“任何替代状态”的支持分。',
+    did: archive?.RunInput?.conditionedStateIds?.length?'固定给定状态，只对其余因素比较所选与替代状态的支持分；给定因素继续提供影响。':'逐个枚举配置，对每个变量比较“所选状态”和“任何替代状态”的支持分。',
     output: !run ? ['还没有检算归档'] : [run.status === 'completed' ? '完成：检查 ' + run.checked + ' 个，自洽 ' + run.count + ' 个' : run.status === 'failed' ? '未完成：已检查 ' + run.checked + '，不能报全空间结论' : '阻断：未开始，成立数未定'],
     source: 'RunResult · ' + (archive?.RunInput?.engineVersion || '引擎版本未知') + (archive ? ' · ' + run?.id : ''),
     gaps: !run ? ['尚未运行 CIB'] : run.truncated ? ['展示列表截断：计数完整，但逐条分析只覆盖前 ' + run.scenarios.length + ' 个'] : []
@@ -4243,6 +4264,7 @@ Object.assign(__exports, { buildChain, CHAIN_STATUS });
 const { buildMatrix } = __require("src/modules/relationships/logic.mjs");
 const { validateProject } = __require("src/core/contracts.mjs");
 const engineVersion='cib-exact-1.0.0';
+const conditionedEngineVersion='cib-conditioned-1.0.0';
 const maxSpace=100000;
 const diagnosticClasses={
  YEAR_REQUIRED:'block',REGION_REQUIRED:'block',DESCRIPTORS_REQUIRED:'block',STATES_MISSING:'block',STATE_REFERENCE_MISSING:'block',STATE_YEARS_INVALID:'block',STATE_YEAR_MISMATCH:'block',STATE_REGION_MISMATCH:'block',STATE_YEARS_UNKNOWN:'unknown-state',STATE_REGION_UNKNOWN:'unknown-state',JUDGMENT_NOT_FOUND:'block',INACTIVE_JUDGMENT:'block',MULTIPLE_SELECTED:'block',SELECTED_INAPPLICABLE:'block',CONFLICT:'block',NO_APPLICABLE_JUDGMENT:'block',STALE_STATE_REFERENCE:'block',DUPLICATE_ENTRY:'block',INVALID_SCORE:'block',EVIDENCE_MISSING:'block',
@@ -4259,7 +4281,7 @@ const year=value=>Number.isInteger(value)&&value>=1900&&value<=2300;
 const years=value=>Array.isArray(value)&&Array.from(value).every(year)&&new Set(value).size===value.length;
 function freeze(value){if(value&&typeof value==='object'){Object.values(value).forEach(freeze);Object.freeze(value);}return value;}
 function dimensions(input){
- need(record(input)&&input.schemaVersion===1&&input.contractVersion==='1.0.0'&&input.method==='cib'&&input.engineVersion===engineVersion&&input.seed===null,'输入/方法版本不支持');
+ need(record(input)&&input.schemaVersion===1&&input.contractVersion==='1.0.0'&&input.method==='cib'&&[engineVersion,conditionedEngineVersion].includes(input.engineVersion)&&input.seed===null,'输入/方法版本不支持');
  need(id(input.projectId)&&Number.isSafeInteger(input.revision)&&input.revision>=0,'项目ID须为非空字符串，revision须为非负安全整数','INVALID_RUN_METADATA');
  need(record(input.solverConfig)&&input.solverConfig.mode==='enumerate','仅支持精确枚举，不支持sample');
  const limit=input.solverConfig.limit??maxSpace;need(Number.isInteger(limit)&&limit>0&&limit<=maxSpace,'规模限制须为1—100000');
@@ -4283,41 +4305,49 @@ function dimensions(input){
  for(const id of descriptorIds){const list=states.filter(s=>s.descriptorId===id).map(s=>s.id),declared=matrix.stateIdsByDescriptor[id];need(list.length&&ids(declared)&&list.length===declared.length&&list.every(s=>declared.includes(s)),'状态集合/归属不匹配');byDescriptor.set(id,list);unrestricted*=BigInt(list.length);}
  const locks=input.lockedStateIds;need(ids(locks),'锁定重复或无效');
  const locked=new Map();for(const stateId of locks){const s=states.find(s=>s.id===stateId);need(s&&!locked.has(s.descriptorId),'锁定非活动状态或同变量多锁');locked.set(s.descriptorId,stateId);}
+ const conditionIds=input.conditionedStateIds??[];need(ids(conditionIds),'给定状态重复或无效');
+ need(!conditionIds.length||input.engineVersion===conditionedEngineVersion,'给定条件必须使用专用方法版本');
+ const conditioned=new Map();for(const stateId of conditionIds){const s=states.find(s=>s.id===stateId);need(s&&!conditioned.has(s.descriptorId),'给定非活动状态或同因素多次给定');need(!locked.has(s.descriptorId)||locked.get(s.descriptorId)===stateId,'给定状态与原锁定状态冲突');conditioned.set(s.descriptorId,stateId);locked.set(s.descriptorId,stateId);}
+ need(conditioned.size<descriptorIds.length,'至少保留一个参与自洽判定的因素');
  for(const id of descriptorIds)space*=BigInt(locked.has(id)?1:byDescriptor.get(id).length);
- return {ids:descriptorIds,states,byDescriptor,locked,space,unrestricted,limit,scopeDiagnostics};
+ return {ids:descriptorIds,states,byDescriptor,locked,conditioned,space,unrestricted,limit,scopeDiagnostics};
 }
 function inspectInput(input){
  const compiled=dimensions(input),{ids,states,byDescriptor}=compiled,matrix=input.matrix;
  const entries=new Map();need(Array.isArray(matrix.entries),'矩阵缺失');
  for(const e of matrix.entries){need(record(e)&&id(e.sourceStateId)&&id(e.targetStateId),'矩阵单元/状态ID无效');const a=states.find(s=>s.id===e.sourceStateId),b=states.find(s=>s.id===e.targetStateId);need(a&&b&&a.descriptorId!==b.descriptorId&&!entries.has(key(a.id,b.id)),'矩阵重复、归属错误或包含自影响');need(Number.isInteger(e.score)&&Math.abs(e.score)<=3&&id(e.judgmentId),'有格子还没给分，或分数不是 −3…+3 的整数');entries.set(key(a.id,b.id),e);}
- let required=0;for(const a of ids)for(const b of ids)if(a!==b)for(const x of byDescriptor.get(a))for(const y of byDescriptor.get(b)){required++;need(entries.has(key(x,y)),'矩阵不完整，不能补0');}
+ let required=0;for(const a of ids)for(const b of ids)if(a!==b&&!compiled.conditioned.has(b))for(const x of compiled.conditioned.has(a)?[compiled.conditioned.get(a)]:byDescriptor.get(a))for(const y of byDescriptor.get(b)){required++;need(entries.has(key(x,y)),'矩阵不完整，不能补0');}
  need(entries.size===required,'额外矩阵单元');
  const coverage={required,judged:entries.size,missingPairs:[]},declared=matrix.coverage;
  need(record(declared)&&Number.isSafeInteger(declared.required)&&Number.isSafeInteger(declared.judged)&&declared.required===coverage.required&&declared.judged===coverage.judged&&Array.isArray(declared.missingPairs)&&declared.missingPairs.length===0,'coverage与实际完整矩阵不一致','COVERAGE_MISMATCH');
  return {...compiled,entries,coverage};
 }
-function prepareRun(project,{year,selectedJudgmentIds=[],assumptionAcknowledgements={},limit=maxSpace}){
+function prepareRun(project,{year,selectedJudgmentIds=[],assumptionAcknowledgements={},limit=maxSpace,conditionedStateIds=[]}){
  const diagnostics=[];let snapshot=null;const add=(code,message)=>diagnostics.push({code,message,recordIds:[],classification:'block'});
  try{validateProject(project);}catch(error){add('INVALID_PROJECT',error.message);return {input:null,diagnostics,space:null};}
- const result=buildMatrix(project,{year,selectedJudgmentIds});snapshot=result.snapshot;
+ const result=buildMatrix(project,{year,selectedJudgmentIds,conditionedStateIds});snapshot=result.snapshot;
  for(const d of result.diagnostics)diagnostics.push({...d,classification:classifyDiagnostic(d,selectedJudgmentIds)});
  if(!snapshot)add('MATRIX_REQUIRED','无法准备当前矩阵');
  if(snapshot&&snapshot.coverage.missingPairs.length)add('MISSING_SCORES','还有 '+snapshot.coverage.missingPairs.length+' 格没填评分（空白＝未判断，不等于 0）');
  if(diagnostics.some(d=>d.classification==='warning')&&assumptionAcknowledgements.currentAssumptions!==true)add('ASSUMPTIONS_REQUIRED','请明确同意按当前草案/依据不足/量表假设检算');
  if(diagnostics.some(d=>d.classification==='unknown-state')&&assumptionAcknowledgements.unknownStateScope!==true)add('STATE_ASSUMPTIONS_REQUIRED','请明确同意把未声明的状态范围作为当前截面假设');
  const input={schemaVersion:1,contractVersion:project.contractVersion,projectId:project.id,revision:project.revision,scope:structuredClone(project.scope),year,activeDescriptorIds:[...project.selection.descriptorIds],stateDefinitions:structuredClone(project.data.states.filter(s=>project.selection.descriptorIds.includes(s.descriptorId))),matrix:structuredClone(snapshot),lockedStateIds:[...project.selection.lockedStateIds],method:'cib',engineVersion,solverConfig:{mode:'enumerate',limit},seed:null};
+ if(Array.isArray(conditionedStateIds)&&conditionedStateIds.length){input.conditionedStateIds=[...conditionedStateIds];input.engineVersion=conditionedEngineVersion;}
  let space=null;
  if(snapshot)try{const inspected=dimensions(input);space={unconstrained:inspected.unrestricted.toString(),constrained:inspected.space.toString(),limit};if(inspected.space>BigInt(limit))add('SPACE_LIMIT','精确空间'+inspected.space+'超过安全上限'+limit+'；无约束空间'+inspected.unrestricted);inspectInput(input);}catch(error){add('INVALID_RUN_INPUT',error.message);}
  return {input:diagnostics.some(d=>d.classification==='block')?null:freeze(input),diagnostics,space};
 }
 function evaluateCompiled(input,c,configuration){
  need(configuration&&Object.keys(configuration).length===c.ids.length&&c.ids.every(id=>c.byDescriptor.get(id).includes(configuration[id])),'配置必须为每个变量指定有效状态');
- const balances=c.ids.map(target=>{
+ const conditionMismatch=[...c.conditioned].filter(([id,state])=>configuration[id]!==state).map(([id])=>id);
+ if(conditionMismatch.length)return {configuration:structuredClone(configuration),consistent:false,conflicts:conditionMismatch,violatesLocks:true,balances:[],conditionedStateIds:[...c.conditioned.values()],violatesConditions:conditionMismatch};
+ const balances=c.ids.filter(target=>!c.conditioned.has(target)).map(target=>{
    const candidates=c.byDescriptor.get(target).map(stateId=>{const contributions=c.ids.filter(source=>source!==target).map(source=>{const e=c.entries.get(key(configuration[source],stateId));return {sourceDescriptorId:source,sourceStateId:configuration[source],score:e.score,judgmentId:e.judgmentId};});return {stateId,support:contributions.reduce((sum,x)=>sum+x.score,0),contributions};});
    const maximum=candidates.reduce((m,x)=>Math.max(m,x.support),-Infinity),selectedSupport=candidates.find(x=>x.stateId===configuration[target]).support;
    return {descriptorId:target,selectedStateId:configuration[target],selectedSupport,maximum,gap:maximum-selectedSupport,consistent:selectedSupport===maximum,candidates};
  });
- return {configuration:structuredClone(configuration),consistent:balances.every(b=>b.consistent),conflicts:balances.filter(b=>!b.consistent).map(b=>b.descriptorId),violatesLocks:[...c.locked].some(([id,state])=>configuration[id]!==state),balances};
+ const violatesConditions=[...c.conditioned].filter(([id,state])=>configuration[id]!==state).map(([id])=>id);
+ return {configuration:structuredClone(configuration),consistent:balances.every(b=>b.consistent)&&!violatesConditions.length,conflicts:[...balances.filter(b=>!b.consistent).map(b=>b.descriptorId),...violatesConditions],violatesLocks:[...c.locked].some(([id,state])=>configuration[id]!==state),balances,...(c.conditioned.size?{conditionedStateIds:[...c.conditioned.values()],violatesConditions}: {})};
 }
 function explain(input,configuration){return evaluateCompiled(input,inspectInput(input),configuration);}
 function createEnumeration(rawInput,{displayLimit=100,keepLimit=displayLimit}={}){
@@ -4347,7 +4377,7 @@ function createEnumeration(rawInput,{displayLimit=100,keepLimit=displayLimit}={}
 }
 function solve(input,options){const job=createEnumeration(input,options);let output;do{output=job.step();}while(!output.done);return output.result;}
 
-Object.assign(__exports, { engineVersion, maxSpace, diagnosticClasses, classifyDiagnostic, freeze, inspectInput, prepareRun, explain, createEnumeration, solve });
+Object.assign(__exports, { engineVersion, conditionedEngineVersion, maxSpace, diagnosticClasses, classifyDiagnostic, freeze, inspectInput, prepareRun, explain, createEnumeration, solve });
 },
 "src/modules/solver/plan-check-store.mjs": (__require, __exports) => {
 // 方案检验记录：把「检验我的方案」的结果落到 localStorage，刷新不丢，白箱链可读。
@@ -4562,6 +4592,8 @@ const { planAtYear, changeYearState } = __require("src/modules/elements/state-pl
 const { createLibrary, namedPlan, emptyBundle } = __require("src/modules/workspace/saved-work.mjs");
 const sessions=new Map();
 const summaryListeners=new Set();
+const conditionIds=session=>Object.values(session.conditioned||{}).sort();
+const sameConditions=(archive,session)=>JSON.stringify([...(archive?.RunInput?.conditionedStateIds||archive?.analysisConditions?.conditionedStateIds||[])].sort())===JSON.stringify(conditionIds(session));
 function subscribeRunSummary(listener){summaryListeners.add(listener);return ()=>summaryListeners.delete(listener);}
 function summaryChanged(){summaryListeners.forEach(listener=>listener());}
 function readRunArchive(store){const session=sessions.get(store.read().id);return session&&!session.running&&session.archives.length?structuredClone(session.archives.at(-1)):null;}
@@ -4570,7 +4602,7 @@ function readRunSummary(store){
  if(!archive)return null;
  const result=archive.RunResult;
  const sameChoices=JSON.stringify(archive.selectionOfJudgments.map(j=>j.id).sort())===JSON.stringify([...session.selected].sort());
- return {projectId:p.id,revision:archive.projectInputSnapshot.revision,year:archive.RunInput?.year??null,engineVersion:archive.RunInput?.engineVersion??null,status:session.running?'running':result?.status||'blocked',checked:result?.checked??session.progress?.result.checked??0,count:result?.count??null,stale:!store.isCurrent(archive.projectInputSnapshot)||!sameChoices||!!archive.RunInput&&archive.RunInput.year!==Number(session.year)};
+ return {projectId:p.id,revision:archive.projectInputSnapshot.revision,year:archive.RunInput?.year??null,engineVersion:archive.RunInput?.engineVersion??null,status:session.running?'running':result?.status||'blocked',checked:result?.checked??session.progress?.result.checked??0,count:result?.count??null,stale:!store.isCurrent(archive.projectInputSnapshot)||!sameChoices||!sameConditions(archive,session)||!!archive.RunInput&&archive.RunInput.year!==Number(session.year)};
 }
 function mount(container,context){
  const first=context.store.read();const id=first.id;let session=sessions.get(id);
@@ -4621,11 +4653,11 @@ function mount(container,context){
      label='尚未检验：这一年还没有完成过检验，不能从任何其他结果推断你的方案。';cls='warn';
     }else{
      const sameChoices=JSON.stringify(yearArchive.selectionOfJudgments.map(j=>j.id).sort())===JSON.stringify([...session.selected].sort());
-     const fresh=context.store.isCurrent(yearArchive.projectInputSnapshot)&&sameChoices;
+     const fresh=context.store.isCurrent(yearArchive.projectInputSnapshot)&&sameChoices&&sameConditions(yearArchive,session);
      let trace=null;try{trace=explain(yearArchive.RunInput,plan.config);}catch{}
      if(!fresh){label=(trace?(trace.consistent?'内部自洽（当时输入；此后输入已修改，重新检验才代表现在）':'当时有 '+trace.conflicts.length+' 个因素存在冲突；此后输入已修改，重新检验才代表现在'):'无法复算（输入已变化）');cls='warn';}
      else if(!trace){label='无法用这次冻结输入复算（输入已变化）';cls='warn';}
-     else{label=trace.consistent?'内部自洽（允许并列最大）':'存在 '+trace.conflicts.length+' 处冲突：有因素被其他状态压过';cls=trace.consistent?'ok':'bad';}
+     else{label=trace.violatesConditions?.length?'方案状态与本次给定条件不一致，请调整方案或给定状态。':trace.consistent?'内部自洽（允许并列最大）':'存在 '+trace.conflicts.length+' 处冲突：有因素被其他状态压过';cls=trace.consistent?'ok':'bad';}
     }
     planBlock.append(el('p',{},states),
      el('p',{class:cls},label),
@@ -4646,7 +4678,7 @@ function mount(container,context){
   const r=archive.RunResult,year=archive.RunInput?.year??null;
   // 输入改过就明说过期：旧结果保留可查，但不再代表当前输入。
   const sameChoices=JSON.stringify(archive.selectionOfJudgments.map(j=>j.id).sort())===JSON.stringify([...session.selected].sort());
-  const stale=!context.store.isCurrent(archive.projectInputSnapshot)||!sameChoices;
+  const stale=!context.store.isCurrent(archive.projectInputSnapshot)||!sameChoices||!sameConditions(archive,session);
   if(stale)section.append(el('p',{class:'solver-stale','data-solver-stale':''},'输入已修改：这份结果已过期；下面保留的是当时的冻结输入与结论，重新检验才代表现在。'));
   if(!r){
    if(session.running||job){
@@ -4675,8 +4707,12 @@ function mount(container,context){
    return section;
   }
   const zero=r.count===0;
+  if(archive.RunInput?.conditionedStateIds?.length){
+    const states=archive.projectInputSnapshot.data.states;
+    section.append(el('p',{'data-result-conditions':''},'本次给定条件：'+archive.RunInput.conditionedStateIds.map(id=>{const s=states.find(s=>s.id===id);return (archive.projectInputSnapshot.data.descriptors.find(d=>d.id===s?.descriptorId)?.label||s?.descriptorId||'因素')+'='+ (s?.label||id);}).join('、')+'；只检查其余因素是否自洽。'));
+  }
   section.append(el('div',{class:'solver-summary-head'+(zero?' warn':'')},
-    el('strong',{},(zero?'没有找到自洽组合':'共找到 '+r.count+' 种自洽组合'),infoTip('自洽指每个因素所选状态在自己这一列的支持分不低于任何替代状态。这是矩阵内部一致，不是发生概率，也不是最优解。','自洽组合的含义')),
+    el('strong',{},(zero?'没有找到自洽组合':'共找到 '+r.count+' 种自洽组合'),infoTip('自洽指每个接受判定的因素所选状态的支持分不低于任何替代状态。给定条件自身免检。这是矩阵内部一致，不是发生概率，也不是最优解。','自洽组合的含义')),
     el('span',{},zero?'这一年的全部组合都被判为不自洽；你的方案仍保留在下面，可以查看冲突。':'这是该年份全部组合中判为自洽的数量。')));
   section.append(el('div',{class:'solver-summary-stats'},
     el('div',{},el('b',{},String(year??'—')),el('span',{},'研究年份')),
@@ -4828,13 +4864,30 @@ function mount(container,context){
   const year=el('select',{'aria-label':'检算年份',disabled:!!job,onchange:e=>{session.year=e.target.value;render();}},el('option',{value:''},'请先选年份'),...p.scope.years.map(y=>el('option',{value:y},y)));year.value=session.year;
   const yearRow=el('div',{class:'solver-yearbar'},el('span',{class:'cap'},'检验年份'),year);
   root.append(yearRow);
+  const conditions=el('details',{class:'v5-card','data-condition-settings':'',open:conditionIds(session).length>0},el('summary',{},'给定条件（可选）'));
+  conditions.append(el('p',{},'把某个因素的状态作为计算前提：它继续影响其他因素，自身不接受自洽判定。仅锁定不会免检。条件随本次结果归档，刷新后需重新设定。'));
+  for(const descriptorId of p.selection.descriptorIds){
+    const states=p.data.states.filter(s=>s.descriptorId===descriptorId);
+    const selected=session.conditioned?.[descriptorId]||'';
+    const select=el('select',{'aria-label':'给定条件 '+name(descriptorId),disabled:!!job,onchange:event=>{
+      session.conditioned={...session.conditioned};
+      if(event.target.value)session.conditioned[descriptorId]=event.target.value;
+      else delete session.conditioned[descriptorId];
+      render();
+    }},el('option',{value:''},'参与自洽判定'),...states.map(s=>el('option',{value:s.id},'给定：'+s.label)));
+    if(selected&&!states.some(s=>s.id===selected))select.append(el('option',{value:selected},'原给定状态已失效，请重新选择'));
+    select.value=selected;
+    conditions.append(el('label',{class:'robust-field'},name(descriptorId),select));
+  }
+  const clearConditions=button('清空给定条件',()=>{session.conditioned={};render();});clearConditions.disabled=!!job;
+  conditions.append(clearConditions);root.append(conditions);
 
   const last=session.archives.at(-1);
   root.append(summaryCard(p,last));
   root.append(handoffSection(p));
 
   // 1 · 检验我的方案（读取因素页该年状态；缺状态就地补选）
-  const pre=prepareRun(p,{year:session.year===''?null:Number(session.year),selectedJudgmentIds:session.selected,assumptionAcknowledgements:{currentAssumptions:session.assumptions,unknownStateScope:session.unknown}});
+  const pre=prepareRun(p,{year:session.year===''?null:Number(session.year),selectedJudgmentIds:session.selected,conditionedStateIds:conditionIds(session),assumptionAcknowledgements:{currentAssumptions:session.assumptions,unknownStateScope:session.unknown}});
   const planEl=planCheckSection({project:p,prepared:pre,session,context,lastArchive:last,onRender:render});
   planEl.classList.add('solver-task');
   planEl.insertBefore(el('div',{class:'solver-task-hd'},el('span',{class:'no'},'2'),el('h3',{},'检验我的方案'),),planEl.firstChild);
@@ -4845,6 +4898,7 @@ function mount(container,context){
   const fatal=pre.diagnostics.filter(d=>d.classification==='block');
   const spaceText=el('p',{'data-solver-space':''},'可检验组合：'+(pre.space?pre.space.constrained+' 种':'暂不确定'));
   fullSpace.append(spaceText);
+  fullSpace.append(el('p',{'data-analysis-mode':''},conditionIds(session).length?'按给定条件检验：只要求其余因素自洽，不评价给定状态能否实现。':'普通检验：所有活动因素都接受自洽判定。'));
   if(fatal.length){
    // 同一件事只留一句：缺因素、缺评分、缺状态各合并成一条可操作问题。
    // 底层校验原文一行不删，完整清单仍在下方「查看输入诊断与假设」。
@@ -4939,6 +4993,7 @@ function mount(container,context){
 
  function startRun(p,pre){
   const envelope={archiveVersion:1,RunInput:pre.input?structuredClone(pre.input):null,RunResult:null,projectInputSnapshot:currentSnapshot(p),preflightDiagnostics:structuredClone(pre.diagnostics),assumptionAcknowledgements:{currentAssumptions:session.assumptions,unknownStateScope:session.unknown},selectionOfJudgments:session.selected.map(id=>{const j=p.data.judgments.find(j=>j.id===id);return {id,version:j?.version??null,evidenceRefs:structuredClone(j?.evidenceRefs||[])};})};
+  if(conditionIds(session).length)envelope.analysisConditions={conditionedStateIds:conditionIds(session)};
   session.archives.push(envelope);progress=null;session.progress=null;session.running=false;session.scenarioLimit=12;
   if(!pre.input){render();return;}
   job=createEnumeration(pre.input,{keepLimit:100000});session.running=true;const active=job,batch=Math.max(1,Math.min(250,Math.floor(20000/(pre.input.stateDefinitions.length*(pre.input.activeDescriptorIds.length-1)))));
@@ -4959,6 +5014,7 @@ function mount(container,context){
   const inspection=plan?.complete?plan.config:Object.fromEntries(archive.RunInput.activeDescriptorIds.map(id=>[id,archive.RunInput.matrix.stateIdsByDescriptor[id][0]]));
   const trace=explain(archive.RunInput,inspection);
   wrap.append(el('p',{},'冻结年份 '+archive.RunInput.year+'；地区 '+archive.RunInput.scope.regionId+'；锁定 '+(archive.RunInput.lockedStateIds.map(id=>stateName(id)).join('、')||'无')));
+  if(archive.RunInput.conditionedStateIds?.length)wrap.append(el('p',{},'给定条件（免于自身判定）：'+archive.RunInput.conditionedStateIds.map(id=>{const s=snapshot.data.states.find(s=>s.id===id);return (snapshot.data.descriptors.find(d=>d.id===s?.descriptorId)?.label||s?.descriptorId)+'='+stateName(id);}).join('、')+'；以下只解释其余因素的支持分。'));
   if(plan?.complete){
    wrap.append(el('p',{},'以下按“我的方案”的配置逐项展开；其他组合可在上方表格里逐条看。'));
    const list=el('ul',{class:'solver-contrib'});
@@ -5063,6 +5119,8 @@ function planCheckSection({ project, prepared, session, context, lastArchive, on
   const plan = planAtYear(project, year);
   const name = id => project.data.descriptors.find(d => d.id === id)?.label || id;
   const stateName = id => project.data.states.find(s => s.id === id)?.label || id;
+  const conditioned=prepared?.input?.conditionedStateIds||[];
+  const contextKey=JSON.stringify([project.revision,prepared?.input?.engineVersion,conditioned,[...session.selected].sort()]);
 
   section.append(el('div', { class: 'plan-check-hd' }, el('h3', {}, '你的 ' + year + ' 年方案'),
     el('span', { class: 'plan-check-src' }, plan.complete ? '读自因素页的按年选择' : '还有 ' + plan.missing.length + ' 个因素没选')));
@@ -5116,8 +5174,8 @@ function planCheckSection({ project, prepared, session, context, lastArchive, on
     el('button', { class: 'button primary-action', 'data-plan-check-run': '', disabled: !canCheck, onclick: () => {
       try {
         const trace = explain(prepared.input, plan.config);
-        session.planCheck = { year, config: { ...plan.config }, trace, planVersion: plan.planVersion, at: new Date().toISOString() };
-        savePlanCheck(project.id, planCheckRecord({ project, year, plan, trace }));
+        session.planCheck = { year, config: { ...plan.config }, trace, contextKey, planVersion: plan.planVersion, at: new Date().toISOString() };
+        if(!conditioned.length)savePlanCheck(project.id, planCheckRecord({ project, year, plan, trace }));
         onRender();
       } catch (error) { message.textContent = '无法检验这个方案：' + error.message; }
     } }, '开始检验这份方案'),
@@ -5131,11 +5189,11 @@ function planCheckSection({ project, prepared, session, context, lastArchive, on
 
   // 会话里刚检的优先；刷新后从持久记录读回，仅在配置与项目修订号都没变时按同一算法复核展示。
   const sameConfig = a => JSON.stringify(a) === JSON.stringify(plan.config);
-  let check2 = session.planCheck && session.planCheck.year === year && sameConfig(session.planCheck.config) ? session.planCheck : null;
+  let check2 = session.planCheck && session.planCheck.year === year && sameConfig(session.planCheck.config) && session.planCheck.contextKey===contextKey ? session.planCheck : null;
   let fromRecord = false;
   if (!check2) {
     const record = readPlanChecks(project.id)[year];
-    if (record && sameConfig(record.config) && record.projectRevision === project.revision && canCheck) {
+    if (!conditioned.length && record && sameConfig(record.config) && record.projectRevision === project.revision && canCheck) {
       try {
         check2 = { year, config: { ...record.config }, trace: explain(prepared.input, plan.config), planVersion: record.planVersion, at: record.at };
         fromRecord = true;
@@ -5145,13 +5203,15 @@ function planCheckSection({ project, prepared, session, context, lastArchive, on
   if (!check2) {
     const stale = session.planCheck && session.planCheck.year === year;
     const record = readPlanChecks(project.id)[year];
-    if (stale) section.append(el('p', { class: 'plan-check-stale' }, '你改过这一年的状态：重新点“开始检验这份方案”才代表当前选择。'));
+    if (stale) section.append(el('p', { class: 'plan-check-stale' }, '方案、评分选用或给定条件有变化：重新点“开始检验这份方案”才代表当前选择。'));
     else if (record) section.append(el('p', { class: 'plan-check-stale' }, '上次检验（' + new Date(record.at).toLocaleString() + '）已过期：' + planCheckStaleReasons(record, { project, plan }).slice(1).join('；') + '。重新检验后才代表当前输入。'));
     return section;
   }
   if (fromRecord) section.append();
 
   const trace = check2.trace;
+  if(conditioned.length)section.append(el('p',{},'本次按给定条件检验，仅在当前会话显示；请导出本次结果归档，不覆盖普通方案的历史检验记录。'));
+  if(trace.violatesConditions?.length){section.append(el('p',{class:'plan-check-verdict'},'方案状态与给定条件不一致：'+trace.violatesConditions.map(name).join('、')+'。请调整方案或给定状态。'));return section;}
   const bad = trace.balances.filter(b => !b.consistent);
   // 还没有全空间结果时，摘要卡里没有“我的方案”结论，这里给一句；有结果后由顶部摘要统一说，避免重复。
   const runReady = lastArchive?.RunResult?.status === 'completed';
@@ -5198,6 +5258,7 @@ function planCheckSection({ project, prepared, session, context, lastArchive, on
   if (!run) section.append(el('p', { class: 'plan-check-member' }, '方案在全体自洽配置里的位置：还没有完成的全空间检算，无法判断。'));
   else if (run.status !== 'completed') section.append(el('p', { class: 'plan-check-member' }, '方案在全体自洽配置里的位置：全空间检算' + (run.status === 'failed' ? '未完成' : '被阻断') + '，局部结果不能回答这个问题。'));
   else if (runYear !== year) section.append(el('p', { class: 'plan-check-member' }, '方案在全体自洽配置里的位置：最近一次完整检算是 ' + runYear + ' 年，与方案年份不同，不能混用。'));
+  else if (JSON.stringify([...(lastArchive.RunInput?.conditionedStateIds||[])].sort())!==JSON.stringify([...conditioned].sort()))section.append(el('p',{class:'plan-check-member'},'最近结果的给定条件不同，不能混用其解集。'));
   else if (run.truncated) section.append(el('p', { class: 'plan-check-member' }, '方案在全体自洽配置里的位置：成立 ' + run.count + ' 个，但只保留了 ' + run.scenarios.length + ' 个，无法确认是否包含你的方案。'));
   else {
     const hit = run.scenarios.some(s => Object.keys(plan.config).every(k => s[k] === plan.config[k]));
@@ -5247,8 +5308,8 @@ function validateArchive(a){
  if(r.status==='blocked'){need(r.checked===0&&r.count===null&&r.scenarios.length===0&&r.balanceTrace.length===0&&!r.truncated&&r.diagnostics.length>0,'拒绝记录不能伪装完成');let refused=null;try{refused=inspectInput(input);}catch{}need(refused?equal(r.space,{unconstrained:refused.unrestricted.toString(),constrained:refused.space.toString(),limit:refused.limit})&&equal(r.coverage,refused.coverage):r.space===null&&r.coverage===null,'拒绝记录的空间/覆盖声明不一致');return a;}
  projectShape(p);const compiled=inspectInput(input);need(compiled.space<=BigInt(compiled.limit),'超过支持的枚举规模');
  for(const j of a.selectionOfJudgments){const original=p.data.judgments.find(r=>r.id===j.id);need(original&&original.version===j.version&&equal(original.evidenceRefs||[],j.evidenceRefs),'选用判断版本/依据与科学快照不一致');}
- const prepared=prepareRun(p,{year:input.year,selectedJudgmentIds:a.selectionOfJudgments.map(j=>j.id),assumptionAcknowledgements:a.assumptionAcknowledgements,limit:input.solverConfig.limit??100000});need(prepared.input,'冻结项目按原闸门不能构造有效输入');
- for(const key of ['schemaVersion','contractVersion','projectId','revision','scope','year','activeDescriptorIds','stateDefinitions','matrix','lockedStateIds','method','engineVersion','seed'])need(equal(input[key],prepared.input[key]),'冻结输入与原项目不一致：'+key);
+ const prepared=prepareRun(p,{year:input.year,selectedJudgmentIds:a.selectionOfJudgments.map(j=>j.id),assumptionAcknowledgements:a.assumptionAcknowledgements,limit:input.solverConfig.limit??100000,conditionedStateIds:input.conditionedStateIds??[]});need(prepared.input,'冻结项目按原闸门不能构造有效输入');
+ for(const key of ['schemaVersion','contractVersion','projectId','revision','scope','year','activeDescriptorIds','stateDefinitions','matrix','lockedStateIds','conditionedStateIds','method','engineVersion','seed'])need(equal(input[key],prepared.input[key]),'冻结输入与原项目不一致：'+key);
  need(equal(a.preflightDiagnostics,prepared.diagnostics),'封套原诊断与冻结项目不一致');
  const space={unconstrained:compiled.unrestricted.toString(),constrained:compiled.space.toString(),limit:compiled.limit};need(equal(r.space,space)&&equal(r.coverage,compiled.coverage),'结果空间/coverage不一致');
  const total=Number(compiled.space);need(r.checked<=total,'已检查数超过空间');
@@ -12317,10 +12378,9 @@ function runSavePanel(container, context) {
     root.hidden = false;
     if (!runName.isConnected) root.insertBefore(el('label', { class: 'save-field' }, '检验记录名称', runName), message);
     if (!runName.value.trim()) runName.value = (context.store.read().scope.regionId || '情景') + (s.year ? s.year : '') + '检验记录';
-    const done = s.status === 'completed';
     body.replaceChildren(
       el('p', {}, '本次检验：' + statusLabel(s.status) + ' · 年份 ' + (s.year ?? '无有效输入') + ' · 自洽组合 ' + (s.count === null ? '未定（不是 0）' : s.count) + (s.stale ? ' · 旧输入已过期' : '')),
-      done ? null :       el('div', { class: 'save-actions' },
+      el('div', { class: 'save-actions' },
         el('button', { class: 'button primary-action', type: 'button', onclick: () => {
           try {
             const cur = library.load();
@@ -12670,6 +12730,10 @@ function buildReport({project = null, archive = null, generatedAt = null} = {}) 
   const input = archive.RunInput;
   const coverage = isObject(input) && isObject(input.matrix) ? input.matrix.coverage : null;
   const coverageLines = [];
+  if(Array.isArray(input?.conditionedStateIds)&&input.conditionedStateIds.length){
+    coverageLines.push('给定条件（只提供影响，自身免于判定）：'+input.conditionedStateIds.map(id=>{const state=data.states.find(s=>s.id===id);return (data.descriptors.find(d=>d.id===state?.descriptorId)?.label||state?.descriptorId)+'='+(state?.label||id);}).join('、')+'。',
+      '覆盖数只针对本次条件计算实际需要的评分，不表示全矩阵已填齐。');
+  }
   if (!isObject(coverage)) {
     coverageLines.push('矩阵覆盖：未定（归档没有可读的 RunInput 矩阵）。', '未判断单元：未定；未定不等于没有未判断单元。');
     gaps.push('归档没有矩阵覆盖记录：未判断单元数量未定。');
@@ -13189,6 +13253,11 @@ function compareRuns({left = null, right = null} = {}) {
   const leftResult = isObject(leftArchive.RunResult) ? leftArchive.RunResult : null;
   const rightResult = isObject(rightArchive.RunResult) ? rightArchive.RunResult : null;
   const rows = [];
+  if(leftInput?.conditionedStateIds?.length||rightInput?.conditionedStateIds?.length){
+    const left=[...(leftInput?.conditionedStateIds||[])].sort(),right=[...(rightInput?.conditionedStateIds||[])].sort();
+    const label=(ids,snapshot)=>ids.map(id=>{const s=snapshot?.data?.states?.find(s=>s.id===id);return (snapshot?.data?.descriptors?.find(d=>d.id===s?.descriptorId)?.label||s?.descriptorId||'因素')+'='+(s?.label||id);}).join('、')||'无';
+    rows.push(row(JSON.stringify(left)===JSON.stringify(right)?'same':'changed','给定条件（免于自身判定）',label(left,leftSnapshot),label(right,rightSnapshot),{leftId:left,rightId:right}));
+  }
 
   // 冻结修订：两份归档各自冻结时的项目修订，不是当前项目。
   const leftRevision = leftSnapshot?.revision, rightRevision = rightSnapshot?.revision;
@@ -15706,6 +15775,7 @@ function mount(container, context) {
       return;
     }
     const input = archive.RunInput;
+    const given=input.conditionedStateIds||[];
     const stale = readRunSummary(context.store)?.stale;
     const snapshot = archive.projectInputSnapshot || project;
     const name = id => snapshot.data.descriptors.find(d => d.id === id)?.label || id;
@@ -15793,6 +15863,7 @@ function mount(container, context) {
           el('label', { class: 'robust-field' }, '新评分', score),
           el('div', { class: 'robust-actions' }, el('button', { class: 'button primary-action', onclick: run }, '重算并比较')),
           message, output)));
+    if(given.length)root.append(el('p',{},'本次基线的给定条件：'+given.map(id=>name(stateDescriptor(id))+'='+stateName(id)).join('、')+'。扫描只包含本次条件计算实际使用的评分格。'));
 
     const batchStatus = el('p', { role: 'status', 'data-batch-status': '' });
     const batchOutput = el('div', { 'data-batch-output': '' });

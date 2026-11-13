@@ -1,6 +1,6 @@
 import { el } from '../../core/ui.mjs';
 import { buildChain, CHAIN_STATUS } from './nodes.mjs';
-import { readRunArchive } from '../solver/index.mjs';
+import { readRunArchive, readRunSummary } from '../solver/index.mjs';
 import { readPlanChecks } from '../solver/plan-check-store.mjs';
 import { gammaOf, tisOf } from '../../core/analytics.mjs';
 import { planAtYear } from '../elements/state-plan.mjs';
@@ -20,8 +20,9 @@ export function mount(container, context) {
     if (disposed) return;
     const p = context.store.read();
     const archive = readRunArchive(context.store);
-    const fresh = archive ? context.store.isCurrent(archive.projectInputSnapshot) : false;
-    const nodes = buildChain({ project: p, archive, fresh, storeCurrent: fresh, planChecks: readPlanChecks(p.id) });
+    const fresh = archive ? context.store.isCurrent(archive.projectInputSnapshot)&&!readRunSummary(context.store)?.stale : false;
+    const conditioned=!!(archive?.RunInput?.conditionedStateIds?.length||archive?.analysisConditions?.conditionedStateIds?.length);
+    const nodes = buildChain({ project: p, archive, fresh, storeCurrent: fresh, planChecks: conditioned?{}:readPlanChecks(p.id) });
     root.replaceChildren();
 
     const run = archive?.RunResult;
@@ -41,6 +42,7 @@ export function mount(container, context) {
         archive ? el('button', { class: 'button', onclick: () => context.navigate('solver') }, '返回对应的检验结果') : el('button', { class: 'button', onclick: () => context.navigate('solver') }, '去检验与结果'),
         el('button', { class: 'button text', onclick: () => context.navigate('robustness') }, '稳健性检验'))));
     root.append(contextBar);
+    if(archive?.RunInput?.conditionedStateIds?.length)root.append(el('p',{},'本次给定条件：'+archive.RunInput.conditionedStateIds.map(id=>archive.projectInputSnapshot.data.states.find(s=>s.id===id)?.label||id).join('、')+'。只判定其余因素；判断库的全矩阵缺项与这次条件计算的必需评分范围分别清点。'+(!fresh?'当前设定已变，这份结果为历史输入。':'')));
 
     root.append(el('div', { class: 'v5-steps' }, ...nodes.map((node, i) => {
       const done = node.status === 'ok';
@@ -87,7 +89,7 @@ export function mount(container, context) {
             : el('span', { class: 'v5-hint' }, '「' + moduleTitle(node.module) + '」页面在后续包接入；这里先如实清点已有记录。')));
         if (node.id === 'solve') {
           if (run?.scenarios?.length) body.append(scenarioReverse(p, archive));
-          else {
+          else if(!conditioned) {
             // 刷新后全空间归档不再在会话里，但“检验我的方案”的记录还在：
             // 用它反查某一条评分，仍然指到具体的判断与矩阵原值。
             const records = Object.values(readPlanChecks(p.id)).filter(r => r?.trace?.balances?.length);
@@ -169,6 +171,7 @@ function moduleTitle(module) {
 export function formulaContext(p, archive) {
   const input = archive?.RunInput;
   const ctx = { input, run: archive?.RunResult || null };
+  if(!input&&archive?.analysisConditions?.conditionedStateIds?.length)return ctx;
   const name = id => p.data.descriptors.find(d => d.id === id)?.label || id;
   const stateName = id => p.data.states.find(s => s.id === id)?.label || id;
   if (input) {

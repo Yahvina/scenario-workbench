@@ -138,10 +138,9 @@ export function runSavePanel(container, context) {
     root.hidden = false;
     if (!runName.isConnected) root.insertBefore(el('label', { class: 'save-field' }, '检验记录名称', runName), message);
     if (!runName.value.trim()) runName.value = (context.store.read().scope.regionId || '情景') + (s.year ? s.year : '') + '检验记录';
-    const done = s.status === 'completed';
     body.replaceChildren(
       el('p', {}, '本次检验：' + statusLabel(s.status) + ' · 年份 ' + (s.year ?? '无有效输入') + ' · 自洽组合 ' + (s.count === null ? '未定（不是 0）' : s.count) + (s.stale ? ' · 旧输入已过期' : '')),
-      done ? null :       el('div', { class: 'save-actions' },
+      el('div', { class: 'save-actions' },
         el('button', { class: 'button primary-action', type: 'button', onclick: () => {
           try {
             const cur = library.load();

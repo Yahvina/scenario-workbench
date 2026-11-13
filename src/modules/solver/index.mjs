@@ -9,6 +9,8 @@ import {planAtYear,changeYearState} from '../elements/state-plan.mjs';
 import {createLibrary,namedPlan,emptyBundle} from '../workspace/saved-work.mjs';
 const sessions=new Map();
 const summaryListeners=new Set();
+const conditionIds=session=>Object.values(session.conditioned||{}).sort();
+const sameConditions=(archive,session)=>JSON.stringify([...(archive?.RunInput?.conditionedStateIds||archive?.analysisConditions?.conditionedStateIds||[])].sort())===JSON.stringify(conditionIds(session));
 export function subscribeRunSummary(listener){summaryListeners.add(listener);return ()=>summaryListeners.delete(listener);}
 function summaryChanged(){summaryListeners.forEach(listener=>listener());}
 export function readRunArchive(store){const session=sessions.get(store.read().id);return session&&!session.running&&session.archives.length?structuredClone(session.archives.at(-1)):null;}
@@ -17,7 +19,7 @@ export function readRunSummary(store){
  if(!archive)return null;
  const result=archive.RunResult;
  const sameChoices=JSON.stringify(archive.selectionOfJudgments.map(j=>j.id).sort())===JSON.stringify([...session.selected].sort());
- return {projectId:p.id,revision:archive.projectInputSnapshot.revision,year:archive.RunInput?.year??null,engineVersion:archive.RunInput?.engineVersion??null,status:session.running?'running':result?.status||'blocked',checked:result?.checked??session.progress?.result.checked??0,count:result?.count??null,stale:!store.isCurrent(archive.projectInputSnapshot)||!sameChoices||!!archive.RunInput&&archive.RunInput.year!==Number(session.year)};
+ return {projectId:p.id,revision:archive.projectInputSnapshot.revision,year:archive.RunInput?.year??null,engineVersion:archive.RunInput?.engineVersion??null,status:session.running?'running':result?.status||'blocked',checked:result?.checked??session.progress?.result.checked??0,count:result?.count??null,stale:!store.isCurrent(archive.projectInputSnapshot)||!sameChoices||!sameConditions(archive,session)||!!archive.RunInput&&archive.RunInput.year!==Number(session.year)};
 }
 export function mount(container,context){
  const first=context.store.read();const id=first.id;let session=sessions.get(id);
@@ -68,11 +70,11 @@ export function mount(container,context){
      label='尚未检验：这一年还没有完成过检验，不能从任何其他结果推断你的方案。';cls='warn';
     }else{
      const sameChoices=JSON.stringify(yearArchive.selectionOfJudgments.map(j=>j.id).sort())===JSON.stringify([...session.selected].sort());
-     const fresh=context.store.isCurrent(yearArchive.projectInputSnapshot)&&sameChoices;
+     const fresh=context.store.isCurrent(yearArchive.projectInputSnapshot)&&sameChoices&&sameConditions(yearArchive,session);
      let trace=null;try{trace=explain(yearArchive.RunInput,plan.config);}catch{}
      if(!fresh){label=(trace?(trace.consistent?'内部自洽（当时输入；此后输入已修改，重新检验才代表现在）':'当时有 '+trace.conflicts.length+' 个因素存在冲突；此后输入已修改，重新检验才代表现在'):'无法复算（输入已变化）');cls='warn';}
      else if(!trace){label='无法用这次冻结输入复算（输入已变化）';cls='warn';}
-     else{label=trace.consistent?'内部自洽（允许并列最大）':'存在 '+trace.conflicts.length+' 处冲突：有因素被其他状态压过';cls=trace.consistent?'ok':'bad';}
+     else{label=trace.violatesConditions?.length?'方案状态与本次给定条件不一致，请调整方案或给定状态。':trace.consistent?'内部自洽（允许并列最大）':'存在 '+trace.conflicts.length+' 处冲突：有因素被其他状态压过';cls=trace.consistent?'ok':'bad';}
     }
     planBlock.append(el('p',{},states),
      el('p',{class:cls},label),
@@ -93,7 +95,7 @@ export function mount(container,context){
   const r=archive.RunResult,year=archive.RunInput?.year??null;
   // 输入改过就明说过期：旧结果保留可查，但不再代表当前输入。
   const sameChoices=JSON.stringify(archive.selectionOfJudgments.map(j=>j.id).sort())===JSON.stringify([...session.selected].sort());
-  const stale=!context.store.isCurrent(archive.projectInputSnapshot)||!sameChoices;
+  const stale=!context.store.isCurrent(archive.projectInputSnapshot)||!sameChoices||!sameConditions(archive,session);
   if(stale)section.append(el('p',{class:'solver-stale','data-solver-stale':''},'输入已修改：这份结果已过期；下面保留的是当时的冻结输入与结论，重新检验才代表现在。'));
   if(!r){
    if(session.running||job){
@@ -122,8 +124,12 @@ export function mount(container,context){
    return section;
   }
   const zero=r.count===0;
+  if(archive.RunInput?.conditionedStateIds?.length){
+    const states=archive.projectInputSnapshot.data.states;
+    section.append(el('p',{'data-result-conditions':''},'本次给定条件：'+archive.RunInput.conditionedStateIds.map(id=>{const s=states.find(s=>s.id===id);return (archive.projectInputSnapshot.data.descriptors.find(d=>d.id===s?.descriptorId)?.label||s?.descriptorId||'因素')+'='+ (s?.label||id);}).join('、')+'；只检查其余因素是否自洽。'));
+  }
   section.append(el('div',{class:'solver-summary-head'+(zero?' warn':'')},
-    el('strong',{},(zero?'没有找到自洽组合':'共找到 '+r.count+' 种自洽组合'),infoTip('自洽指每个因素所选状态在自己这一列的支持分不低于任何替代状态。这是矩阵内部一致，不是发生概率，也不是最优解。','自洽组合的含义')),
+    el('strong',{},(zero?'没有找到自洽组合':'共找到 '+r.count+' 种自洽组合'),infoTip('自洽指每个接受判定的因素所选状态的支持分不低于任何替代状态。给定条件自身免检。这是矩阵内部一致，不是发生概率，也不是最优解。','自洽组合的含义')),
     el('span',{},zero?'这一年的全部组合都被判为不自洽；你的方案仍保留在下面，可以查看冲突。':'这是该年份全部组合中判为自洽的数量。')));
   section.append(el('div',{class:'solver-summary-stats'},
     el('div',{},el('b',{},String(year??'—')),el('span',{},'研究年份')),
@@ -275,13 +281,30 @@ export function mount(container,context){
   const year=el('select',{'aria-label':'检算年份',disabled:!!job,onchange:e=>{session.year=e.target.value;render();}},el('option',{value:''},'请先选年份'),...p.scope.years.map(y=>el('option',{value:y},y)));year.value=session.year;
   const yearRow=el('div',{class:'solver-yearbar'},el('span',{class:'cap'},'检验年份'),year);
   root.append(yearRow);
+  const conditions=el('details',{class:'v5-card','data-condition-settings':'',open:conditionIds(session).length>0},el('summary',{},'给定条件（可选）'));
+  conditions.append(el('p',{},'把某个因素的状态作为计算前提：它继续影响其他因素，自身不接受自洽判定。仅锁定不会免检。条件随本次结果归档，刷新后需重新设定。'));
+  for(const descriptorId of p.selection.descriptorIds){
+    const states=p.data.states.filter(s=>s.descriptorId===descriptorId);
+    const selected=session.conditioned?.[descriptorId]||'';
+    const select=el('select',{'aria-label':'给定条件 '+name(descriptorId),disabled:!!job,onchange:event=>{
+      session.conditioned={...session.conditioned};
+      if(event.target.value)session.conditioned[descriptorId]=event.target.value;
+      else delete session.conditioned[descriptorId];
+      render();
+    }},el('option',{value:''},'参与自洽判定'),...states.map(s=>el('option',{value:s.id},'给定：'+s.label)));
+    if(selected&&!states.some(s=>s.id===selected))select.append(el('option',{value:selected},'原给定状态已失效，请重新选择'));
+    select.value=selected;
+    conditions.append(el('label',{class:'robust-field'},name(descriptorId),select));
+  }
+  const clearConditions=button('清空给定条件',()=>{session.conditioned={};render();});clearConditions.disabled=!!job;
+  conditions.append(clearConditions);root.append(conditions);
 
   const last=session.archives.at(-1);
   root.append(summaryCard(p,last));
   root.append(handoffSection(p));
 
   // 1 · 检验我的方案（读取因素页该年状态；缺状态就地补选）
-  const pre=prepareRun(p,{year:session.year===''?null:Number(session.year),selectedJudgmentIds:session.selected,assumptionAcknowledgements:{currentAssumptions:session.assumptions,unknownStateScope:session.unknown}});
+  const pre=prepareRun(p,{year:session.year===''?null:Number(session.year),selectedJudgmentIds:session.selected,conditionedStateIds:conditionIds(session),assumptionAcknowledgements:{currentAssumptions:session.assumptions,unknownStateScope:session.unknown}});
   const planEl=planCheckSection({project:p,prepared:pre,session,context,lastArchive:last,onRender:render});
   planEl.classList.add('solver-task');
   planEl.insertBefore(el('div',{class:'solver-task-hd'},el('span',{class:'no'},'2'),el('h3',{},'检验我的方案'),),planEl.firstChild);
@@ -292,6 +315,7 @@ export function mount(container,context){
   const fatal=pre.diagnostics.filter(d=>d.classification==='block');
   const spaceText=el('p',{'data-solver-space':''},'可检验组合：'+(pre.space?pre.space.constrained+' 种':'暂不确定'));
   fullSpace.append(spaceText);
+  fullSpace.append(el('p',{'data-analysis-mode':''},conditionIds(session).length?'按给定条件检验：只要求其余因素自洽，不评价给定状态能否实现。':'普通检验：所有活动因素都接受自洽判定。'));
   if(fatal.length){
    // 同一件事只留一句：缺因素、缺评分、缺状态各合并成一条可操作问题。
    // 底层校验原文一行不删，完整清单仍在下方「查看输入诊断与假设」。
@@ -386,6 +410,7 @@ export function mount(container,context){
 
  function startRun(p,pre){
   const envelope={archiveVersion:1,RunInput:pre.input?structuredClone(pre.input):null,RunResult:null,projectInputSnapshot:currentSnapshot(p),preflightDiagnostics:structuredClone(pre.diagnostics),assumptionAcknowledgements:{currentAssumptions:session.assumptions,unknownStateScope:session.unknown},selectionOfJudgments:session.selected.map(id=>{const j=p.data.judgments.find(j=>j.id===id);return {id,version:j?.version??null,evidenceRefs:structuredClone(j?.evidenceRefs||[])};})};
+  if(conditionIds(session).length)envelope.analysisConditions={conditionedStateIds:conditionIds(session)};
   session.archives.push(envelope);progress=null;session.progress=null;session.running=false;session.scenarioLimit=12;
   if(!pre.input){render();return;}
   job=createEnumeration(pre.input,{keepLimit:100000});session.running=true;const active=job,batch=Math.max(1,Math.min(250,Math.floor(20000/(pre.input.stateDefinitions.length*(pre.input.activeDescriptorIds.length-1)))));
@@ -406,6 +431,7 @@ export function mount(container,context){
   const inspection=plan?.complete?plan.config:Object.fromEntries(archive.RunInput.activeDescriptorIds.map(id=>[id,archive.RunInput.matrix.stateIdsByDescriptor[id][0]]));
   const trace=explain(archive.RunInput,inspection);
   wrap.append(el('p',{},'冻结年份 '+archive.RunInput.year+'；地区 '+archive.RunInput.scope.regionId+'；锁定 '+(archive.RunInput.lockedStateIds.map(id=>stateName(id)).join('、')||'无')));
+  if(archive.RunInput.conditionedStateIds?.length)wrap.append(el('p',{},'给定条件（免于自身判定）：'+archive.RunInput.conditionedStateIds.map(id=>{const s=snapshot.data.states.find(s=>s.id===id);return (snapshot.data.descriptors.find(d=>d.id===s?.descriptorId)?.label||s?.descriptorId)+'='+stateName(id);}).join('、')+'；以下只解释其余因素的支持分。'));
   if(plan?.complete){
    wrap.append(el('p',{},'以下按“我的方案”的配置逐项展开；其他组合可在上方表格里逐条看。'));
    const list=el('ul',{class:'solver-contrib'});

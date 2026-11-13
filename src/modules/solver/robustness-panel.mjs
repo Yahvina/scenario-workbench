@@ -25,6 +25,7 @@ export function mount(container, context) {
       return;
     }
     const input = archive.RunInput;
+    const given=input.conditionedStateIds||[];
     const stale = readRunSummary(context.store)?.stale;
     const snapshot = archive.projectInputSnapshot || project;
     const name = id => snapshot.data.descriptors.find(d => d.id === id)?.label || id;
@@ -112,6 +113,7 @@ export function mount(container, context) {
           el('label', { class: 'robust-field' }, '新评分', score),
           el('div', { class: 'robust-actions' }, el('button', { class: 'button primary-action', onclick: run }, '重算并比较')),
           message, output)));
+    if(given.length)root.append(el('p',{},'本次基线的给定条件：'+given.map(id=>name(stateDescriptor(id))+'='+stateName(id)).join('、')+'。扫描只包含本次条件计算实际使用的评分格。'));
 
     const batchStatus = el('p', { role: 'status', 'data-batch-status': '' });
     const batchOutput = el('div', { 'data-batch-output': '' });

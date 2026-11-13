@@ -18,6 +18,8 @@ export function planCheckSection({ project, prepared, session, context, lastArch
   const plan = planAtYear(project, year);
   const name = id => project.data.descriptors.find(d => d.id === id)?.label || id;
   const stateName = id => project.data.states.find(s => s.id === id)?.label || id;
+  const conditioned=prepared?.input?.conditionedStateIds||[];
+  const contextKey=JSON.stringify([project.revision,prepared?.input?.engineVersion,conditioned,[...session.selected].sort()]);
 
   section.append(el('div', { class: 'plan-check-hd' }, el('h3', {}, '你的 ' + year + ' 年方案'),
     el('span', { class: 'plan-check-src' }, plan.complete ? '读自因素页的按年选择' : '还有 ' + plan.missing.length + ' 个因素没选')));
@@ -71,8 +73,8 @@ export function planCheckSection({ project, prepared, session, context, lastArch
     el('button', { class: 'button primary-action', 'data-plan-check-run': '', disabled: !canCheck, onclick: () => {
       try {
         const trace = explain(prepared.input, plan.config);
-        session.planCheck = { year, config: { ...plan.config }, trace, planVersion: plan.planVersion, at: new Date().toISOString() };
-        savePlanCheck(project.id, planCheckRecord({ project, year, plan, trace }));
+        session.planCheck = { year, config: { ...plan.config }, trace, contextKey, planVersion: plan.planVersion, at: new Date().toISOString() };
+        if(!conditioned.length)savePlanCheck(project.id, planCheckRecord({ project, year, plan, trace }));
         onRender();
       } catch (error) { message.textContent = '无法检验这个方案：' + error.message; }
     } }, '开始检验这份方案'),
@@ -86,11 +88,11 @@ export function planCheckSection({ project, prepared, session, context, lastArch
 
   // 会话里刚检的优先；刷新后从持久记录读回，仅在配置与项目修订号都没变时按同一算法复核展示。
   const sameConfig = a => JSON.stringify(a) === JSON.stringify(plan.config);
-  let check2 = session.planCheck && session.planCheck.year === year && sameConfig(session.planCheck.config) ? session.planCheck : null;
+  let check2 = session.planCheck && session.planCheck.year === year && sameConfig(session.planCheck.config) && session.planCheck.contextKey===contextKey ? session.planCheck : null;
   let fromRecord = false;
   if (!check2) {
     const record = readPlanChecks(project.id)[year];
-    if (record && sameConfig(record.config) && record.projectRevision === project.revision && canCheck) {
+    if (!conditioned.length && record && sameConfig(record.config) && record.projectRevision === project.revision && canCheck) {
       try {
         check2 = { year, config: { ...record.config }, trace: explain(prepared.input, plan.config), planVersion: record.planVersion, at: record.at };
         fromRecord = true;
@@ -100,13 +102,15 @@ export function planCheckSection({ project, prepared, session, context, lastArch
   if (!check2) {
     const stale = session.planCheck && session.planCheck.year === year;
     const record = readPlanChecks(project.id)[year];
-    if (stale) section.append(el('p', { class: 'plan-check-stale' }, '你改过这一年的状态：重新点“开始检验这份方案”才代表当前选择。'));
+    if (stale) section.append(el('p', { class: 'plan-check-stale' }, '方案、评分选用或给定条件有变化：重新点“开始检验这份方案”才代表当前选择。'));
     else if (record) section.append(el('p', { class: 'plan-check-stale' }, '上次检验（' + new Date(record.at).toLocaleString() + '）已过期：' + planCheckStaleReasons(record, { project, plan }).slice(1).join('；') + '。重新检验后才代表当前输入。'));
     return section;
   }
   if (fromRecord) section.append();
 
   const trace = check2.trace;
+  if(conditioned.length)section.append(el('p',{},'本次按给定条件检验，仅在当前会话显示；请导出本次结果归档，不覆盖普通方案的历史检验记录。'));
+  if(trace.violatesConditions?.length){section.append(el('p',{class:'plan-check-verdict'},'方案状态与给定条件不一致：'+trace.violatesConditions.map(name).join('、')+'。请调整方案或给定状态。'));return section;}
   const bad = trace.balances.filter(b => !b.consistent);
   // 还没有全空间结果时，摘要卡里没有“我的方案”结论，这里给一句；有结果后由顶部摘要统一说，避免重复。
   const runReady = lastArchive?.RunResult?.status === 'completed';
@@ -153,6 +157,7 @@ export function planCheckSection({ project, prepared, session, context, lastArch
   if (!run) section.append(el('p', { class: 'plan-check-member' }, '方案在全体自洽配置里的位置：还没有完成的全空间检算，无法判断。'));
   else if (run.status !== 'completed') section.append(el('p', { class: 'plan-check-member' }, '方案在全体自洽配置里的位置：全空间检算' + (run.status === 'failed' ? '未完成' : '被阻断') + '，局部结果不能回答这个问题。'));
   else if (runYear !== year) section.append(el('p', { class: 'plan-check-member' }, '方案在全体自洽配置里的位置：最近一次完整检算是 ' + runYear + ' 年，与方案年份不同，不能混用。'));
+  else if (JSON.stringify([...(lastArchive.RunInput?.conditionedStateIds||[])].sort())!==JSON.stringify([...conditioned].sort()))section.append(el('p',{class:'plan-check-member'},'最近结果的给定条件不同，不能混用其解集。'));
   else if (run.truncated) section.append(el('p', { class: 'plan-check-member' }, '方案在全体自洽配置里的位置：成立 ' + run.count + ' 个，但只保留了 ' + run.scenarios.length + ' 个，无法确认是否包含你的方案。'));
   else {
     const hit = run.scenarios.some(s => Object.keys(plan.config).every(k => s[k] === plan.config[k]));

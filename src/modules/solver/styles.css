@@ -53,8 +53,8 @@
 .solver-module .solver-scenario-table button{margin:0;padding:2px 8px}
 .solver-module .solver-scenario-detail td{background:var(--bg)}
 .solver-module .solver-scenario-trace p{margin:2px 0;font-size:12px;color:var(--tx2)}
-.solver-module .solver-basis{margin:0 0 12px;border-top:1px solid var(--line2);padding-top:8px}
-.solver-module .solver-basis>summary{font-size:13px;color:var(--pri);cursor:pointer}
+.solver-module .solver-basis,.solver-module .solver-evidence{margin:0 0 12px;border-top:1px solid var(--line2);padding-top:8px}
+.solver-module .solver-basis>summary,.solver-module .solver-evidence>summary{font-size:13px;color:var(--pri);cursor:pointer}
 .solver-module .solver-formulas{margin-top:8px}
 .solver-module .solver-contrib{margin:6px 0;padding-left:18px;font-size:12px;color:var(--tx2)}
 .solver-module .solver-session{background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);padding:10px 14px;margin:0 0 12px}

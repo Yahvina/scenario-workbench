@@ -66,6 +66,11 @@ const {fixture}=require('./solver-browser-fixtures.cjs');
   assert.deepEqual(archive.RunInput.conditionedStateIds,['A0']);
   assert.equal(solve(archive.RunInput).count,1);
   assert.equal(archive.RunInput.matrix.coverage.required,2);
+  await page.locator('[data-evidence-checklist] > summary').click();
+  assert.match(await page.locator('[data-evidence-checklist]').innerText(),/不表示依据已核验/);
+  const evidence=await download(page,'导出依据核验清单');
+  assert.equal(evidence.evidenceAdequacy,'not-established');assert.equal(evidence.totals.usedCells,2);
+  assert.deepEqual(evidence.input.conditionedStateIds,['A0']);
   await page.locator('nav [data-route=exports]').first().click();
   await page.getByLabel('检验记录名称',{exact:true}).fill('给定A0检验');
   assert.equal(await page.getByRole('button',{name:'保存为检验记录',exact:true}).count(),1,'完成的条件检验应可保存为历史记录');
@@ -92,6 +97,11 @@ const {fixture}=require('./solver-browser-fixtures.cjs');
   q.data.judgments[0].entries=q.data.judgments[0].entries.filter(e=>e.sourceStateId==='A0');
   q.data.judgments[0].entries.forEach((e,i)=>{e.score=2-i;});
   const one=await open(q);await setGiven(one.page,'改造支持','A0');await run(one.page,1);
+  if(process.env.EVIDENCE_SHOT){
+    await one.page.locator('[data-evidence-checklist] > summary').click();
+    await one.page.locator('[data-evidence-checklist] details > summary').first().click();
+    await one.page.locator('[data-evidence-checklist]').screenshot({path:process.env.EVIDENCE_SHOT});
+  }
   if(process.env.CONDITION_SHOT)await one.page.screenshot({path:process.env.CONDITION_SHOT,fullPage:true});
   if(process.env.CONDITION_DOC_SHOT){
     const r=await one.page.locator('[data-condition-settings]').boundingBox();

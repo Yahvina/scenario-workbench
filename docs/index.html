@@ -414,8 +414,8 @@
 .solver-module .solver-scenario-table button{margin:0;padding:2px 8px}
 .solver-module .solver-scenario-detail td{background:var(--bg)}
 .solver-module .solver-scenario-trace p{margin:2px 0;font-size:12px;color:var(--tx2)}
-.solver-module .solver-basis{margin:0 0 12px;border-top:1px solid var(--line2);padding-top:8px}
-.solver-module .solver-basis>summary{font-size:13px;color:var(--pri);cursor:pointer}
+.solver-module .solver-basis,.solver-module .solver-evidence{margin:0 0 12px;border-top:1px solid var(--line2);padding-top:8px}
+.solver-module .solver-basis>summary,.solver-module .solver-evidence>summary{font-size:13px;color:var(--pri);cursor:pointer}
 .solver-module .solver-formulas{margin-top:8px}
 .solver-module .solver-contrib{margin:6px 0;padding-left:18px;font-size:12px;color:var(--tx2)}
 .solver-module .solver-session{background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);padding:10px 14px;margin:0 0 12px}
@@ -4592,6 +4592,7 @@ const { formulaInline } = __require("src/modules/shared/formula-card.mjs");
 const { formulaById } = __require("src/core/formulas.mjs");
 const { planAtYear, changeYearState } = __require("src/modules/elements/state-plan.mjs");
 const { createLibrary, namedPlan, emptyBundle } = __require("src/modules/workspace/saved-work.mjs");
+const { evidencePanel } = __require("src/modules/solver/evidence-panel.mjs");
 const sessions=new Map();
 const summaryListeners=new Set();
 const conditionIds=session=>Object.values(session.conditioned||{}).sort();
@@ -4946,6 +4947,7 @@ function mount(container,context){
 
   // 折叠：完整输入、逐项贡献与公式
   if(last)root.append(basisDetails(p,last));
+  if(last?.RunInput)root.append(evidencePanel(last));
 
   // 本次检验结果 vs 历史检验记录
   root.append(sessionResultCard(p,last));
@@ -5337,6 +5339,104 @@ function createLibrary(storage){
 }
 
 Object.assign(__exports, { SAVED_WORK_KEY, MAX_ITEMS, MAX_BYTES, emptyBundle, snapshotProject, validateArchive, validateBundle, namedPlan, savedRun, mergeBundle, parseImport, createLibrary });
+},
+"src/modules/solver/evidence-panel.mjs": (__require, __exports) => {
+const { el } = __require("src/core/ui.mjs");
+const { downloadJson } = __require("src/modules/exports/download.mjs");
+const { evidenceChecklist } = __require("src/modules/solver/evidence-checklist.mjs");
+function evidencePanel(archive) {
+  const report=evidenceChecklist(archive);
+  const panel=el('details',{'data-evidence-checklist':'',class:'solver-evidence'},
+    el('summary',{},'评分依据核验清单 · '+report.totals.usedDirections+' 个实际使用方向'));
+  panel.append(el('p',{},'即使评分填齐且计算完成，也不表示依据已核验。以下只整理本次冻结记录的引用；论文或历史数据的内容仍需人工逐项核对。'),
+    el('p',{},'冻结输入：'+report.year+' 年 · '+report.regionId+' · 项目修订 '+report.revision+'。'),
+    el('p',{},'本次实际使用 '+report.totals.usedCells+' 格，其中 '+report.totals.zeroCells+' 格明确为0；'+report.totals.directionsWithRelationReferences+' 个方向含规律类引用，不据此认定其支持了具体评分。'));
+  for(const row of report.rows){
+    const detail=el('details',{},el('summary',{},row.sourceLabel+' → '+row.targetLabel+' · '+row.judgedCells+' 格 · '+row.tasks.length+' 项待核对'));
+    detail.append(el('p',{},'冻结判断 '+row.judgmentId+' · v'+(row.version??'未知')+' · '+(row.reviewStatus==='reviewed'?'记录标为已审核，内容适用性仍待核对':'记录尚未标为已审核')));
+    if(row.references.length)detail.append(el('ul',{},...row.references.map(ref=>el('li',{},
+      (ref.exists?(ref.role==='scoring-method'?'评分方法引用':ref.role==='relation-candidate'?'规律类候选引用':ref.role==='policy-context'?'政策背景引用':'其他引用'):'缺失引用')+' · '+
+      (ref.sourceId||ref.id)+' · 定位：'+(ref.locator||'未填写')))));
+    else detail.append(el('p',{},'这条判断没有引用记录。'));
+    detail.append(el('ol',{},...row.tasks.map(task=>el('li',{},task))));panel.append(detail);
+  }
+  panel.append(el('p',{},'同学负责资料、状态划分依据与评分证据核验；模型负责人审定计算条件、模型口径及结果解释。'),
+    el('button',{class:'button',onclick:()=>downloadJson('评分依据核验清单_'+report.year+'.json',report)},'导出依据核验清单'));
+  return panel;
+}
+
+Object.assign(__exports, { evidencePanel });
+},
+"src/modules/exports/download.mjs": (__require, __exports) => {
+// 下载辅助：三个导出面板共用一份，避免各自复制一遍 Blob 逻辑。
+// 说明：这里只负责把已经生成好的文本交给浏览器，不生成任何内容，
+// 所以不会在这里引入"凭空造数"的风险。
+function downloadText(filename, text, mime = 'text/plain;charset=utf-8') {
+  const url = URL.createObjectURL(new Blob([text], { type: mime }));
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function downloadJson(filename, value) {
+  downloadText(filename, JSON.stringify(value, null, 2), 'application/json;charset=utf-8');
+}
+
+Object.assign(__exports, { downloadText, downloadJson });
+},
+"src/modules/solver/evidence-checklist.mjs": (__require, __exports) => {
+const { sameDoi } = __require("src/modules/relationships/paper-id.mjs");
+const { methodDoi } = __require("src/modules/relationships/curve.mjs");
+const filled=value=>typeof value==='string'&&value.trim().length>0;
+
+function evidenceChecklist(archive) {
+  const input=archive?.RunInput,data=archive?.projectInputSnapshot?.data;
+  if(!input?.matrix||!data)throw new Error('需要含冻结输入和科学快照的检验记录。');
+  const groups=new Map();
+  for(const entry of input.matrix.entries){
+    if(!groups.has(entry.judgmentId))groups.set(entry.judgmentId,[]);
+    groups.get(entry.judgmentId).push(entry);
+  }
+  const rows=[...groups].map(([judgmentId,entries])=>{
+    const record=data.judgments?.find(j=>j.id===judgmentId);
+    const source=input.stateDefinitions.find(s=>s.id===entries[0].sourceStateId)?.descriptorId;
+    const target=input.stateDefinitions.find(s=>s.id===entries[0].targetStateId)?.descriptorId;
+    const references=[...new Set(record?.evidenceRefs||[])].map(id=>{
+      const evidence=data.evidence?.find(e=>e.id===id);
+      const methodOnly=id===record?.curveEncoding?.source?.evidenceId||sameDoi(evidence?.sourceId,methodDoi);
+      return {id,exists:!!evidence,kind:evidence?.kind??null,sourceId:evidence?.sourceId??null,
+        locator:evidence?.locator??null,reviewStatus:evidence?.reviewStatus??null,
+        role:methodOnly?'scoring-method':['paper','historical-data'].includes(evidence?.kind)?'relation-candidate':evidence?.kind==='policy'?'policy-context':'other'};
+    });
+    const relation=references.filter(e=>e.exists&&e.role==='relation-candidate');
+    const tasks=[];
+    if(!record)tasks.push('冻结快照中缺少判断记录');
+    if(record&&(record.sourceDescriptorId!==source||record.targetDescriptorId!==target))tasks.push('判断方向与矩阵归属不一致');
+    if(!relation.length)tasks.push('补充关系方向与强度的论文或历史数据引用；政策或评分方法论文不能替代');
+    for(const ref of references){
+      if(!ref.exists)tasks.push('缺少被引用的依据记录：'+ref.id);
+      else if(!filled(ref.sourceId)||!filled(ref.locator))tasks.push('补齐引用来源和具体定位：'+ref.id);
+    }
+    if(record?.reviewStatus!=='reviewed')tasks.push('判断记录仍需人工审核');
+    tasks.push('分别核对引用对影响方向、评分强度、状态划分及地区年份的支持；本清单不代替独立内容核验');
+    return {judgmentId,version:record?.version??null,sourceDescriptorId:source,targetDescriptorId:target,
+      sourceLabel:data.descriptors.find(d=>d.id===source)?.label||source,
+      targetLabel:data.descriptors.find(d=>d.id===target)?.label||target,
+      judgedCells:entries.length,zeroCells:entries.filter(e=>e.score===0).length,
+      relationReferenceCount:relation.length,reviewStatus:record?.reviewStatus??null,references,tasks};
+  });
+  return structuredClone({version:1,projectId:input.projectId,revision:input.revision,year:input.year,regionId:input.scope.regionId,
+    input,calculationStatus:archive.RunResult?.status??'not-completed',
+    evidenceAdequacy:'not-established',
+    interpretation:'这是冻结引用的整理和人工核验清单，不是文献质量评分或科学有效性认证。0分是已判断没关系，不是低置信。',
+    totals:{usedDirections:rows.length,usedCells:input.matrix.entries.length,
+      zeroCells:rows.reduce((n,r)=>n+r.zeroCells,0),directionsWithRelationReferences:rows.filter(r=>r.relationReferenceCount>0).length,
+      tasks:rows.reduce((n,r)=>n+r.tasks.length,0)},rows});
+}
+
+Object.assign(__exports, { evidenceChecklist });
 },
 "src/modules/workspace/index.mjs": (__require, __exports) => {
 const { el } = __require("src/core/ui.mjs");
@@ -12889,25 +12989,6 @@ function reportToMarkdown(report) {
 const cellText = value => String(value ?? '').replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
 
 Object.assign(__exports, { REPORT_FILENAME, buildReport, reportToMarkdown });
-},
-"src/modules/exports/download.mjs": (__require, __exports) => {
-// 下载辅助：三个导出面板共用一份，避免各自复制一遍 Blob 逻辑。
-// 说明：这里只负责把已经生成好的文本交给浏览器，不生成任何内容，
-// 所以不会在这里引入"凭空造数"的风险。
-function downloadText(filename, text, mime = 'text/plain;charset=utf-8') {
-  const url = URL.createObjectURL(new Blob([text], { type: mime }));
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-function downloadJson(filename, value) {
-  downloadText(filename, JSON.stringify(value, null, 2), 'application/json;charset=utf-8');
-}
-
-Object.assign(__exports, { downloadText, downloadJson });
 },
 "src/modules/exports/compare-panel.mjs": (__require, __exports) => {
 // P6：比较两份已保存的方案，或两份已有的检算结果。

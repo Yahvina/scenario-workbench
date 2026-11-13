@@ -7,6 +7,7 @@ import {formulaInline} from '../shared/formula-card.mjs';
 import {formulaById} from '../../core/formulas.mjs';
 import {planAtYear,changeYearState} from '../elements/state-plan.mjs';
 import {createLibrary,namedPlan,emptyBundle} from '../workspace/saved-work.mjs';
+import {evidencePanel} from './evidence-panel.mjs';
 const sessions=new Map();
 const summaryListeners=new Set();
 const conditionIds=session=>Object.values(session.conditioned||{}).sort();
@@ -361,6 +362,7 @@ export function mount(container,context){
 
   // 折叠：完整输入、逐项贡献与公式
   if(last)root.append(basisDetails(p,last));
+  if(last?.RunInput)root.append(evidencePanel(last));
 
   // 本次检验结果 vs 历史检验记录
   root.append(sessionResultCard(p,last));

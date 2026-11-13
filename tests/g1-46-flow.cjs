@@ -199,7 +199,7 @@ const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Applic
         const r=node.closest('.v5-card').getBoundingClientRect();
         return { x:r.x, y:r.y+scrollY, width:r.width, height:Math.min(600,r.height) };
       });
-      await page.screenshot({ path:process.env.BATCH_DOC_SHOT, clip:box });
+      await page.screenshot({ path:process.env.BATCH_DOC_SHOT, clip:box, fullPage:true });
     }
     const promise = page.waitForEvent('download');
     await page.getByRole('button', { name: '导出扫描记录', exact: true }).click();

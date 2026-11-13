@@ -188,6 +188,47 @@ const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Applic
     await page.setViewportSize({ width: 1440, height: 960 });
   });
 
+  await step('批量敏感性：完整扫描、追查组合、取消和冻结输入导出', async () => {
+    const before = JSON.stringify(await project());
+    await page.getByRole('button', { name: '扫描全部评分格', exact: true }).click();
+    await page.waitForFunction(() => document.querySelector('[data-batch-status]')?.textContent.startsWith('扫描完成'));
+    assert.ok(await page.locator('[data-batch-output] tbody tr').count());
+    if (process.env.BATCH_SHOT) await page.screenshot({ path: process.env.BATCH_SHOT, fullPage: true });
+    if (process.env.BATCH_DOC_SHOT) {
+      const box = await page.locator('[data-batch-status]').evaluate(node => {
+        const r=node.closest('.v5-card').getBoundingClientRect();
+        return { x:r.x, y:r.y+scrollY, width:r.width, height:Math.min(600,r.height) };
+      });
+      await page.screenshot({ path:process.env.BATCH_DOC_SHOT, clip:box });
+    }
+    const promise = page.waitForEvent('download');
+    await page.getByRole('button', { name: '导出扫描记录', exact: true }).click();
+    const file = await promise;
+    const exported = JSON.parse(require('node:fs').readFileSync(await file.path(), 'utf8'));
+    assert.equal(exported.status, 'completed');
+    assert.equal(exported.completedTrials, exported.totalTrials);
+    assert.equal(exported.baselineCount, 9);
+    assert.equal(exported.rows.length, exported.totalTrials);
+    for (const row of exported.rows) {
+      assert.equal(row.kept + row.added, row.variantCount);
+      assert.equal(row.kept + row.removed, row.baselineCount);
+      assert.equal(Math.abs(row.score-row.previousScore), 1);
+    }
+    await page.getByRole('button', { name: '查看组合', exact: true }).first().click();
+    assert.match(await page.locator('.robust-out').innerText(), /基线自洽组合/);
+    await page.evaluate(() => {
+      const buttons=[...document.querySelectorAll('button')];
+      buttons.find(b=>b.textContent==='扫描全部评分格').click();
+      buttons.find(b=>b.textContent==='停止扫描').click();
+    });
+    await page.waitForFunction(() => document.querySelector('[data-batch-status]')?.textContent.startsWith('已停止'));
+    assert.match(await page.locator('[data-batch-status]').innerText(), /结果不完整/);
+    assert.equal(JSON.stringify(await project()), before);
+    await page.setViewportSize({ width: 390, height: 900 });
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    await page.setViewportSize({ width: 1440, height: 960 });
+  });
+
   await step('白箱追踪：节点 4 读到本次 2030 检验，写明解释对象', async () => {
     await nav('计算过程与依据');
     const hd = page.locator('[data-chain-node="plan"] .chain-node-hd');

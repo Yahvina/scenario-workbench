@@ -1,6 +1,7 @@
 import { el, infoTip } from '../../core/ui.mjs';
 import { readRunArchive, readRunSummary } from './index.mjs';
 import { compareScore } from './score-sensitivity.mjs';
+import { planSensitivity, scanSensitivity } from './batch-sensitivity.mjs';
 import { explain } from './engine.mjs';
 import { downloadJson } from '../exports/download.mjs';
 import { planAtYear } from '../elements/state-plan.mjs';
@@ -8,8 +9,11 @@ import { planAtYear } from '../elements/state-plan.mjs';
 export function mount(container, context) {
   const root = el('section', { class: 'robustness-module' });
   container.append(root);
+  let batchController = null;
 
   function render() {
+    batchController?.abort();
+    batchController = null;
     root.replaceChildren(el('div', { class: 'v5-head' },
       el('p', { class: 'eyebrow' }, 'Tool · Robustness'),
       el('h1', {}, '稳健性检验', infoTip('在冻结输入副本上改单格评分，再完整枚举。比较全部自洽组合的新增、移出与保留。', '怎么算'))));
@@ -108,9 +112,61 @@ export function mount(container, context) {
           el('label', { class: 'robust-field' }, '新评分', score),
           el('div', { class: 'robust-actions' }, el('button', { class: 'button primary-action', onclick: run }, '重算并比较')),
           message, output)));
+
+    const batchStatus = el('p', { role: 'status', 'data-batch-status': '' });
+    const batchOutput = el('div', { 'data-batch-output': '' });
+    const cancel = el('button', { class: 'button', disabled: true, onclick: () => batchController?.abort() }, '停止扫描');
+    const start = el('button', { class: 'button primary-action', onclick: runBatch }, '扫描全部评分格');
+    let batchPlan;
+    try {
+      batchPlan = planSensitivity(input);
+      batchStatus.textContent = '共 ' + batchPlan.trials.length + ' 次逐格 ±1 重算；每次从同一基线出发。';
+    } catch (error) {
+      start.disabled = true;
+      batchStatus.textContent = error.message;
+    }
+    async function runBatch() {
+      const controller = new AbortController();
+      batchController = controller;
+      start.disabled = true; cancel.disabled = false; batchOutput.replaceChildren();
+      batchStatus.textContent = '扫描中 0 / ' + batchPlan.trials.length;
+      try {
+        const scanned = await scanSensitivity(input, { signal: controller.signal,
+          onProgress: ({ completed, total }) => { batchStatus.textContent = '扫描中 ' + completed + ' / ' + total; } });
+        if (!root.contains(batchOutput)) return;
+        const changed = scanned.rows.filter(row => row.changed);
+        const replaced = scanned.rows.filter(row => row.sameCountDifferentSets);
+        batchStatus.textContent = (scanned.status === 'completed' ? '扫描完成' : '已停止，结果不完整') + ' · ' +
+          scanned.completedTrials + ' / ' + scanned.totalTrials + ' 次 · ' + changed.length + ' 次解集改变 · ' +
+          replaced.length + ' 次解数相同但组合替换';
+        const ranked = [...scanned.rows].sort((a,b) => (b.added+b.removed)-(a.added+a.removed) || a.entryIndex-b.entryIndex || a.score-b.score);
+        const table = el('table', { class: 'v5-table' }, el('thead', {}, el('tr', {},
+          ...['评分格', '改分', '重算解数', '新增', '移出', '查看'].map(label => el('th', { scope: 'col' }, label)))));
+        table.append(el('tbody', {}, ...ranked.slice(0,20).map(row => el('tr', {},
+          el('td', {}, stateName(row.sourceStateId) + ' → ' + stateName(row.targetStateId)),
+          el('td', {}, row.previousScore + ' → ' + row.score), el('td', {}, String(row.variantCount)),
+          el('td', {}, String(row.added)), el('td', {}, String(row.removed)),
+          el('td', {}, el('button', { class: 'button', onclick: () => {
+            direction.value = String(groups.findIndex(group => group.indices.includes(row.entryIndex)));
+            resetCells(); cell.value = String(row.entryIndex); resetScores(); score.value = String(row.score);
+            run(); output.scrollIntoView({ block: 'nearest' });
+          } }, '查看组合'))))));
+        batchOutput.append(el('p', {}, '按新增与移出总数排序，展示前20次。它表示这套扰动下的变化，不能解释为现实发生概率。'),
+          el('div', { class: 'v5-scroll' }, table),
+          el('button', { class: 'button', onclick: () => downloadJson('批量评分扫描_' + input.year + '.json', scanned) }, '导出扫描记录'));
+      } catch (error) {
+        batchStatus.textContent = '扫描未完成：' + error.message;
+      } finally {
+        start.disabled = false; cancel.disabled = true;
+        if (batchController === controller) batchController = null;
+      }
+    }
+    root.append(el('div', { class: 'v5-card' }, el('div', { class: 'hd' }, el('h2', {}, '哪些评分值得优先核验')),
+      el('div', { class: 'bd' }, el('p', {}, '逐一将每格评分减1或加1，保持在 −3…+3 内，比较完整解集。不会修改原项目。锁定状态仍接受原有自洽判定。'),
+        el('div', { class: 'robust-actions' }, start, cancel), batchStatus, batchOutput)));
   }
   const off = context.store.subscribe(render);
   render();
-  return () => { off(); root.remove(); };
+  return () => { batchController?.abort(); off(); root.remove(); };
 }
 

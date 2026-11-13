@@ -157,15 +157,16 @@ export function buildChain({ project, archive, fresh, planChecks = {} }) {
     if (plan.complete) {
       try {
         const trace = explain(archive.RunInput, plan.config);
-        const g = gammaOf(trace);
-        const tis = tisOf(archive.RunInput, plan.config);
+        const mismatch=!!trace.violatesConditions?.length;
+        const g = mismatch?{applies:false}:gammaOf(trace);
+        const tis = mismatch?null:tisOf(archive.RunInput, plan.config);
         explainNode = {
           input: [['配置', Object.entries(plan.config).map(([d, s]) => name(d) + '=' + stateName(s)).join('，')], ['来源', '该年就地选择的状态']],
           did: '逐因素相加支持分，比较所选与替代，并计算有符号裕度与总影响。',
-          output: [trace.consistent ? '该配置自洽' : '该配置有 ' + trace.conflicts.length + ' 个冲突：' + trace.conflicts.map(name).join('、'),
+          output: mismatch?['方案与给定条件不一致；支持分、裕度和TIS不适用，请先调整方案或条件。']:[trace.consistent ? '该配置自洽' : '该配置有 ' + trace.conflicts.length + ' 个冲突：' + trace.conflicts.map(name).join('、'),
             'Γ = ' + (g.applies ? g.gamma : '不适用（存在单状态变量）'), 'TIS = ' + tis.sum + '（' + tis.cells + ' 格）'],
           source: '冻结输入 + plan-check 同一算法',
-          gaps: trace.consistent ? [] : ['冲突来自矩阵里的具体格子，可回关系页核对'],
+          gaps: mismatch?['年度方案不满足本次给定状态']:trace.consistent ? [] : ['冲突来自矩阵里的具体格子，可回关系页核对'],
           status: fresh ? 'ok' : 'stale'
         };
       } catch (error) {

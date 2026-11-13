@@ -179,6 +179,7 @@ export function formulaContext(p, archive) {
     if (plan?.complete) {
       try {
         ctx.trace = explain(input, plan.config);
+        if(ctx.trace.violatesConditions?.length){ctx.trace=null;return ctx;}
         ctx.name = name;
         ctx.tis = tisOf(input, plan.config).sum;
         // support 卡的真实代入：取解释轨迹里第一个因素“所选状态”的支持分展开。

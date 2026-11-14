@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fixtures from './solver-browser-fixtures.cjs';
 import { prepareRun, solve } from '../src/modules/solver/engine.mjs';
-import { jointPlanKey, saveJointPlan, readJointPlans, loadJointPlan, compareJointPlans, deleteJointPlan } from '../src/modules/solver/joint-plans.mjs';
+import { jointPlanKey, saveJointPlan, readJointPlans, loadJointPlan, compareJointPlans, deleteJointPlan, exportJointPlans, importJointPlans } from '../src/modules/solver/joint-plans.mjs';
 function setup() {
   const p = fixtures.fixture({ mode: 'zero' });
   const input = prepareRun(p, { year: 2030, selectedJudgmentIds: p.data.judgments.map(j => j.id),
@@ -12,6 +12,21 @@ function setup() {
     changes: [{ entryIndex: 0, score: sign }, { entryIndex: 1, score: -sign }] });
   return { input, storage, save, values };
 }
+
+test('backup restores into fresh storage, duplicates are idempotent and failures are atomic', () => {
+  const source=setup(), target=setup(); source.save('left',1); source.save('right',-1);
+  const raw=JSON.stringify(exportJointPlans(source.storage));
+  assert.deepEqual(importJointPlans(target.storage,raw),{added:2,total:2});
+  assert.deepEqual(readJointPlans(target.storage),readJointPlans(source.storage));
+  assert.deepEqual(importJointPlans(target.storage,raw),{added:0,total:2});
+  const before=target.storage.getItem(jointPlanKey);
+  for (const corrupt of ['broken',JSON.stringify({...JSON.parse(raw),version:9}),JSON.stringify({...JSON.parse(raw),records:[{...JSON.parse(raw).records[0],name:'conflict'}]}),' '.repeat(2000001)]) {
+    assert.throws(()=>importJointPlans(target.storage,corrupt));
+    assert.equal(target.storage.getItem(jointPlanKey),before);
+  }
+  const full={getItem:()=>null,setItem:()=>{throw Error('quota');}};
+  assert.throws(()=>importJointPlans(full,raw),/原记录未覆盖/);
+});
 test('saved plans round trip, compare equal counts but different identities and replay exports', () => {
   const { input, storage, save } = setup(); const frozen = structuredClone(input);
   const left = save('left',1), right = save('right',-1);
@@ -39,7 +54,7 @@ test('bad edits, duplicate ids, corrupt storage and quota errors do not overwrit
   assert.throws(()=>saveJointPlan(storage,{...record,id:'bad',changes:[{entryIndex:0,score:1}]}));
   assert.equal(storage.getItem(jointPlanKey),before);
   const full={...storage,setItem:()=>{throw new Error('quota');}};
-  assert.throws(()=>saveJointPlan(full,{...record,id:'new'}),/原记录未覆盖/);assert.equal(storage.getItem(jointPlanKey),before);
+  assert.throws(()=>saveJointPlan(full,{...record,id:'new',name:'quota-check'}),/原记录未覆盖/);assert.equal(storage.getItem(jointPlanKey),before);
   values.set(jointPlanKey,'broken');assert.throws(()=>readJointPlans(storage),/损坏/);
   assert.throws(()=>saveJointPlan(storage,{...record,id:'new'}));assert.equal(values.get(jointPlanKey),'broken');
 });

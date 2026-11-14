@@ -5,7 +5,7 @@ import { planSensitivity, scanSensitivity } from './batch-sensitivity.mjs';
 import { explain } from './engine.mjs';
 import { downloadJson } from '../exports/download.mjs';
 import { planAtYear } from '../elements/state-plan.mjs';
-import { readJointPlans, saveJointPlan, deleteJointPlan, loadJointPlan, compareJointPlans, sameBaseline } from './joint-plans.mjs';
+import { readJointPlans, saveJointPlan, deleteJointPlan, loadJointPlan, compareJointPlans, sameBaseline, exportJointPlans, importJointPlans } from './joint-plans.mjs';
 
 export function mount(container, context) {
   const root = el('section', { class: 'robustness-module' });
@@ -174,6 +174,18 @@ export function mount(container, context) {
     }) }, '保存联合方案');
     savedChoice.addEventListener('change', () => comparison.replaceChildren());
     otherChoice.addEventListener('change', () => comparison.replaceChildren());
+    const backupFile = el('input', { type: 'file', accept: '.json,application/json', 'aria-label': '导入联合方案备份' });
+    backupFile.addEventListener('change', async () => {
+      const file = backupFile.files?.[0];
+      if (!file) return;
+      try {
+        if (file.size > 2000000) throw new Error('备份超过2MB。');
+        const result = importJointPlans(localStorage, await file.text());
+        renderSaved();
+        savedStatus.textContent = '导入完成：新增 ' + result.added + ' 份，共 ' + result.total + ' 份；相同记录不会重复添加。';
+      } catch (error) { savedStatus.textContent = '未完成：' + error.message; }
+      finally { backupFile.value = ''; }
+    });
     renderSaved();
     root.append(el('div', { class: 'v5-card', 'data-joint-saved': '' },
       el('div', { class: 'hd' }, el('h2', {}, '保存与比较联合方案')),
@@ -204,7 +216,12 @@ export function mount(container, context) {
           }
           comparison.append(el('button', { class: 'button', onclick: () => downloadJson('联合方案并排比较_'+input.year+'.json',compared) }, '导出两方案比较'));
           savedStatus.textContent = '已从同一冻结基线重新计算两方案；导出含全部情景和改分列表。';
-        }) }, '并排比较两方案'), savedStatus, comparison)));
+        }) }, '并排比较两方案'),
+        el('div', { class: 'robust-actions' },
+          el('button', { class: 'button', onclick: attempt(() => downloadJson('联合方案备份.json', exportJointPlans(localStorage))) }, '导出联合方案备份'),
+          el('label', {}, '导入联合方案备份', backupFile)),
+        el('p', {}, '换设备时，请同时保留项目备份和联合方案备份。先恢复项目并检验相同基线，再导入方案；导入会合并，相同记录跳过，冲突整批拒绝。比较结果文件不能用于恢复方案列表。'),
+        savedStatus, comparison)));
 
     const batchStatus = el('p', { role: 'status', 'data-batch-status': '' });
     const batchOutput = el('div', { 'data-batch-output': '' });

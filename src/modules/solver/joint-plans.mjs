@@ -70,3 +70,29 @@ export function compareJointPlans(input, left, right) {
     between: { kept: rows[0].filter(c => sets[1].has(key(c))),
       onlyLeft: rows[0].filter(c => !sets[1].has(key(c))), onlyRight: rows[1].filter(c => !sets[0].has(key(c))) } };
 }
+
+export function exportJointPlans(storage) {
+  return { format: 'scenario-workbench.joint-plans', version: 1, records: readJointPlans(storage) };
+}
+
+export function importJointPlans(storage, raw) {
+  if (typeof raw !== 'string' || new TextEncoder().encode(raw).length > 2000000) throw new Error('联合方案备份超过2MB或不是文本。');
+  let incoming;
+  try { incoming = JSON.parse(raw); } catch { throw new Error('备份不是有效JSON，原记录未覆盖。'); }
+  if (incoming?.format !== 'scenario-workbench.joint-plans' || incoming.version !== 1) throw new Error('不支持的联合方案备份格式或版本。');
+  const records = readJointPlans({ getItem: () => JSON.stringify({ version: incoming.version, records: incoming.records }) });
+  const current = readJointPlans(storage);
+  const merged = [...current];
+  for (const record of records) {
+    const old = merged.find(r => r.id === record.id);
+    if (old) {
+      if (!sameBaseline(old, record)) throw new Error('方案标识冲突，整批未导入：' + record.name);
+      continue;
+    }
+    if (merged.some(r => r.name === record.name && sameBaseline(r.input, record.input))) throw new Error('同一基线存在同名方案，整批未导入：' + record.name);
+    merged.push(record);
+  }
+  if (merged.length > 12) throw new Error('合并后超过12份，原记录未覆盖。');
+  if (merged.length !== current.length) write(storage, merged);
+  return { added: merged.length - current.length, total: merged.length };
+}

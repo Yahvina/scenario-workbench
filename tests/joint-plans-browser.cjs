@@ -2,6 +2,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {pathToFileURL}=require('node:url');
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright-core');
 const {fixture}=require('./solver-browser-fixtures.cjs');
+const home=require('./home-controls.cjs');
 (async()=>{
  const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
  try {
@@ -40,10 +41,19 @@ const {fixture}=require('./solver-browser-fixtures.cjs');
   const backupEvent=page.waitForEvent('download');
   await page.getByRole('button',{name:'导出联合方案备份',exact:true}).click();
   const backup=await backupEvent,backupPath=await backup.path();
+  const projectEvent=page.waitForEvent('download'); projectEvent.catch(()=>{});
+  await page.locator('nav [data-route=exports]').first().click();
+  await page.locator('.exports-switch [data-tab="advanced"]').click();
+  await page.getByRole('button',{name:'下载项目备份',exact:true}).first().click();
+  const projectDownload=await projectEvent;
+  const projectBackup=JSON.parse(fs.readFileSync(await projectDownload.path(),'utf8'));
   const migrated=await browser.newContext({acceptDownloads:true,viewport:{width:1440,height:1100}});
-  await migrated.addInitScript(p=>localStorage.setItem('scenario-workbench.project.v1',JSON.stringify(p)),fixture({mode:'zero'}));
-  page=await migrated.newPage();page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(pathToFileURL(path.resolve('dist/scenario-workbench.html')).href);await openBaseline();
+
+  page=await migrated.newPage();page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
+  await page.goto(pathToFileURL(path.resolve('dist/scenario-workbench.html')).href);
+  await home.restore(page,projectBackup);
+  assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('scenario-workbench.project.v1')).data),before);
+  await openBaseline();
   assert.equal(await page.getByLabel('已保存联合方案',{exact:true}).locator('option').count(),0);
   await page.getByLabel('导入联合方案备份',{exact:true}).setInputFiles(backupPath);
   await page.waitForFunction(()=>document.querySelector('[data-joint-saved-status]').textContent.includes('新增 2'));
@@ -73,3 +83,4 @@ const {fixture}=require('./solver-browser-fixtures.cjs');
   console.log('PASS saved joint plans: named save, equal-count member comparison, JSON replay, refresh reload and re-run, source unchanged, delete, different-year rejection, mobile');
  } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
+

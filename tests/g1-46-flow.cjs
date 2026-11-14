@@ -169,7 +169,7 @@ const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Applic
     const selected = page.locator('select[aria-label="要改的评分格"]');
     assert.ok(await selected.count());
     await page.locator('select[aria-label="新评分"]').selectOption({ index: 0 });
-    await page.locator('button', { hasText: '重算并比较' }).click();
+    await page.getByRole('button', { name: '重算并比较', exact: true }).click();
     assert.match(await page.locator('.robust-out').innerText(), /基线自洽组合/);
     const downloadPromise = page.waitForEvent('download');
     await page.locator('button', { hasText: '导出这次比较' }).click();

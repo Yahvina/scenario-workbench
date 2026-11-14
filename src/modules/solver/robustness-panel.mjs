@@ -1,6 +1,6 @@
 import { el, infoTip } from '../../core/ui.mjs';
 import { readRunArchive, readRunSummary } from './index.mjs';
-import { compareScore } from './score-sensitivity.mjs';
+import { compareScore, compareScores } from './score-sensitivity.mjs';
 import { planSensitivity, scanSensitivity } from './batch-sensitivity.mjs';
 import { explain } from './engine.mjs';
 import { downloadJson } from '../exports/download.mjs';
@@ -16,7 +16,7 @@ export function mount(container, context) {
     batchController = null;
     root.replaceChildren(el('div', { class: 'v5-head' },
       el('p', { class: 'eyebrow' }, 'Tool · Robustness'),
-      el('h1', {}, '稳健性检验', infoTip('在冻结输入副本上改单格评分，再完整枚举。比较全部自洽组合的新增、移出与保留。', '怎么算'))));
+      el('h1', {}, '稳健性检验', infoTip('在冻结输入副本上改变一项或多项评分，再完整枚举。比较全部自洽组合的新增、移出与保留。', '怎么算'))));
     const project = context.store.read();
     const archive = readRunArchive(context.store);
     if (!archive?.RunInput || archive.RunResult?.status !== 'completed') {
@@ -70,9 +70,9 @@ export function mount(container, context) {
     function download() {
       downloadJson('稳健性比较_' + input.year + '.json', result);
     }
-    function run() {
+    function run(changes) {
       try {
-        result = compareScore(input, Number(cell.value), Number(score.value));
+        result = Array.isArray(changes) ? compareScores(input, changes) : compareScore(input, Number(cell.value), Number(score.value));
         const stats = [
           ['基线自洽组合', result.baselineCount], ['重算后', result.variantCount],
           ['保留', result.kept.length], ['新增', result.added.length], ['移出', result.removed.length]
@@ -94,7 +94,8 @@ export function mount(container, context) {
           if (changed.length > 20) output.append(el('p', {}, '共 ' + changed.length + ' 条变化，表内展示前 20 条；导出含全部变化。'));
         } else output.append(el('p', {}, '本次评分改动后，自洽组合相同。'));
         output.append(el('button', { class: 'button', onclick: download }, '导出这次比较'));
-        message.textContent = '评分 ' + result.change.previousScore + ' → ' + result.change.score +
+        message.textContent = (result.changes.length > 1 ? '联合改变 ' + result.changes.length + ' 项评分' :
+          '评分 ' + result.change.previousScore + ' → ' + result.change.score) +
           '，两次各检查 ' + result.checked.baseline + ' 个候选组合。';
       } catch (error) {
         output.replaceChildren();
@@ -114,6 +115,35 @@ export function mount(container, context) {
           el('div', { class: 'robust-actions' }, el('button', { class: 'button primary-action', onclick: run }, '重算并比较')),
           message, output)));
     if(given.length)root.append(el('p',{},'本次基线的给定条件：'+given.map(id=>name(stateDescriptor(id))+'='+stateName(id)).join('、')+'。扫描只包含本次条件计算实际使用的评分格。'));
+
+    const jointChanges = new Map();
+    const jointList = el('div', { 'data-joint-list': '' });
+    const jointRun = el('button', { class: 'button primary-action', disabled: true, onclick: () => {
+      run([...jointChanges].map(([entryIndex, score]) => ({ entryIndex, score })));
+      output.scrollIntoView({ block: 'nearest' });
+    } }, '联合重算并比较');
+    function renderJoint() {
+      result = null; output.replaceChildren();
+      jointRun.disabled = jointChanges.size < 2;
+      jointList.replaceChildren(el('p', {}, '已选择 ' + jointChanges.size + ' 项；至少两项才能联合比较。'),
+        ...[...jointChanges].map(([index, value]) => {
+          const entry = input.matrix.entries[index];
+          return el('p', {}, name(stateDescriptor(entry.sourceStateId)) + ' / ' + stateName(entry.sourceStateId) +
+            ' → ' + name(stateDescriptor(entry.targetStateId)) + ' / ' + stateName(entry.targetStateId) +
+            '：' + entry.score + ' → ' + value + ' ',
+            el('button', { class: 'button', 'aria-label': '移除联合评分 ' + index,
+              onclick: () => { jointChanges.delete(index); renderJoint(); } }, '移除'));
+        }));
+    }
+    renderJoint();
+    root.append(el('div', { class: 'v5-card', 'data-joint-comparison': '' },
+      el('div', { class: 'hd' }, el('h2', {}, '多项评分一起变化')),
+      el('div', { class: 'bd' }, el('p', {}, '先在上方选择评分格和新评分，再加入列表。同一格再次加入会更新新评分。所有修改一次性作用于同一冻结基线，结果显示在上方并可导出；不会修改原项目。'),
+        el('div', { class: 'robust-actions' }, el('button', { class: 'button', onclick: () => {
+          jointChanges.set(Number(cell.value), Number(score.value)); renderJoint();
+        } }, '加入联合改分'), jointRun,
+        el('button', { class: 'button', onclick: () => { jointChanges.clear(); renderJoint(); } }, '清空联合改分')),
+        jointList, el('p', {}, '这是所选评分共同变化的比较，不能当作现实发生概率，也不能把单项影响直接相加。'))));
 
     const batchStatus = el('p', { role: 'status', 'data-batch-status': '' });
     const batchOutput = el('div', { 'data-batch-output': '' });

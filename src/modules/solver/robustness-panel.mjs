@@ -5,6 +5,7 @@ import { planSensitivity, scanSensitivity } from './batch-sensitivity.mjs';
 import { explain } from './engine.mjs';
 import { downloadJson } from '../exports/download.mjs';
 import { planAtYear } from '../elements/state-plan.mjs';
+import { readJointPlans, saveJointPlan, deleteJointPlan, loadJointPlan, compareJointPlans, sameBaseline } from './joint-plans.mjs';
 
 export function mount(container, context) {
   const root = el('section', { class: 'robustness-module' });
@@ -117,6 +118,7 @@ export function mount(container, context) {
     if(given.length)root.append(el('p',{},'本次基线的给定条件：'+given.map(id=>name(stateDescriptor(id))+'='+stateName(id)).join('、')+'。扫描只包含本次条件计算实际使用的评分格。'));
 
     const jointChanges = new Map();
+    let saveJointButton = null;
     const jointList = el('div', { 'data-joint-list': '' });
     const jointRun = el('button', { class: 'button primary-action', disabled: true, onclick: () => {
       run([...jointChanges].map(([entryIndex, score]) => ({ entryIndex, score })));
@@ -125,6 +127,7 @@ export function mount(container, context) {
     function renderJoint() {
       result = null; output.replaceChildren();
       jointRun.disabled = jointChanges.size < 2;
+      if (saveJointButton) saveJointButton.disabled = jointChanges.size < 2;
       jointList.replaceChildren(el('p', {}, '已选择 ' + jointChanges.size + ' 项；至少两项才能联合比较。'),
         ...[...jointChanges].map(([index, value]) => {
           const entry = input.matrix.entries[index];
@@ -144,6 +147,64 @@ export function mount(container, context) {
         } }, '加入联合改分'), jointRun,
         el('button', { class: 'button', onclick: () => { jointChanges.clear(); renderJoint(); } }, '清空联合改分')),
         jointList, el('p', {}, '这是所选评分共同变化的比较，不能当作现实发生概率，也不能把单项影响直接相加。'))));
+
+    const savedName = el('input', { 'aria-label': '联合方案名称', maxlength: 60, placeholder: '例如：两项关系同时减弱' });
+    const savedChoice = el('select', { 'aria-label': '已保存联合方案' });
+    const otherChoice = el('select', { 'aria-label': '并排比较另一方案' });
+    const savedStatus = el('p', { role: 'status', 'data-joint-saved-status': '' });
+    const comparison = el('div', { 'data-joint-saved-comparison': '' });
+    let savedRecords = [];
+    function renderSaved() {
+      comparison.replaceChildren();
+      try {
+        savedRecords = readJointPlans(localStorage).sort((a,b) => Number(sameBaseline(b.input,input))-Number(sameBaseline(a.input,input)));
+        const options = () => savedRecords.map(r => el('option', { value: r.id }, r.name + (sameBaseline(r.input,input) ? '' : '（其他基线）')));
+        savedChoice.replaceChildren(...options()); otherChoice.replaceChildren(...options());
+        if (savedRecords.length > 1) otherChoice.value = savedRecords[1].id;
+        savedStatus.textContent = '本机保存 ' + savedRecords.length + ' 份联合方案；仅完全相同的冻结基线可载入或比较。刷新后先重新检验同一基线。';
+      } catch (error) { savedRecords = []; savedStatus.textContent = error.message; }
+    }
+    const attempt = action => () => {
+      try { action(); } catch (error) { savedStatus.textContent = '未完成：' + error.message; }
+    };
+    saveJointButton = el('button', { class: 'button', disabled: true, onclick: attempt(() => {
+      saveJointPlan(localStorage, { name: savedName.value, input,
+        changes: [...jointChanges].map(([entryIndex, score]) => ({ entryIndex, score })) });
+      renderSaved(); savedStatus.textContent = '已保存联合方案：' + savedName.value.trim();
+    }) }, '保存联合方案');
+    savedChoice.addEventListener('change', () => comparison.replaceChildren());
+    otherChoice.addEventListener('change', () => comparison.replaceChildren());
+    renderSaved();
+    root.append(el('div', { class: 'v5-card', 'data-joint-saved': '' },
+      el('div', { class: 'hd' }, el('h2', {}, '保存与比较联合方案')),
+      el('div', { class: 'bd' }, el('label', { class: 'robust-field' }, '名称', savedName), saveJointButton,
+        el('label', { class: 'robust-field' }, '已保存方案', savedChoice),
+        el('div', { class: 'robust-actions' },
+          el('button', { class: 'button', onclick: attempt(() => {
+            const changes = loadJointPlan(input, savedRecords.find(r => r.id === savedChoice.value));
+            jointChanges.clear(); changes.forEach(c => jointChanges.set(c.entryIndex,c.score)); renderJoint();
+            savedStatus.textContent = '已载入改分列表；点击“联合重算并比较”计算结果。';
+          }) }, '载入联合方案'),
+          el('button', { class: 'button', onclick: attempt(() => {
+            if (!savedRecords.some(r => r.id === savedChoice.value)) throw new Error('请先选择已保存方案。');
+            deleteJointPlan(localStorage,savedChoice.value); renderSaved();
+          }) }, '删除所选联合方案')),
+        el('label', { class: 'robust-field' }, '另一方案', otherChoice),
+        el('button', { class: 'button', onclick: attempt(() => {
+          comparison.replaceChildren();
+          const compared = compareJointPlans(input, savedRecords.find(r => r.id === savedChoice.value), savedRecords.find(r => r.id === otherChoice.value));
+          const table = el('table', { class: 'v5-table' }, el('thead', {}, el('tr', {},
+            ...['方案','改分项数','自洽组合','相对基线新增','相对基线移出'].map(t => el('th', { scope: 'col' }, t)))),
+            el('tbody', {}, ...compared.plans.map(p => el('tr', {}, ...[p.name,p.result.changes.length,p.result.variantCount,p.result.added.length,p.result.removed.length].map(v => el('td', {}, String(v)))))));
+          comparison.append(el('div', { class: 'v5-scroll' }, table),
+            el('p', {}, '两方案共有 ' + compared.between.kept.length + ' 个情景；仅左方案 ' + compared.between.onlyLeft.length + ' 个；仅右方案 ' + compared.between.onlyRight.length + ' 个。'));
+          for (const [label, configs] of [['仅左方案',compared.between.onlyLeft],['仅右方案',compared.between.onlyRight]]) {
+            if (configs.length) comparison.append(el('p', {}, label + '（前20条）：'),
+              ...configs.slice(0,20).map(c => el('p', {}, input.activeDescriptorIds.map(id => name(id)+'='+stateName(c[id])).join('；'))));
+          }
+          comparison.append(el('button', { class: 'button', onclick: () => downloadJson('联合方案并排比较_'+input.year+'.json',compared) }, '导出两方案比较'));
+          savedStatus.textContent = '已从同一冻结基线重新计算两方案；导出含全部情景和改分列表。';
+        }) }, '并排比较两方案'), savedStatus, comparison)));
 
     const batchStatus = el('p', { role: 'status', 'data-batch-status': '' });
     const batchOutput = el('div', { 'data-batch-output': '' });

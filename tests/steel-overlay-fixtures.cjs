@@ -1,0 +1,5 @@
+// All values are synthetic engineering fixtures, not provincial model data.
+const region = name => `<region name="${name}"><unlimited-resource name="scrap"><output-unit>Mt</output-unit></unlimited-resource><supplysector name="iron and steel"><output-unit>Mt</output-unit><subsector name="EAF with scrap"><stub-technology name="EAF with scrap"><period year="2030"><share-weight>1</share-weight><minicam-energy-input name="elect_td_ind"><market-name>${name}</market-name><coefficient>2</coefficient></minicam-energy-input><minicam-energy-input name="scrap"><market-name>${name}</market-name><coefficient>3</coefficient></minicam-energy-input></period><period year="2035"><minicam-energy-input name="elect_td_ind"><market-name>${name}</market-name><coefficient>4</coefficient></minicam-energy-input></period></stub-technology></subsector></supplysector></region>`;
+const steel = `<scenario><world>${region('HE')}${region('TJ')}</world></scenario>`;
+const electricity = '<scenario><world><region name="HE"><supplysector name="elect_td_ind"><output-unit>EJ</output-unit></supplysector></region></world></scenario>';
+module.exports = { steel, electricity };

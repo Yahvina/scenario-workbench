@@ -1,6 +1,12 @@
 # 钢铁单项系数覆盖组件 v0.1.0
 
-`scripts/gcam_steel_overlay.py` 是独立 Python 3.10+ 标准库组件。它在调用者提供的 GCAM XML 中定位一个钢铁投入系数，核对文件哈希、原值和单位，生成最小覆盖 XML 与审计 JSON。它不修改平台 Project 契约，也未接入平台页面。
+`scripts/gcam_steel_overlay.py` 是独立 Python 3.10+ 标准库组件。它在调用者提供的 GCAM XML 中定位一个钢铁投入系数，核对文件哈希、原值和单位，生成最小覆盖 XML 与审计 JSON。它不修改平台 Project 契约。
+
+平台页面现已提供相同工程范围的浏览器入口：**保存与导出 → 导出、备份与恢复 → 钢铁系数覆盖（工程测试）**。浏览器侧使用本地XML解析与SHA256核对，不需要Python，也不上传文件。选择源文件、目标节点和可选单位证明，明确操作与数值并核对显示原值后，才生成可下载预览。
+
+修改文件、目标或数值立即清除旧预览并禁用下载；迟到的文件读取/哈希结果不会覆盖新输入。离开该页面会清理所选文件和预览，不向项目、方案库或备份写入原始XML。请求JSON仅记录文件名，独立复跑时需与对应XML放在同一目录。
+
+浏览器入口直接从当前所选文件建立版本哈希和显示原值，不等于与一份事先获批的研究基线比对。下载审计仍标明 `testOnly: true`、`researchMappingApproved: false`、`cibConsistencyEvaluated: false`、未执行模型。
 
 目前仅支持显式 `testOnly: true` 的工程测试。组件不批准研究映射，不计算 CIB 自洽性，不生成行业综合能耗或工艺占比目标，也不自动运行 GCAM。
 
@@ -12,6 +18,8 @@ python -m unittest discover -s tests -p test_gcam_steel_overlay.py -v
 ```
 
 输出目录必须不存在。成功时同时交付 `overlay.xml` 与 `audit.json`；无效请求不留下结果目录，已有目录不覆盖。相对源文件路径按请求 JSON 所在目录解析，输出目录按调用时工作目录解析。双击平台离线 HTML 不需要 Python；该组件是另行运行的模型接口工具。
+
+浏览器生成的请求复用下述v1契约。两端的数值与结构含义一致；数字序列化可能不同，因此审计中的 `overlaySha256` 各自对应实际下载/写入的XML字节，不以跨端XML哈希相同为前提。浏览器验收命令为 `node tests/steel-overlay-browser.cjs`，需要开发环境提供Playwright模块与Chrome。默认由测试程序向浏览器提供本地源码资源，不验证HTTP服务；设置 `APP_URL` 可改验实际本机服务，同时始终验收 `dist/scenario-workbench.html` 离线入口。
 
 ## 请求 v1
 

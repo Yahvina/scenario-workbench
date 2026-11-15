@@ -9,6 +9,7 @@ import { modelInputPanel } from './model-input-panel.mjs';
 import { aiDraftPanel } from './ai-draft-panel.mjs';
 import { projectBackupPanel } from './project-backup-panel.mjs';
 import { steelOverlayPanel } from './steel-overlay-panel.mjs';
+import { steelFlowResultPanel } from './steel-flow-result-panel.mjs';
 
 // 保存状态四态：本机自动保存 / 命名方案 / 检验记录 / 备份文件。
 // 各说各的事实，不用一个“已保存”混在一起；只在真正写入后显示成功。
@@ -92,6 +93,7 @@ export function mountExports(container, context) {
     savedWorkPanel(viewHosts.history, context),
     comparePanel(viewHosts.compare, context),
     steelOverlayPanel(viewHosts.advanced, context),
+    steelFlowResultPanel(viewHosts.advanced),
     modelInputPanel(viewHosts.advanced, context),
     aiDraftPanel(viewHosts.advanced, context),
     projectBackupPanel(viewHosts.advanced, context)

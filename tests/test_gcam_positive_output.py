@@ -1,5 +1,7 @@
 import copy
 import importlib.util
+import hashlib
+import json
 from pathlib import Path
 import tempfile
 import unittest
@@ -96,6 +98,9 @@ class PositiveOutputTests(unittest.TestCase):
             root = debug_xml(snapshots); ET.ElementTree(root).write(file)
             parsed = module.read_debug(file, TARGET, 'HE')
             self.assertAlmostEqual(parsed[0]['energyInputEJ'], 3.9)
+            self.assertAlmostEqual(parsed[0]['marketEnergyDemandEJ'], 3.9)
+            self.assertEqual(parsed[0]['fixedSteelDemandMt'], 2)
+            self.assertEqual(parsed[0]['marketMaterialDemandMt'], 6)
             root.find('.//market/demand').text = '99'; ET.ElementTree(root).write(file)
             with self.assertRaises(ValueError): module.read_debug(file, TARGET, 'HE')
             root = debug_xml(snapshots); root.find('.//technology/minicam-energy-input/physical-demand').text = '99'; ET.ElementTree(root).write(file)
@@ -112,6 +117,27 @@ class PositiveOutputTests(unittest.TestCase):
             with self.assertRaises(ValueError): module.read_debug(file, TARGET, 'HE')
             ET.ElementTree(debug_xml(snap[:1])).write(file)
             with self.assertRaises(ValueError): module.read_debug(file, TARGET, 'HE')
+
+    def test_result_bundle_preserves_exact_unicode_and_bom_case_bytes(self):
+        case = '\ufeff{"说明":"合成工程假设"}'.encode('utf-8')
+        report = {'status': 'passed', 'nativeRuns': 8, 'testOnly': True, 'fullGCAMChina': False, 'policyEffectEvaluated': False, 'researchMappingApproved': False, 'caseCheck': {'valid': True}, 'linkedCaseSHA256': hashlib.sha256(case).hexdigest()}
+        bundle = module.result_bundle(report, case)
+        self.assertEqual(bundle['caseJson'].encode('utf-8'), case)
+        self.assertEqual(bundle['caseSha256'], report['linkedCaseSHA256'])
+        self.assertEqual(json.loads(bundle['reportJson']), report)
+        self.assertEqual(hashlib.sha256(bundle['reportJson'].encode()).hexdigest(), bundle['reportSha256'])
+
+    def test_result_bundle_rejects_failed_unbound_and_overclaimed_reports(self):
+        report = {'status': 'passed', 'nativeRuns': 8, 'testOnly': True, 'fullGCAMChina': False, 'policyEffectEvaluated': False, 'researchMappingApproved': False, 'caseCheck': None}
+        self.assertIsNone(module.result_bundle(report)['caseJson'])
+        for patch in [{'status': 'failed'}, {'nativeRuns': 7}, {'testOnly': False}, {'policyEffectEvaluated': True}, {'fullGCAMChina': True}, {'researchMappingApproved': True}, {'linkedCaseSHA256': '1' * 64}, {'caseCheck': {'valid': True}}]:
+            with self.subTest(patch=patch), self.assertRaises(ValueError): module.result_bundle({**report, **patch})
+        with self.assertRaises(ValueError): module.result_bundle(report, b'{}')
+
+    def test_result_bundle_rejects_nonfinite_and_oversize_report(self):
+        report = {'status': 'passed', 'nativeRuns': 8, 'testOnly': True, 'fullGCAMChina': False, 'policyEffectEvaluated': False, 'researchMappingApproved': False, 'caseCheck': None}
+        for extra in [float('nan'), 'x' * (16 * 1024 * 1024)]:
+            with self.assertRaises(ValueError): module.result_bundle({**report, 'extra': extra})
 
 
 if __name__ == '__main__': unittest.main()

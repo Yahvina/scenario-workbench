@@ -50,3 +50,9 @@ python -m unittest discover -s tests -p "test_gcam_*.py" -v
 ```
 
 这些测试检查生成器、手算批次汇总、读取器及反例；不冒充原生GCAM运行。真实原生验证需额外提供上述程序和JRE。
+
+## 结果回到平台
+
+新版同时生成`result-bundle.json`：包含精确报告文本及其哈希，关联模式另嵌入原CIB关联留档文本和文件哈希；逐年快照新增固定需求与市场投入需求。打开平台“保存与导出 → 导出、备份与恢复 → 原生投入传递结果（工程测试）”，选择该文件，重算对照摘要并查看、下载HTML。只核对包内一致性，不在浏览器重跑模型或认证原生程序。旧版缺少这些字段的results.json须重新生成，不能直接作为该结果包导入。
+
+独立核验：`node scripts/check-steel-flow-result.mjs result-bundle.json`。格式、容差与边界见[结果包约定](STEEL_FLOW_RESULT_V1.md)。

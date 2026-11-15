@@ -146,11 +146,13 @@ def read_debug(path, target, region):
         total = sum(r['outputMt'] for r in rows); need(total > 0, 'Zero-output fixture cannot pass this experiment')
         energy = sum(r['energyInputEJ'] for r in rows); material = sum(r['materialInputMt'] for r in rows)
         demand = next((n for n in areas[0].findall('fixed-final-demand') if n.get('name') == target['sector']), None)
-        need(demand is not None, 'No fixed steel demand'); near(total, float(demand.findtext('service')), 'Steel output meets fixed demand')
+        need(demand is not None, 'No fixed steel demand'); fixed = float(demand.findtext('service')); near(total, fixed, 'Steel output meets fixed demand')
+        market_demands = []
         for commodity, amount in [(target['input'], energy), ('synthetic-material', material)]:
             matched = [n for n in markets if n.findtext('MarketGoodOrFuel') == commodity and n.findtext('MarketRegion') == region]
             need(len(matched) == 1, 'Missing or duplicate commodity market'); near(float(matched[0].findtext('demand')), amount, 'Market and vintage input demand')
-        records.append({'year': year, 'region': region, 'outputMt': total, 'energyInputEJ': energy, 'materialInputMt': material, 'vintages': rows})
+            market_demands.append(float(matched[0].findtext('demand')))
+        records.append({'year': year, 'region': region, 'outputMt': total, 'energyInputEJ': energy, 'materialInputMt': material, 'fixedSteelDemandMt': fixed, 'marketEnergyDemandEJ': market_demands[0], 'marketMaterialDemandMt': market_demands[1], 'vintages': rows})
     need([r['year'] for r in records] == [2030, 2035], 'Expected 2030 and 2035 snapshots')
     return records
 
@@ -181,6 +183,17 @@ def compare(records, baseline, changed, target_region, control):
                     near(share, (1 if left['year'] == 2030 else 0) if family == 'replacement' else .5, 'Constructed affected-vintage output share')
                 summaries.append({'family': family, 'region': region, 'year': left['year'], 'steelOutputMt': right['outputMt'], 'baselineEnergyEJ': left['energyInputEJ'], 'changedEnergyEJ': right['energyInputEJ'], 'affectedVintageOutputShare': share, 'coefficientReduction': 1 - changed / baseline, 'aggregateEnergyReduction': 1 - right['energyInputEJ'] / left['energyInputEJ']})
     return summaries
+
+
+def result_bundle(report, frozen_case=None):
+    need(report.get('status') == 'passed' and report.get('nativeRuns') == 8 and report.get('testOnly') is True, 'Only a completed engineering experiment can be packaged')
+    need(all(report.get(k) is False for k in ['fullGCAMChina', 'policyEffectEvaluated', 'researchMappingApproved']), 'Engineering boundaries are required')
+    report_json = json.dumps(report, ensure_ascii=False, indent=2, allow_nan=False)
+    case_hash = hashlib.sha256(frozen_case).hexdigest() if frozen_case is not None else None
+    need(report.get('linkedCaseSHA256') == case_hash and (report.get('caseCheck') is None) == (frozen_case is None), 'Linked case does not match the experiment')
+    bundle = {'format': 'scenario-workbench.steel-input-flow-result', 'version': 1, 'testOnly': True, 'reportJson': report_json, 'reportSha256': hashlib.sha256(report_json.encode('utf-8')).hexdigest(), 'caseJson': frozen_case.decode('utf-8') if frozen_case is not None else None, 'caseSha256': case_hash}
+    need(len(json.dumps(bundle, ensure_ascii=False, indent=2, allow_nan=False).encode('utf-8')) <= 16 * 1024 * 1024, 'Result bundle exceeds 16 MiB')
+    return bundle
 
 
 def run_experiment(exe, java_home, destination, work_root, case_file=None, control='CONTROL'):
@@ -228,11 +241,13 @@ def run_experiment(exe, java_home, destination, work_root, case_file=None, contr
                     observed = read_debug(run / 'debug.xml', target, region); observations[(family, variant, region)] = observed; row['snapshots'] = observed
                     shutil.copytree(run, destination / 'runs' / (family + '-' + variant + '-' + ('target' if region == target['region'] else 'control')), dirs_exist_ok=True)
         report['summaries'] = compare(observations, baseline, changed, target['region'], control); report['status'] = 'passed'; report['nativeRuns'] = len(report['runs'])
+        capsule = result_bundle(report, frozen_case)
     except Exception as error:
         report['status'] = 'failed'; report['error'] = str(error)
         (destination / 'results.json').write_text(json.dumps(report, ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
         raise
     (destination / 'results.json').write_text(json.dumps(report, ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
+    (destination / 'result-bundle.json').write_text(json.dumps(capsule, ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8', newline='\n')
     return report
 
 

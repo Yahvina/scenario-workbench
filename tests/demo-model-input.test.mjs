@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   MAPPING_PROVENANCE, MAPPING_STATUS_LABEL, MODEL_MAPPINGS, MAPPING_GAPS, MODEL_INPUT_FILENAME,
   mappingFor, inputCandidates, buildModelInput, sampleToJson, sampleToCsv
@@ -38,6 +39,25 @@ function project(overrides = {}) {
 }
 
 const ALLOWED_CONFIDENCE = new Set(['verified-in-file', 'documented-only']);
+
+test('steel sample preserves updated file evidence without inventing one unit or research approval', () => {
+  const evidence = JSON.parse(readFileSync(new URL('../docs/research/model-export/mapping-evidence.json', import.meta.url), 'utf8'));
+  const expected = evidence.descriptors.find(row => row.descriptorId === 'D08');
+  const mapping = mappingFor('D08');
+  for (const key of Object.keys(expected)) assert.deepEqual(mapping[key], expected[key], key);
+  const p = project();
+  p.data.descriptors.push({ id: 'D08', label: '钢铁工艺路线', role: 'input' });
+  p.data.states.push({ id: 'steel-demo', descriptorId: 'D08', label: '工程演示' });
+  const result = buildModelInput({ descriptorId: 'D08', project: p, stateId: 'steel-demo', value: '1' });
+  assert.equal(result.ok, true);
+  const exported = sampleToJson(result.sample);
+  assert.equal(result.sample.unit, null);
+  assert.equal(result.sample.descriptor.model, 'GCAM-China');
+  assert.match(exported, /detailed_industry_CHINA\.xml/);
+  assert.match(exported, /A323\.efficiency_improve/);
+  assert.match(exported, /未经核对/);
+  assert.match(exported, /share-weight不等于实际占比/);
+});
 
 test('MODEL_MAPPINGS has 12 entries and every one carries the platform-inference status', () => {
   assert.equal(MODEL_MAPPINGS.length, 12);

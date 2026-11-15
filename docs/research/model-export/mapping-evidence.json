@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "purpose": "平台侧推断的描述符→下游模型输入映射：由本会话直接打开 下游模型 目录中的真实模型文件（GCAM-China v8 Windows 发行版、CHEER 演示包）比对得出，未经导师确认，不得作为「已核对」的参数表使用。",
-  "verifiedAgainst": "本会话用真实命令列目录/统计数量/读取 CSV 头部得到：gcam-china-release/exe/ 下 configuration*.xml 共 7 个（configuration.xml, configuration_china.xml, configuration_china_ssp1..ssp5.xml）；input/gcamdata/xml/ 304 个 XML；input/gcamdata/inst/extdata/ 1112 个 CSV（合计 384221209 字节）；input/gcamdata/inst/extdata/gcam-china/ 157 个 CSV；input/policy/ 55 个文件；input/extra/ 5 个文件；cheer/CHEER-Clean 39 个文件（含 run.gms 2933 字节、参数说明.xlsx 15406 字节）。所有 sourceFile 字段均已由 os.walk 命中并记录 os.path.getsize 字节数。",
+  "verifiedAgainst": "历史核查记录：本会话用真实命令列目录/统计数量/读取 CSV 头部得到：gcam-china-release/exe/ 下 configuration*.xml 共 7 个（configuration.xml, configuration_china.xml, configuration_china_ssp1..ssp5.xml）；input/gcamdata/xml/ 304 个 XML；input/gcamdata/inst/extdata/ 1112 个 CSV（合计 384221209 字节）；input/gcamdata/inst/extdata/gcam-china/ 157 个 CSV；input/policy/ 55 个文件；input/extra/ 5 个文件；cheer/CHEER-Clean 39 个文件（含 run.gms 2933 字节、参数说明.xlsx 15406 字节）。所有 sourceFile 字段均已由 os.walk 命中并记录 os.path.getsize 字节数。 2026-11-15仅补核D08的HE钢铁节点与R系数乘子路径，公开更正说明见EVIDENCE.md，详细参数核查仅在内部归档；其余字段保留历史核查范围，研究映射未获确认。",
   "descriptors": [
     {
       "descriptorId": "D01",
@@ -91,13 +91,13 @@
       "descriptorId": "D08",
       "descriptorLabel": "钢铁工艺路线",
       "classification": "parameter",
-      "model": "both",
-      "modelField": "Detailed industry coefficient (IO_detailed_industry.csv)；NBS 流程映射 NBS_CESY_process.csv；钢铁贸易调整文件 trade_iron_steel_China_offset.xml；CHEER-CLEAN 电力/钢铁工艺拆分见 参数说明.xlsx「模型结构」与「替代弹性-EPPA」表",
-      "sourceFile": "gcam-china-release/input/extra/trade_iron_steel_China_offset.xml",
+      "model": "GCAM-China",
+      "modelField": "HE / iron and steel / subsector / stub-technology / period：coefficient、input-cost、share-weight；上游 A323.efficiency_improve.csv",
+      "sourceFile": "gcam-china-release/input/gcamdata/xml/detailed_industry_CHINA.xml",
       "unit": null,
-      "conversionNote": "BOF/EAF 两种工艺需改写为成本、效率参数与技术份额权重；对应的收入弹性配置项为 iron_steel_income_elas（SSP1/SSP2 取值不同，已核）。",
+      "conversionNote": "先选定省份、工艺、年份和投入项。coefficient为单位产出投入量，同一投入—产出基准下efficiency取倒数；A323.efficiency_improve经R作为系数乘子且无省份连接键，会作用于各省匹配行。河北单省可考虑追加HE覆盖XML，但仍需核验。吨钢综合能耗或工艺占比不能直接代填。",
       "confidence": "verified-in-file",
-      "boundary": "XML 为贸易调整文件，非 BOF/EAF 工艺参数表本身；未核到独立的钢铁工艺成本/效率参数文件，工艺拆分口径在 GCAM 侧未直接落文件。"
+      "boundary": "2026-11-15只补核文件与节点：2030年HE有3个子行业、7种工艺、21个投入系数及7个非能源成本节点；能源与材料单位混合，故无统一参数单位。share-weight不等于实际占比；CIB状态到取值、统计口径对齐、CHEER映射及完整模型运行仍待核。"
     },
     {
       "descriptorId": "D09",
@@ -151,7 +151,7 @@
   "unresolved": [
     "D07 终端电气化率在 gcam-china/ 目录 157 个 CSV 中无专用输入文件（检索 electr/electrif/elec_share/terminal 均空），只能按结果型处理；CHEER 侧是否另有口径未核。",
     "D10 碳移除规模：源 docx 只给到 aglu/ 目录级，未点名文件；本会话按目录内容推断的 A_resbio_curves.csv 等单位即为 NA，造林减排成本曲线未在任何打开的文件中核到。",
-    "D08 钢铁 BOF/EAF 工艺的成本、效率、份额权重参数无独立文件；仅核到贸易调整 XML 与投入产出系数文件。",
+    "D08 已定位 detailed_industry_CHINA.xml 的工艺/投入系数、成本与权重，以及 A323.efficiency_improve.csv；仍缺CIB状态到数值、投入项单位和吨钢统计口径的逐项审定。上游系数乘子不分省，不能当作仅改河北；完整钢铁模型未运行。",
     "D05 电网间输电能力与输电成本参数无承载文件；只核到历史省间交易量（GWh）。",
     "D11 分省取水约束或水价参数无承载文件；只核到历史取水量与耗水系数。",
     "D06 地热资源潜力文件未在 gcam-china/ 目录找到（源 docx 称 geo_adv.xml 属 SSP1 配置项，本会话在 configuration_china_ssp1.xml 中核到该引用，但未打开该指令文件本身）。",

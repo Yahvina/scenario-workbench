@@ -1,0 +1,525 @@
+{
+  "format": "scenario-workbench.algorithm-catalog",
+  "version": 2,
+  "asOf": "2026-11-15",
+  "auditedPlatformCommit": "0eafe6f76e479063ecdf3292f26bc97bede48ff2",
+  "applicationFreezeCommit": "09e689a0ad4155f4268ff6f4b87fa6a60f4e6afa",
+  "contractVersion": "1.0.0",
+  "purpose": "算法规格、可调用入口与验收边界对照；不修改生产契约，不声明13项均已实现或方法创新已成立。",
+  "categories": {
+    "production": "正式实现",
+    "restricted": "受限实现",
+    "research": "研究原型",
+    "draft": "未实现草案",
+    "engineering": "局部工程实现"
+  },
+  "sources": [
+    {
+      "id": "P01",
+      "title": "Weimer-Jehle 2006：CIB基础方法",
+      "url": "https://doi.org/10.1016/j.techfore.2005.06.005",
+      "scope": "本轮核对出版社题录/摘要；已有油价算例和代码验证，不称本轮重读全文。"
+    },
+    {
+      "id": "P02",
+      "title": "Weimer-Jehle 2009：Properties of Cross-Impact Balance Analysis",
+      "url": "https://arxiv.org/abs/0912.5352",
+      "scope": "数学性质背景；本轮题录/摘要，公式验证沿用代码及既有复现。"
+    },
+    {
+      "id": "P03",
+      "title": "Stankov等2021：Using cause-effect graphs to elicit expert knowledge for cross-impact balance analysis",
+      "url": "https://doi.org/10.1016/j.mex.2021.101492",
+      "scope": "原Table 1转录与SHA保留；本轮核对模板代码及测试，非重新阅读全文。"
+    },
+    {
+      "id": "P04",
+      "title": "Schweizer等2023：CIB Markov路径研究",
+      "url": "https://doi.org/10.1371/journal.pone.0288928",
+      "scope": "读取既有原R与独立转录的复核记录，不将原规则映射待确认写成完全复现。"
+    },
+    {
+      "id": "P05",
+      "title": "Vögele等2019：How to deal with non-linear pathways towards energy futures",
+      "url": "https://doi.org/10.14512/tatup.28.3.20",
+      "scope": "本轮核对出版社公开文本，保留当前缺完整数值输入的开发边界。"
+    },
+    {
+      "id": "P06",
+      "title": "Wassermann等：Robust policy-mixes for land use management of commercial areas",
+      "url": "https://doi.org/10.1186/s40309-025-00263-7",
+      "scope": "2025在线、2026卷期；核对摘要与更正通知，未复算Table5。",
+      "correctionUrl": "https://doi.org/10.1186/s40309-026-00269-9"
+    },
+    {
+      "id": "P07",
+      "title": "te Boveldt等2026：Introducing CRISPA",
+      "url": "https://doi.org/10.1186/s40309-026-00277-9",
+      "scope": "核对逻辑依赖与评分不确定性段落，不与促进/抑制CIB量表机械互换。"
+    },
+    {
+      "id": "P08",
+      "title": "Ross 2026预印本：From transient shocks to unexpected outcomes",
+      "url": "https://arxiv.org/abs/2604.20879",
+      "scope": "本轮仅题录/摘要；期刊对应DOI卷期标2027，时间字段分别记录，未复跑。"
+    },
+    {
+      "id": "P09",
+      "title": "Ross等2026预印本：Beyond Consistent Scenarios",
+      "url": "https://arxiv.org/abs/2607.12414",
+      "scope": "本轮仅题录/摘要，作为邻近方法预警，非已独立验证的结论。"
+    },
+    {
+      "id": "T01",
+      "title": "ScenarioWizard官方说明与手册",
+      "url": "https://www.cross-impact.org/english/CIB_e_ScW.htm",
+      "manualUrl": "https://www.cross-impact.org/ressourcen/ScenarioWizardManual_en.pdf",
+      "scope": "官网链接标5.32，下载PDF封面5.33；定向核对6.8、6.9、6.15.5；未安装运行软件，不断言其他未查功能不存在。"
+    },
+    {
+      "id": "T02",
+      "title": "PyCIB作者仓库",
+      "url": "https://github.com/ag-ross/PyCIB",
+      "scope": "当前README快照及本地既有1.0.0剪枝源码，区分文档声明、历史代码验证与本轮实测。"
+    },
+    {
+      "id": "T03",
+      "title": "JuCIB / CrossImpactBalances.jl作者仓库",
+      "url": "https://github.com/IainDM/CrossImpactBalances",
+      "scope": "当前README能力说明，未安装Julia、未复跑其性能或独立核实速度结论。"
+    },
+    {
+      "id": "T04",
+      "title": "Prophesy作者仓库（官方目录写作Prophecy）",
+      "url": "https://github.com/nmkearney/prophesy-cib",
+      "scope": "当前README能力说明，未安装或执行，未把文档未提及等同功能没有。"
+    }
+  ],
+  "algorithms": [
+    {
+      "id": "prepare-matrix",
+      "status": "正式实现",
+      "source": "2006基础方法；本项目适用性约定",
+      "entry": "prepareRun / inspectInput",
+      "input": "Project、year、selectedJudgmentIds、assumptionAcknowledgements、conditionedStateIds",
+      "output": "完整冻结RunInput或input=null及diagnostics；required/judged覆盖记录",
+      "rule": "按地区、年份、方向明确选用，不静默混合冲突记录。0为明确无关系；缺分阻断。",
+      "acceptance": "缺1格必须阻断；0分必须保留；过期与冲突记录不能静默取其一。",
+      "name": "矩阵准备与缺分检查",
+      "category": "production",
+      "productionExports": [
+        {
+          "file": "src/modules/solver/engine.mjs",
+          "symbol": "prepareRun"
+        },
+        {
+          "file": "src/modules/solver/engine.mjs",
+          "symbol": "inspectInput"
+        },
+        {
+          "file": "src/modules/relationships/logic.mjs",
+          "symbol": "buildMatrix"
+        }
+      ],
+      "tests": [
+        "tests/solver-input.test.mjs",
+        "tests/conditioned-solver.test.mjs"
+      ],
+      "sourceIds": [
+        "P01",
+        "T01"
+      ],
+      "nextAction": "保持地区、年份、方向与条件口径；新增资料先过输入核验。",
+      "boundary": "已实现输入检查，不认证评分依据的科学有效性。",
+      "originalSpecVersion": "draft-2026-11-14",
+      "productionApiAvailable": true
+    },
+    {
+      "id": "binary-curve-encoding",
+      "status": "受限实现",
+      "source": "Stankov等2021 Table 1 PDF p7；不替代关系依据",
+      "entry": "prepareCurve / validateCurve / confirmCurve",
+      "input": "Project、两端各完整二档、明确H/L序数绑定、直接影响确认、模板、地区/年份与关系依据",
+      "output": "独立评分候选、原表编码及方法定位、状态定义快照、人工覆盖记录",
+      "rule": "仅23个启用模板；L13停用；A2文字与图表强度冲突显式提示。原±2恒等保留、不扩为±3；三档与名义类别不自动编码。",
+      "acceptance": "未知序数或非直接关系拒绝；方法DOI不能算作实际关系证据；候选采用前重验，原判断不原位覆盖。",
+      "name": "二档图形到评分编码",
+      "category": "restricted",
+      "productionExports": [
+        {
+          "file": "src/modules/relationships/curve.mjs",
+          "symbol": "prepareCurve"
+        },
+        {
+          "file": "src/modules/relationships/curve.mjs",
+          "symbol": "validateCurve"
+        },
+        {
+          "file": "src/modules/relationships/curve.mjs",
+          "symbol": "confirmCurve"
+        }
+      ],
+      "tests": [
+        "tests/curve.test.mjs",
+        "tests/curve-evidence.test.mjs"
+      ],
+      "sourceIds": [
+        "P03"
+      ],
+      "nextAction": "仅维护已核23模板；非二档、未知序数及L13继续阻断。",
+      "boundary": "受限表格编码，不是通用非线性函数或自动关系发现；A2原文冲突仍注明。",
+      "originalSpecVersion": "draft-2026-11-14",
+      "productionApiAvailable": true
+    },
+    {
+      "id": "exact-balance",
+      "status": "正式实现",
+      "source": "Weimer-Jehle 2006；2009预印本",
+      "entry": "solve / createEnumeration",
+      "input": "RunInput；displayLimit、keepLimit",
+      "output": "status、space、checked、count、scenarios/all、diagnostics、stateCounts",
+      "rule": "每个接受检查的描述符，当前状态支持分等于全部候选状态的最大支持分；保留并列。精确候选上限100000。",
+      "acceptance": "2006例324候选/3解；不能用展示列表长度替代count；零解completed/count=0。",
+      "name": "精确CIB枚举",
+      "category": "production",
+      "productionExports": [
+        {
+          "file": "src/modules/solver/engine.mjs",
+          "symbol": "solve"
+        },
+        {
+          "file": "src/modules/solver/engine.mjs",
+          "symbol": "createEnumeration"
+        }
+      ],
+      "tests": [
+        "tests/solver.test.mjs",
+        "tests/baseline46.test.mjs"
+      ],
+      "sourceIds": [
+        "P01",
+        "P02"
+      ],
+      "nextAction": "保留完整计数与展示截断的区别，保持100000候选上限。",
+      "boundary": "已有CIB基本算法的实现，不能作为原创算法。",
+      "originalSpecVersion": "draft-2026-11-14",
+      "productionApiAvailable": true
+    },
+    {
+      "id": "given-versus-lock",
+      "status": "正式实现",
+      "source": "本项目接口命名；语义已有ScenarioWizard强制状态先例，见手册6.8。",
+      "entry": "prepareRun(conditionedStateIds) / solve",
+      "input": "给定或锁定状态ID；给定条件引擎cib-conditioned-1.0.0",
+      "output": "实际使用的条件矩阵、剩余候选、自洽组合、给定条件记录",
+      "rule": "给定项限制来源行并免作目标；普通锁定仍检查全部目标候选。冲突锁定阻断，至少保留一项被检查因素。",
+      "acceptance": "同一个反向矩阵，普通锁定可零解，给定条件可有解；不能补齐根本未使用的反向格。",
+      "name": "给定条件与普通锁定",
+      "category": "production",
+      "productionExports": [
+        {
+          "file": "src/modules/solver/engine.mjs",
+          "symbol": "prepareRun"
+        },
+        {
+          "file": "src/modules/solver/engine.mjs",
+          "symbol": "solve"
+        }
+      ],
+      "tests": [
+        "tests/conditioned-solver.test.mjs"
+      ],
+      "sourceIds": [
+        "T01",
+        "P01"
+      ],
+      "nextAction": "在文档中明确给定=指定状态并免检自身，锁定仍检查；记录强制状态先例。",
+      "boundary": "ScenarioWizard手册6.8已描述强制状态自身免检；本项目不是首次提出此语义。",
+      "originalSpecVersion": "draft-2026-11-14",
+      "productionApiAvailable": true
+    },
+    {
+      "id": "explain-one",
+      "status": "正式实现",
+      "source": "2006支持分比较；本项目解释输出",
+      "entry": "explain",
+      "input": "RunInput、每个活动描述符一状态的configuration",
+      "output": "支持向量、来源贡献、selectedSupport、maximum、gap、conflicts、violatesLocks/Conditions",
+      "rule": "gap=max支持−当前支持，非负；不同于论文“当前−最佳替代”的有符号裕度。违反给定条件时不生成伪支持解释。",
+      "acceptance": "逐项贡献加总等于支持分；给定条件不符时balances为空并明确标记。",
+      "name": "单个情景支持分解释",
+      "category": "production",
+      "productionExports": [
+        {
+          "file": "src/modules/solver/engine.mjs",
+          "symbol": "explain"
+        }
+      ],
+      "tests": [
+        "tests/solver.test.mjs",
+        "tests/conditioned-solver.test.mjs"
+      ],
+      "sourceIds": [
+        "P01",
+        "T01",
+        "T02"
+      ],
+      "nextAction": "保持gap非负定义与有符号margin分开，逐项贡献可追踪。",
+      "boundary": "支持向量解释已有先例；结果可解释不自动等于正确因果解释。",
+      "originalSpecVersion": "draft-2026-11-14",
+      "productionApiAvailable": true
+    },
+    {
+      "id": "selected-score-changes",
+      "status": "正式实现",
+      "source": "本项目比较流程；不声称新算法",
+      "entry": "compareScore / compareScores",
+      "input": "同一冻结RunInput；changes=[{entryIndex,score}]，格索引不得重复",
+      "output": "input、variantInput、完整changes、baselineCount/variantCount、kept/added/removed",
+      "rule": "每次从同一原输入副本出发，修改整数−3…+3，完整枚举后比较状态ID集合。",
+      "acceptance": "等数量不同成员要识别；同行共同平移可抵消；不改原输入；非法或未变评分拒绝。",
+      "name": "单格与联合评分变化比较",
+      "category": "production",
+      "productionExports": [
+        {
+          "file": "src/modules/solver/score-sensitivity.mjs",
+          "symbol": "compareScore"
+        },
+        {
+          "file": "src/modules/solver/score-sensitivity.mjs",
+          "symbol": "compareScores"
+        }
+      ],
+      "tests": [
+        "tests/score-sensitivity.test.mjs",
+        "tests/joint-sensitivity.test.mjs"
+      ],
+      "sourceIds": [
+        "T01",
+        "P07"
+      ],
+      "nextAction": "以同一冻结基线比较完整成员；不把联合变化看成单项变化之和。",
+      "boundary": "情景集合比较与争议矩阵重算已有先例，工作流增量仍需对照证明。",
+      "originalSpecVersion": "draft-2026-11-14",
+      "productionApiAvailable": true
+    },
+    {
+      "id": "single-cell-scan",
+      "status": "正式实现",
+      "source": "本项目设计的逐格实验，不等于概率评估",
+      "entry": "planSensitivity / scanSensitivity",
+      "input": "RunInput、signal、onProgress、maxEvaluations",
+      "output": "完整冻结input、逐次改分、计划/完成次数、changed、sameCountDifferentSets、jaccard、status",
+      "rule": "每个实际使用评分作合法±1；每次还原基线；交互预算200万个候选检查；支持取消。",
+      "acceptance": "取消标cancelled且不冒充完整；同数替换不漏；预算超限先阻断。",
+      "name": "逐格敏感性扫描",
+      "category": "production",
+      "productionExports": [
+        {
+          "file": "src/modules/solver/batch-sensitivity.mjs",
+          "symbol": "planSensitivity"
+        },
+        {
+          "file": "src/modules/solver/batch-sensitivity.mjs",
+          "symbol": "scanSensitivity"
+        }
+      ],
+      "tests": [
+        "tests/batch-sensitivity.test.mjs"
+      ],
+      "sourceIds": [
+        "P07",
+        "T02",
+        "T04"
+      ],
+      "nextAction": "维持合法±1探查、200万检查预算及取消完整性标记。",
+      "boundary": "±1是工程探查范围，不等于真实评分分布、现实概率或已审定争议范围。",
+      "originalSpecVersion": "draft-2026-11-14",
+      "productionApiAvailable": true
+    },
+    {
+      "id": "saved-joint-plans",
+      "status": "正式实现",
+      "source": "本项目保存与对照工作流",
+      "entry": "saveJointPlan / loadJointPlan / compareJointPlans",
+      "input": "storage、name、冻结input、至少两格changes；左右不同方案",
+      "output": "本机持久记录、重新载入列表、各自相对基线与相互之间的完整集合差异",
+      "rule": "按完整冻结输入匹配，含地区、年份、版本、条件和评分；跨基线拒绝。最多12份/2MB，不保存过时计算结果当新结果。",
+      "acceptance": "刷新后同基线可载入重算；不同年份拒绝；存储失败不覆盖；等数量成员差异和导出重算一致。",
+      "name": "联合改分方案保存与重算",
+      "category": "production",
+      "productionExports": [
+        {
+          "file": "src/modules/solver/joint-plans.mjs",
+          "symbol": "saveJointPlan"
+        },
+        {
+          "file": "src/modules/solver/joint-plans.mjs",
+          "symbol": "loadJointPlan"
+        },
+        {
+          "file": "src/modules/solver/joint-plans.mjs",
+          "symbol": "compareJointPlans"
+        },
+        {
+          "file": "src/modules/solver/joint-plans.mjs",
+          "symbol": "exportJointPlans"
+        },
+        {
+          "file": "src/modules/solver/joint-plans.mjs",
+          "symbol": "importJointPlans"
+        }
+      ],
+      "tests": [
+        "tests/joint-plans.test.mjs"
+      ],
+      "sourceIds": [
+        "T01"
+      ],
+      "nextAction": "保持完整基线匹配与跨环境恢复；先做真实任务试用，不加无需求功能。",
+      "boundary": "可复现工程流程已实现，效率与使用价值尚无真实参与者证据。",
+      "originalSpecVersion": "draft-2026-11-14",
+      "productionApiAvailable": true
+    },
+    {
+      "id": "exact-pruning",
+      "status": "研究原型",
+      "source": "已有PyCIB同类上界剪枝；本项目独立实现",
+      "entry": "算法包/cib-core/pruned.mjs（研究接口）",
+      "input": "完整有向矩阵、活动状态与条件；研究包独立schema",
+      "output": "精确完整解集与候选/剪枝计数",
+      "rule": "乐观上界证明无解的部分组合才剪除；并列不得错误剪除。",
+      "acceptance": "300组与全枚举一致；全零边界可能比枚举慢；不得宣称普遍加速或算法首创。",
+      "name": "安全上界剪枝",
+      "category": "research",
+      "productionExports": [],
+      "tests": [],
+      "sourceIds": [
+        "T02",
+        "T03"
+      ],
+      "nextAction": "保留独立包研究入口；仅在实际规模需要且完整集合一致时考虑接入。",
+      "boundary": "同类剪枝已存在，当前不是平台求解后端；不承诺普遍加速。",
+      "originalSpecVersion": "draft-2026-11-14",
+      "productionApiAvailable": false,
+      "artifactEntry": "cib-core/pruned.mjs::runPruned（交付候选中的独立研究入口）"
+    },
+    {
+      "id": "deterministic-successor",
+      "status": "研究原型",
+      "source": "2006、2009、2023路径论文及原R函数",
+      "entry": "草案traceSuccessor；尚不可调用生产接口",
+      "input": "显式评分尺度、初始组合、ruleId、描述符优先顺序、并列规则、矩阵版本",
+      "output": "路径、固定点或循环、停止原因、规则配置；全初始状态枚举才给吸引域计数",
+      "rule": "global-inconsistent、local-worst、ranked-inconsistent、author-fastest-nondecreasing分开命名；同样叫adiabatic不足以确定算法。",
+      "acceptance": "2023全局吸引域15/1/3及循环8；原R local-worst为17/6/4；fastest为24/3，规则映射未确认。",
+      "name": "确定性后继与吸引域",
+      "category": "research",
+      "productionExports": [],
+      "tests": [],
+      "sourceIds": [
+        "P04",
+        "T01",
+        "T04"
+      ],
+      "nextAction": "先固定ruleId、更新顺序及并列规则，未确认原作图调用前保留复现边界。",
+      "boundary": "已复核作者R函数及若干规则；未形成正式平台接口，不把年度状态图当作后继路径。",
+      "originalSpecVersion": "draft-2026-11-14",
+      "productionApiAvailable": false,
+      "historicalEvidence": "2026-11-14作者R函数执行记录；本轮读取记录与哈希，未重跑R运行时。"
+    },
+    {
+      "id": "stochastic-transition",
+      "status": "研究原型",
+      "source": "2023论文§3.3及LocalBoltzmann原函数",
+      "entry": "草案buildTransition；尚不可调用生产接口",
+      "input": "矩阵与尺度、权重函数、β、邻接规则、自环计数和完整状态顺序",
+      "output": "行随机矩阵、行和/非负检查、稳态残差、配置与来源",
+      "rule": "本例单次至多改一个描述符，自环只计一次；β=1。标准化评分可到±11，与平台量表分开。",
+      "acceptance": "27×27矩阵与原R最大差2.22e−16；不把稳态量解释为实证发生概率。",
+      "name": "随机转移与稳态",
+      "category": "research",
+      "productionExports": [],
+      "tests": [],
+      "sourceIds": [
+        "P04",
+        "T04",
+        "T02"
+      ],
+      "nextAction": "显式记录尺度、β、邻接与自环定义；若论文不需动态则不前移开发。",
+      "boundary": "原R局部Boltzmann数值一致仅属研究复现；稳态量不是实证发生概率。",
+      "originalSpecVersion": "draft-2026-11-14",
+      "productionApiAvailable": false,
+      "historicalEvidence": "2026-11-14作者R函数执行记录；本轮读取记录与哈希，未重跑R运行时。"
+    },
+    {
+      "id": "time-triggered-matrices",
+      "status": "未实现草案",
+      "source": "Vögele等2019图2–3",
+      "entry": "草案advanceWithMatrixSwitch",
+      "input": "每版完整矩阵、阈值/周期、触发时刻与求值顺序、初始组合、后继规则",
+      "output": "时间标记轨迹、矩阵版本切换、触发记录、缺失诊断",
+      "rule": "逐年静态计算不等于动态路径；未提供完整数值矩阵和触发阈值时不得补造结果。",
+      "acceptance": "先有可复跑数值算例，再验证阈值等号、同时触发顺序与可重复性；当前未通过此数值门槛。",
+      "name": "阈值触发的多期矩阵切换",
+      "category": "draft",
+      "productionExports": [],
+      "tests": [],
+      "sourceIds": [
+        "P05",
+        "P08",
+        "T02"
+      ],
+      "nextAction": "先获得完整逐期矩阵、触发规则和可复跑数值算例，当前不补造。",
+      "boundary": "尚未实现；逐年静态检验不等于动态路径，也不声称新理论。",
+      "originalSpecVersion": "draft-2026-11-14",
+      "productionApiAvailable": false
+    },
+    {
+      "id": "downstream-model-mapping",
+      "status": "局部工程实现",
+      "source": "项目出口需求；逐模型官方接口待核",
+      "entry": "calculateSteelCoefficient / verifySteelRequest / createLinkedSteelExport / verifySteelCibBundle / verifySteelFlowResult；独立Python原生实验",
+      "input": "已标状态的情景、模型及版本、参数位置、单位、变换、依据和适用范围",
+      "output": "单项覆盖XML、审计、关联CIB留档、原生合成投入传递结果包及只读摘要；正式研究映射缺口仍显式保留",
+      "rule": "自洽不等于可直接成为GCAM/CHEER参数；未经具体模型验证不标ready-to-run。",
+      "acceptance": "当前受控原生实验、单参数作用范围与结果包核验已通过；正式研究映射及完整GCAM-China/CHEER仍未完成。",
+      "name": "CIB情景到下游参数及结果留档",
+      "category": "engineering",
+      "productionExports": [
+        {
+          "file": "src/modules/exports/steel-overlay.mjs",
+          "symbol": "calculateSteelCoefficient"
+        },
+        {
+          "file": "src/modules/exports/steel-overlay.mjs",
+          "symbol": "verifySteelRequest"
+        },
+        {
+          "file": "src/modules/exports/steel-cib-link.mjs",
+          "symbol": "createLinkedSteelExport"
+        },
+        {
+          "file": "src/modules/exports/steel-cib-link.mjs",
+          "symbol": "verifySteelCibBundle"
+        },
+        {
+          "file": "src/modules/exports/steel-flow-result.mjs",
+          "symbol": "verifySteelFlowResult"
+        }
+      ],
+      "tests": [
+        "tests/steel-overlay.test.mjs",
+        "tests/steel-cib-link.test.mjs",
+        "tests/steel-flow-result.test.mjs"
+      ],
+      "sourceIds": [
+        "P01"
+      ],
+      "nextAction": "维护已验收单参数工程链；正式研究映射与完整模型按独立门槛验收。",
+      "boundary": "新增实际接口不等于草案translateScenarioToModel已实现；合成原生实验不等于真实政策评估。",
+      "originalSpecVersion": "draft-2026-11-14",
+      "productionApiAvailable": true
+    }
+  ]
+}

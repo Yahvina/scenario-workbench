@@ -91,7 +91,7 @@ export function mountExports(container, context) {
     runSavePanel(resultHost, context),
     savedWorkPanel(viewHosts.history, context),
     comparePanel(viewHosts.compare, context),
-    steelOverlayPanel(viewHosts.advanced),
+    steelOverlayPanel(viewHosts.advanced, context),
     modelInputPanel(viewHosts.advanced, context),
     aiDraftPanel(viewHosts.advanced, context),
     projectBackupPanel(viewHosts.advanced, context)

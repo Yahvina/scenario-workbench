@@ -8,6 +8,8 @@
 
 浏览器入口直接从当前所选文件建立版本哈希和显示原值，不等于与一份事先获批的研究基线比对。下载审计仍标明 `testOnly: true`、`researchMappingApproved: false`、`cibConsistencyEvaluated: false`、未执行模型。
 
+现支持[可选CIB关联留档](STEEL_CIB_CASE_V1.md)：显式选择一个冻结完整组合并填写人工参数设定后，XML与核验记录带上来源哈希，关联容器保留完整冻结输入。此时 `cibConsistencyEvaluated: true` 仅表示所选组合已按冻结矩阵与条件复核；参数假设仍未审定，全空间解数、当前项目及完整模型不在此处重算。原参数请求v1不增加字段，独立Python组件保持兼容。
+
 目前仅支持显式 `testOnly: true` 的工程测试。组件不批准研究映射，不计算 CIB 自洽性，不生成行业综合能耗或工艺占比目标，也不自动运行 GCAM。
 
 ## 运行

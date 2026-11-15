@@ -1,8 +1,10 @@
 import { el } from '../../core/ui.mjs';
 import { STEEL_FORMAT, STEEL_MAX_BYTES, STEEL_OPERATIONS, readSteelXml, steelTargets, describeSteelTarget, findSteelCommodity, verifySteelRequest } from './steel-overlay.mjs';
+import { createLinkedSteelExport } from './steel-cib-link.mjs';
+import { steelCibPanel, steelCibReopenPanel } from './steel-cib-panel.mjs';
 
-export function steelOverlayPanel(container) {
-  let alive = true, revision = 0, result = null, rows = [];
+export function steelOverlayPanel(container, context) {
+  let alive = true, revision = 0, result = null, rows = [], binding = null;
   const files = { steel: null, unit: null }, tokens = { steel: 0, unit: 0 }, loading = { steel: false, unit: false };
   const root = el('details', { class: 'exports-card steel-overlay', 'data-steel-overlay': '' });
   const status = el('p', { role: 'status', 'aria-live': 'polite', 'data-steel-status': '' }, '请选择钢铁工艺输入XML。');
@@ -26,16 +28,17 @@ export function steelOverlayPanel(container) {
   }
   const operation = el('select', { 'aria-label': '钢铁系数操作', onchange: () => {
     formula.textContent = STEEL_OPERATIONS.find(row => row.id === operation.value)?.formula || '请选择明确的数值含义。';
-    invalidate('操作已变更，请重新核验。');
+    invalidate('操作已变更，请重新核验。', binding?.isLinked());
   } }, el('option', { value: '' }, '请选择操作含义'), ...STEEL_OPERATIONS.map(row => el('option', { value: row.id }, row.label)));
-  const value = el('input', { type: 'number', step: 'any', min: '0', 'aria-label': '钢铁系数操作数值', oninput: () => invalidate('数值已变更，请重新核验。') });
+  const value = el('input', { type: 'number', step: 'any', min: '0', 'aria-label': '钢铁系数操作数值', oninput: () => invalidate('数值已变更，请重新核验。', binding?.isLinked()) });
   const formula = el('p', { class: 'steel-formula' }, '请选择明确的数值含义。');
   const confirm = el('input', { type: 'checkbox', onchange: () => invalidate('请核验当前选择。') });
   const verify = el('button', { type: 'button', class: 'button primary-action', disabled: true, onclick: generate }, '核验并预览覆盖文件');
   const downloads = [
     ['下载覆盖XML（工程测试）', 'steel-overlay.engineering.xml', 'application/xml', () => result.xml],
     ['下载核验记录', 'steel-overlay.audit.json', 'application/json', () => JSON.stringify(result.audit, null, 2)],
-    ['下载组件请求JSON', 'steel-overlay.request.json', 'application/json', () => JSON.stringify(result.request, null, 2)]
+    ['下载组件请求JSON', 'steel-overlay.request.json', 'application/json', () => JSON.stringify(result.request, null, 2)],
+    ['下载CIB关联留档', 'steel-cib-case.engineering.json', 'application/json', () => JSON.stringify(result.cibBundle, null, 2)]
   ].map(([label, name, mime, content]) => el('button', { type: 'button', class: 'button', disabled: true, onclick: () => {
     if (!result || loading.steel || loading.unit || !alive) return;
     const url = URL.createObjectURL(new Blob([content()], { type: mime }));
@@ -44,6 +47,8 @@ export function steelOverlayPanel(container) {
   } }, label));
   const sourceInput = fileInput('steel', '钢铁工艺输入XML');
   const unitInput = fileInput('unit', '投入商品单位证明XML');
+  binding = steelCibPanel(context, () => invalidate('情景关联或人工说明已变更，请重新核验。', true));
+  const reopen = steelCibReopenPanel();
   root.append(
     el('summary', {}, '钢铁系数覆盖（工程测试）'),
     el('p', {}, '在本机核对XML并生成单项覆盖文件。不自动把CIB状态换算为参数，也不运行GCAM；研究映射仍未经审定。'),
@@ -59,12 +64,14 @@ export function steelOverlayPanel(container) {
     el('h3', {}, '3. 指定操作与数值'),
     el('div', { class: 'steel-grid' }, el('label', {}, '操作含义', operation), el('label', {}, '数值（百分比填5表示5%；倍率填0.95表示乘以0.95）', value)),
     formula,
+    binding.root,
     el('label', { class: 'steel-confirm' }, confirm, '我已核对所选目标和显示的原系数，仅用于工程测试'),
     verify, status, valueNote,
     el('div', { class: 'steel-downloads' }, ...downloads),
     el('details', { class: 'steel-preview' }, el('summary', {}, '查看覆盖XML与核验记录'), xmlPreview, auditPreview),
     el('p', { class: 'steel-boundary' }, '所选年份指该年新增的那批技术；这批技术后续继续运行时，修改可能延续。单项投入不等于全行业综合能耗，权重不等于工艺占比。覆盖文件需在所有修改同一节点的基础组件之后加载。'),
-    el('p', { class: 'steel-boundary' }, '文件仅用于当前页面的本地核验，不上传、不写入项目备份。切换页面后需重新选择；可下载核验记录和组件请求留档。独立组件复跑时，请求JSON须与对应输入XML放在同一目录。')
+    el('p', { class: 'steel-boundary' }, '文件仅用于当前页面的本地核验，不上传、不写入项目备份。切换页面后需重新选择；可下载核验记录和组件请求留档。独立组件复跑时，请求JSON须与对应输入XML放在同一目录；请求只复跑参数，完整CIB来源在关联留档中。'),
+    reopen.root
   );
   container.append(root);
   populate();
@@ -151,19 +158,22 @@ export function steelOverlayPanel(container) {
         commodity: { path: commodity.name, sha256: commodity.sha256, region: info.market, kind: proof.kind, name: selected.input },
         operation: { kind: operation.value, value: Number(value.value) }
       };
-      const candidate = await verifySteelRequest(request, source, commodity);
+      const draft = binding.getDraft();
+      const parameter = await verifySteelRequest(request, source, commodity);
+      const candidate = draft ? await createLinkedSteelExport(parameter, draft) : parameter;
       if (!alive || token !== revision) return;
       result = candidate;
       xmlPreview.textContent = result.xml; auditPreview.textContent = JSON.stringify(result.audit, null, 2);
       valueNote.textContent = `核验结果：${info.baseline} → ${result.audit.writtenCoefficient} ${result.audit.coefficientUnit}，仅写入所选新增技术的一个投入系数。`;
-      status.textContent = '工程核验通过，可以下载。研究映射未经审定，尚未运行GCAM。';
-      for (const button of downloads) button.disabled = false;
+      status.textContent = draft ? '工程核验通过；所选完整组合已按冻结矩阵与条件复核。参数假设未经审定，请同时下载CIB关联留档。' : '工程核验通过，可以下载。研究映射未经审定，尚未运行GCAM。';
+      for (const [index, button] of downloads.entries()) button.disabled = index === 3 && !result.cibBundle;
     } catch (error) {
       if (alive && token === revision) status.textContent = '未生成：' + error.message;
     }
   }
   return () => {
     alive = false; revision++; tokens.steel++; tokens.unit++;
+    binding.dispose(); reopen.dispose();
     files.steel = null; files.unit = null; rows = []; result = null; root.remove();
   };
 }

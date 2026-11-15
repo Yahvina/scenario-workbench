@@ -1313,6 +1313,7 @@ input[aria-invalid=true]{border-color:var(--danger);background:var(--rd-s)}
 .surface,.exports-card,.v5-card{box-shadow:var(--sh);border-color:var(--line2)}
 .steel-overlay{margin:16px 0;padding:16px;min-width:0;background:var(--panel);border:1px solid var(--line2);border-radius:5px}.steel-overlay>summary{cursor:pointer;font-size:16px;font-weight:600}.steel-overlay p{overflow-wrap:anywhere}.steel-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0}.steel-grid label{display:grid;gap:6px;min-width:0}.steel-grid input,.steel-grid select{width:100%;max-width:100%;min-width:0;box-sizing:border-box}.steel-file-note,.steel-formula,.steel-boundary{font-size:12px;color:var(--tx3)}.steel-confirm{display:flex;align-items:flex-start;gap:8px;margin:14px 0}.steel-confirm input{flex:none;margin-top:4px}.steel-downloads{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.steel-preview pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:280px;overflow:auto;font-size:12px;background:var(--bg);padding:12px}.steel-overlay h3{font-size:15px;margin:18px 0 8px}@media(max-width:680px){.steel-grid{grid-template-columns:minmax(0,1fr)}}
 .steel-overlay .button.primary-action,.steel-overlay .button.primary-action:hover{background:var(--panel);color:var(--tx);border-color:var(--line);font-weight:600}
+.steel-cib-link,.steel-cib-reopen{margin:14px 0;padding:12px;border:1px solid var(--line2)}.steel-cib-link>label{display:grid;gap:6px;margin:10px 0;min-width:0}.steel-cib-link select,.steel-cib-link textarea,.steel-cib-reopen input{max-width:100%;min-width:0;width:100%;box-sizing:border-box}.steel-cib-link textarea{font:inherit;resize:vertical}.steel-cib-link>summary,.steel-cib-reopen>summary{cursor:pointer}
 
 /* ── 页头：标题上方加一行字距拉开的小标签 ── */
 .page-heading .eyebrow,.v5-head .eyebrow{font-size:11px;letter-spacing:.16em;color:var(--tx3);
@@ -12326,7 +12327,7 @@ function mountExports(container, context) {
     runSavePanel(resultHost, context),
     savedWorkPanel(viewHosts.history, context),
     comparePanel(viewHosts.compare, context),
-    steelOverlayPanel(viewHosts.advanced),
+    steelOverlayPanel(viewHosts.advanced, context),
     modelInputPanel(viewHosts.advanced, context),
     aiDraftPanel(viewHosts.advanced, context),
     projectBackupPanel(viewHosts.advanced, context)
@@ -14563,8 +14564,10 @@ Object.assign(__exports, { projectBackupPanel });
 "src/modules/exports/steel-overlay-panel.mjs": (__require, __exports) => {
 const { el } = __require("src/core/ui.mjs");
 const { STEEL_FORMAT, STEEL_MAX_BYTES, STEEL_OPERATIONS, readSteelXml, steelTargets, describeSteelTarget, findSteelCommodity, verifySteelRequest } = __require("src/modules/exports/steel-overlay.mjs");
-function steelOverlayPanel(container) {
-  let alive = true, revision = 0, result = null, rows = [];
+const { createLinkedSteelExport } = __require("src/modules/exports/steel-cib-link.mjs");
+const { steelCibPanel, steelCibReopenPanel } = __require("src/modules/exports/steel-cib-panel.mjs");
+function steelOverlayPanel(container, context) {
+  let alive = true, revision = 0, result = null, rows = [], binding = null;
   const files = { steel: null, unit: null }, tokens = { steel: 0, unit: 0 }, loading = { steel: false, unit: false };
   const root = el('details', { class: 'exports-card steel-overlay', 'data-steel-overlay': '' });
   const status = el('p', { role: 'status', 'aria-live': 'polite', 'data-steel-status': '' }, '请选择钢铁工艺输入XML。');
@@ -14588,16 +14591,17 @@ function steelOverlayPanel(container) {
   }
   const operation = el('select', { 'aria-label': '钢铁系数操作', onchange: () => {
     formula.textContent = STEEL_OPERATIONS.find(row => row.id === operation.value)?.formula || '请选择明确的数值含义。';
-    invalidate('操作已变更，请重新核验。');
+    invalidate('操作已变更，请重新核验。', binding?.isLinked());
   } }, el('option', { value: '' }, '请选择操作含义'), ...STEEL_OPERATIONS.map(row => el('option', { value: row.id }, row.label)));
-  const value = el('input', { type: 'number', step: 'any', min: '0', 'aria-label': '钢铁系数操作数值', oninput: () => invalidate('数值已变更，请重新核验。') });
+  const value = el('input', { type: 'number', step: 'any', min: '0', 'aria-label': '钢铁系数操作数值', oninput: () => invalidate('数值已变更，请重新核验。', binding?.isLinked()) });
   const formula = el('p', { class: 'steel-formula' }, '请选择明确的数值含义。');
   const confirm = el('input', { type: 'checkbox', onchange: () => invalidate('请核验当前选择。') });
   const verify = el('button', { type: 'button', class: 'button primary-action', disabled: true, onclick: generate }, '核验并预览覆盖文件');
   const downloads = [
     ['下载覆盖XML（工程测试）', 'steel-overlay.engineering.xml', 'application/xml', () => result.xml],
     ['下载核验记录', 'steel-overlay.audit.json', 'application/json', () => JSON.stringify(result.audit, null, 2)],
-    ['下载组件请求JSON', 'steel-overlay.request.json', 'application/json', () => JSON.stringify(result.request, null, 2)]
+    ['下载组件请求JSON', 'steel-overlay.request.json', 'application/json', () => JSON.stringify(result.request, null, 2)],
+    ['下载CIB关联留档', 'steel-cib-case.engineering.json', 'application/json', () => JSON.stringify(result.cibBundle, null, 2)]
   ].map(([label, name, mime, content]) => el('button', { type: 'button', class: 'button', disabled: true, onclick: () => {
     if (!result || loading.steel || loading.unit || !alive) return;
     const url = URL.createObjectURL(new Blob([content()], { type: mime }));
@@ -14606,6 +14610,8 @@ function steelOverlayPanel(container) {
   } }, label));
   const sourceInput = fileInput('steel', '钢铁工艺输入XML');
   const unitInput = fileInput('unit', '投入商品单位证明XML');
+  binding = steelCibPanel(context, () => invalidate('情景关联或人工说明已变更，请重新核验。', true));
+  const reopen = steelCibReopenPanel();
   root.append(
     el('summary', {}, '钢铁系数覆盖（工程测试）'),
     el('p', {}, '在本机核对XML并生成单项覆盖文件。不自动把CIB状态换算为参数，也不运行GCAM；研究映射仍未经审定。'),
@@ -14621,12 +14627,14 @@ function steelOverlayPanel(container) {
     el('h3', {}, '3. 指定操作与数值'),
     el('div', { class: 'steel-grid' }, el('label', {}, '操作含义', operation), el('label', {}, '数值（百分比填5表示5%；倍率填0.95表示乘以0.95）', value)),
     formula,
+    binding.root,
     el('label', { class: 'steel-confirm' }, confirm, '我已核对所选目标和显示的原系数，仅用于工程测试'),
     verify, status, valueNote,
     el('div', { class: 'steel-downloads' }, ...downloads),
     el('details', { class: 'steel-preview' }, el('summary', {}, '查看覆盖XML与核验记录'), xmlPreview, auditPreview),
     el('p', { class: 'steel-boundary' }, '所选年份指该年新增的那批技术；这批技术后续继续运行时，修改可能延续。单项投入不等于全行业综合能耗，权重不等于工艺占比。覆盖文件需在所有修改同一节点的基础组件之后加载。'),
-    el('p', { class: 'steel-boundary' }, '文件仅用于当前页面的本地核验，不上传、不写入项目备份。切换页面后需重新选择；可下载核验记录和组件请求留档。独立组件复跑时，请求JSON须与对应输入XML放在同一目录。')
+    el('p', { class: 'steel-boundary' }, '文件仅用于当前页面的本地核验，不上传、不写入项目备份。切换页面后需重新选择；可下载核验记录和组件请求留档。独立组件复跑时，请求JSON须与对应输入XML放在同一目录；请求只复跑参数，完整CIB来源在关联留档中。'),
+    reopen.root
   );
   container.append(root);
   populate();
@@ -14713,19 +14721,22 @@ function steelOverlayPanel(container) {
         commodity: { path: commodity.name, sha256: commodity.sha256, region: info.market, kind: proof.kind, name: selected.input },
         operation: { kind: operation.value, value: Number(value.value) }
       };
-      const candidate = await verifySteelRequest(request, source, commodity);
+      const draft = binding.getDraft();
+      const parameter = await verifySteelRequest(request, source, commodity);
+      const candidate = draft ? await createLinkedSteelExport(parameter, draft) : parameter;
       if (!alive || token !== revision) return;
       result = candidate;
       xmlPreview.textContent = result.xml; auditPreview.textContent = JSON.stringify(result.audit, null, 2);
       valueNote.textContent = `核验结果：${info.baseline} → ${result.audit.writtenCoefficient} ${result.audit.coefficientUnit}，仅写入所选新增技术的一个投入系数。`;
-      status.textContent = '工程核验通过，可以下载。研究映射未经审定，尚未运行GCAM。';
-      for (const button of downloads) button.disabled = false;
+      status.textContent = draft ? '工程核验通过；所选完整组合已按冻结矩阵与条件复核。参数假设未经审定，请同时下载CIB关联留档。' : '工程核验通过，可以下载。研究映射未经审定，尚未运行GCAM。';
+      for (const [index, button] of downloads.entries()) button.disabled = index === 3 && !result.cibBundle;
     } catch (error) {
       if (alive && token === revision) status.textContent = '未生成：' + error.message;
     }
   }
   return () => {
     alive = false; revision++; tokens.steel++; tokens.unit++;
+    binding.dispose(); reopen.dispose();
     files.steel = null; files.unit = null; rows = []; result = null; root.remove();
   };
 }
@@ -14893,6 +14904,221 @@ async function verifySteelRequest(request, source, commodity) {
 }
 
 Object.assign(__exports, { STEEL_FORMAT, STEEL_MAX_BYTES, STEEL_OPERATIONS, calculateSteelCoefficient, steelOverlayXml, steelSha256, readSteelXml, steelTargets, describeSteelTarget, findSteelCommodity, verifySteelRequest });
+},
+"src/modules/exports/steel-cib-link.mjs": (__require, __exports) => {
+const { validateArchive } = __require("src/modules/workspace/saved-work.mjs");
+const { explain } = __require("src/modules/solver/engine.mjs");
+const { STEEL_FORMAT, calculateSteelCoefficient, steelOverlayXml, steelSha256 } = __require("src/modules/exports/steel-overlay.mjs");
+const STEEL_CIB_FORMAT = 'scenario-workbench.steel-cib-case';
+const need = (value, message) => { if (!value) throw new Error(message); };
+const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+const canonical = value => Array.isArray(value) ? value.map(canonical) : object(value) ? Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])])) : value;
+const same = (a, b) => JSON.stringify(canonical(a)) === JSON.stringify(canonical(b));
+const hash = value => steelSha256(new TextEncoder().encode(JSON.stringify(canonical(value))));
+function keys(value, names) { need(object(value) && Object.keys(value).sort().join('|') === [...names].sort().join('|'), '参数记录字段不完整或含未知字段。'); }
+function note(value, label, required = true) {
+  need(typeof value === 'string' && value.length <= 4000 && (!required || value.trim().length > 0), label + '须明确填写，最多4000字。');
+  return value;
+}
+
+function inspectSteelCibSelection({ archive, configuration, descriptorId, assumptionText, regionNote, target }) {
+  validateArchive(archive);
+  const input = archive.RunInput, result = archive.RunResult;
+  need(result?.status === 'completed' && result.scenarios.length > 0, '只关联已完成且保留自洽组合的冻结结果；未完成或零解记录不能关联。');
+  need(result.scenarios.some(row => same(row, configuration)), '所选完整组合不在该归档保留的自洽列表中，不能拼接其他组合的状态。');
+  const trace = explain(input, configuration);
+  need(trace.consistent && !trace.violatesLocks, '所选组合未通过冻结矩阵与条件复核。');
+  need(input.year === target.year, 'CIB检验年份与新增技术年份不同，不能直接关联。');
+  need(input.activeDescriptorIds.includes(descriptorId), '请选择该次检验中的因素。');
+  const descriptor = archive.projectInputSnapshot.data.descriptors.find(row => row.id === descriptorId);
+  need(descriptor?.role === 'input', '本入口只关联输入型因素；结果型或背景因素不能直接作为该参数输入。');
+  const stateId = configuration[descriptorId];
+  const state = input.stateDefinitions.find(row => row.id === stateId && row.descriptorId === descriptorId);
+  need(state, '所选因素状态在冻结输入中缺失。');
+  const region = input.scope.regionId;
+  need(typeof region === 'string' && region.length > 0 && typeof target.region === 'string' && target.region.length > 0, 'CIB地区或模型地区缺失。');
+  note(assumptionText, '人工参数设定说明');
+  note(regionNote, '地区对应说明', region !== target.region);
+  return {
+    archive: structuredClone(archive), configuration: structuredClone(configuration), trace,
+    factor: { descriptorId, descriptorLabel: descriptor.label, stateId, stateLabel: state.label, role: descriptor.role },
+    year: input.year,
+    regionCorrespondence: { cibRegion: region, modelRegion: target.region, kind: region === target.region ? 'literal-code-match' : 'user-assumed-correspondence', note: regionNote, reviewed: false },
+    assumption: { kind: 'user-assumption', text: assumptionText, reviewStatus: 'unreviewed', researchMappingApproved: false },
+    validation: { retainedScenarioRechecked: true, enumerationCountIndependentlyRecomputed: false, currentProjectConsistencyEvaluated: false, fullModelExecuted: false }
+  };
+}
+
+async function assertParameterOutput(overlay) {
+  need(object(overlay) && object(overlay.request) && object(overlay.audit), '缺少已核验的单项覆盖结果。');
+  const request = overlay.request, audit = overlay.audit;
+  keys(request, ['format', 'version', 'testOnly', 'source', 'target', 'commodity', 'operation']);
+  keys(request.source, ['path', 'sha256']);
+  keys(request.target, ['region', 'sector', 'subsector', 'technology', 'year', 'input', 'expectedBaseline', 'unit']);
+  keys(request.commodity, ['path', 'sha256', 'region', 'kind', 'name']);
+  for (const spec of [request.source, request.commodity]) need(typeof spec.path === 'string' && spec.path.trim().length > 0, '模型来源路径无效。');
+  keys(audit, ['format', 'version', 'testOnly', 'researchMappingApproved', 'cibConsistencyEvaluated', 'nativeModelRun', 'sourceSha256', 'target', 'commodityUnit', 'coefficientUnit', 'market', 'operation', 'writtenCoefficient', 'overlaySha256', 'leafChanges', 'scope', 'sameVintageMayOperateInLaterYears', 'loading', 'sources']);
+  need(request.format === STEEL_FORMAT && request.version === 1 && request.testOnly === true, '参数请求须为v1工程请求。');
+  const expected = calculateSteelCoefficient(request.target.expectedBaseline, request.operation);
+  need(overlay.xml === steelOverlayXml(request.target, expected), '参数XML与原值、操作或节点不一致。');
+  need(audit.format === STEEL_FORMAT + '-audit' && audit.version === 1 && audit.testOnly === true && audit.researchMappingApproved === false && audit.cibConsistencyEvaluated === false && audit.nativeModelRun === 'not-performed-by-this-adapter', '参数核验记录的性质或版本无效。');
+  need(same(audit.target, request.target) && same(audit.operation, request.operation) && audit.writtenCoefficient === expected, '参数审计与请求不一致。');
+  need(audit.sourceSha256 === request.source.sha256 && /^[0-9a-f]{64}$/.test(request.source.sha256) && /^[0-9a-f]{64}$/.test(request.commodity.sha256), '模型来源哈希缺失或不一致。');
+  need(audit.market === request.commodity.region && request.commodity.name === request.target.input && ['supplysector', 'unlimited-resource'].includes(request.commodity.kind), '商品证明与审计不一致。');
+  need(['EJ', 'Mt'].includes(audit.commodityUnit) && audit.coefficientUnit === audit.commodityUnit + '/Mt' && request.target.unit === audit.coefficientUnit, '参数单位记录不一致。');
+  need(same(audit.sources, [{ role: 'steel', sha256: request.source.sha256 }, { role: 'commodity', sha256: request.commodity.sha256 }]), '来源记录与请求不一致。');
+  need(audit.overlaySha256 === await steelSha256(new TextEncoder().encode(overlay.xml)), '参数XML哈希不一致。');
+  need(audit.leafChanges === 1 && audit.sameVintageMayOperateInLaterYears === true, '参数写入范围记录不一致。');
+  need(audit.scope === 'One explicit coefficient of one new vintage; not a whole-industry energy or technology-share target' && audit.loading === 'Append after all components that modify this node. This adapter does not validate the complete configuration or later overwrites.', '参数作用范围或加载边界不能改写。');
+}
+
+async function createLinkedSteelExport(overlay, draft) {
+  await assertParameterOutput(overlay);
+  const cib = inspectSteelCibSelection({ ...draft, target: overlay.request.target });
+  const archiveSha256 = await hash(cib.archive), configurationSha256 = await hash(cib.configuration), assumptionSha256 = await hash({ assumption: cib.assumption, regionCorrespondence: cib.regionCorrespondence });
+  const origin = { archiveSha256, configurationSha256, assumptionSha256, runId: cib.archive.RunResult.id, descriptorId: cib.factor.descriptorId, stateId: cib.factor.stateId, selectedScenarioRechecked: true, enumerationCountIndependentlyRecomputed: false, reviewStatus: 'unreviewed', caseFilename: 'steel-cib-case.engineering.json' };
+  const comment = `<!-- Engineering test only; CIB archive SHA256=${archiveSha256}; configuration SHA256=${configurationSha256}; assumption SHA256=${assumptionSha256}; mapping unreviewed; see ${origin.caseFilename} -->`;
+  const xml = overlay.xml.replace('\n', '\n' + comment + '\n');
+  const audit = { ...structuredClone(overlay.audit), cibConsistencyEvaluated: true, overlaySha256: await steelSha256(new TextEncoder().encode(xml)), cibOrigin: origin };
+  const bundle = {
+    format: STEEL_CIB_FORMAT, version: 1, testOnly: true, researchMappingApproved: false,
+    cib, parameter: { xml, audit, request: structuredClone(overlay.request) },
+    integrity: { archiveSha256, configurationSha256, assumptionSha256, modelXmlSha256: audit.overlaySha256, requestSha256: await hash(overlay.request) },
+    boundary: 'CIB supports only the frozen scores and conditions. Parameter values and region correspondence are unreviewed user assumptions; source model files are not embedded or reverified when reopening this case.'
+  };
+  bundle.integrity.bundlePayloadSha256 = await hash(bundle);
+  need(new TextEncoder().encode(JSON.stringify(bundle)).length <= 8 * 1024 * 1024, '关联留档超过8 MiB，请减少归档体积后重试。');
+  return { ...overlay, xml, audit, cibBundle: bundle };
+}
+
+async function verifySteelCibBundle(bundle) {
+  need(object(bundle) && bundle.format === STEEL_CIB_FORMAT && bundle.version === 1 && bundle.testOnly === true && bundle.researchMappingApproved === false, '不是受支持的工程关联留档。');
+  need(new TextEncoder().encode(JSON.stringify(bundle)).length <= 8 * 1024 * 1024, '关联留档超过8 MiB。');
+  const value = structuredClone(bundle), declared = value.integrity?.bundlePayloadSha256;
+  need(typeof declared === 'string', '缺少关联留档完整性记录。');
+  delete value.integrity.bundlePayloadSha256;
+  need(await hash(value) === declared, '留档内容或完整性哈希不一致。');
+  const parameter = bundle.parameter, request = parameter.request;
+  const xml = steelOverlayXml(request.target, calculateSteelCoefficient(request.target.expectedBaseline, request.operation));
+  const audit = { ...structuredClone(parameter.audit), cibConsistencyEvaluated: false, overlaySha256: await steelSha256(new TextEncoder().encode(xml)) };
+  delete audit.cibOrigin;
+  const regenerated = await createLinkedSteelExport({ xml, audit, request }, {
+    archive: bundle.cib.archive, configuration: bundle.cib.configuration, descriptorId: bundle.cib.factor.descriptorId,
+    assumptionText: bundle.cib.assumption.text, regionNote: bundle.cib.regionCorrespondence.note
+  });
+  need(same(bundle, regenerated.cibBundle), '关联留档的情景、人工设定、节点、审计或XML不能重新对应。');
+  return structuredClone(bundle);
+}
+
+Object.assign(__exports, { STEEL_CIB_FORMAT, inspectSteelCibSelection, createLinkedSteelExport, verifySteelCibBundle });
+},
+"src/modules/exports/steel-cib-panel.mjs": (__require, __exports) => {
+const { el } = __require("src/core/ui.mjs");
+const { readRunArchive, subscribeRunSummary } = __require("src/modules/solver/index.mjs");
+const { createLibrary } = __require("src/modules/workspace/saved-work.mjs");
+const { LIBRARY_EVENT } = __require("src/modules/workspace/saved-work-panel.mjs");
+const { verifySteelCibBundle } = __require("src/modules/exports/steel-cib-link.mjs");
+function steelCibPanel(context, changed) {
+  const root = el('details', { class: 'steel-cib-link', 'data-steel-cib-link': '' });
+  let options = [], alive = true;
+  const source = el('select', { 'aria-label': '关联的CIB冻结结果', onchange: () => { scenario.value = ''; factor.value = ''; populate(); changed(); } });
+  const scenario = el('select', { 'aria-label': '关联的完整自洽组合', onchange: () => { describe(); changed(); } });
+  const factor = el('select', { 'aria-label': '关联的输入型因素', onchange: () => { describe(); changed(); } });
+  const assumption = el('textarea', { rows: '3', maxlength: '4000', 'aria-label': '人工参数设定说明', oninput: changed });
+  const regionNote = el('textarea', { rows: '2', maxlength: '4000', 'aria-label': 'CIB与模型地区对应说明', oninput: changed });
+  const summary = el('p', { 'data-steel-cib-selection': '' });
+  const inventory = el('p', { 'data-steel-cib-inventory': '' });
+  root.append(el('summary', {}, '关联CIB情景与人工设定（可选）'),
+    el('p', {}, '不关联时仍是独立参数工程测试。关联时保留完整冻结组合；参数值由你明确设定，系统只复核所选组合，不审定参数依据。'),
+    el('label', {}, '冻结检验来源', source), inventory,
+    el('div', { class: 'steel-grid' }, el('label', {}, '选择一个完整自洽组合', scenario), el('label', {}, '这项参数对应的输入型因素', factor)), summary,
+    el('label', {}, '人工参数设定说明（为何给这个状态采用该操作与数值；仅工程假设也须写明）', assumption),
+    el('label', {}, '地区对应说明（CIB地区与模型编码不同时必填，按未经审定的人工对应记录）', regionNote),
+    el('p', { class: 'steel-boundary' }, '关联留档包含完整冻结评分、所选完整情景、人工说明及参数。它追溯历史结果，不表示当前项目已复算；全空间解数不在这里重新认证。'));
+  function selected() { return options.find(row => row.id === source.value); }
+  function populate() {
+    const archive = selected()?.archive;
+    const configs = archive?.RunResult?.status === 'completed' ? archive.RunResult.scenarios : [];
+    const oldScenario = scenario.value, oldFactor = factor.value;
+    scenario.replaceChildren(el('option', { value: '' }, '请选择完整组合'), ...configs.map((config, i) => el('option', { value: String(i) }, '组合 ' + (i + 1) + ' · ' + archive.RunInput.activeDescriptorIds.map(id => {
+      const d = archive.projectInputSnapshot.data.descriptors.find(row => row.id === id);
+      const state = archive.RunInput.stateDefinitions.find(row => row.id === config[id]);
+      return (d?.label || id) + '=' + (state?.label || config[id]);
+    }).join('；'))));
+    scenario.value = configs[Number(oldScenario)] && oldScenario !== '' ? oldScenario : '';
+    const factors = archive?.projectInputSnapshot.data.descriptors.filter(row => row.role === 'input' && archive.RunInput?.activeDescriptorIds.includes(row.id)) || [];
+    factor.replaceChildren(el('option', { value: '' }, '请选择输入型因素'), ...factors.map(row => el('option', { value: row.id }, row.label)));
+    factor.value = factors.some(row => row.id === oldFactor) ? oldFactor : '';
+    scenario.disabled = !configs.length; factor.disabled = !factors.length;
+    describe();
+  }
+  function describe() {
+    const archive = selected()?.archive, index = scenario.value === '' ? -1 : Number(scenario.value), config = archive?.RunResult?.scenarios[index];
+    if (!archive) { summary.textContent = '当前不关联CIB结果。'; return; }
+    if (archive.RunResult?.status !== 'completed' || !archive.RunResult.scenarios.length) { summary.textContent = '该记录未完成或没有保留自洽组合，不能关联。'; return; }
+    const id = factor.value, state = archive.RunInput.stateDefinitions.find(row => row.id === config?.[id]);
+    summary.textContent = `冻结年份 ${archive.RunInput.year}，地区 ${archive.RunInput.scope.regionId}；` + (config ? '已选完整组合 ' + (index + 1) : '尚未选组合') + (state ? '；所选因素状态：' + state.label : '；尚未选因素') + '。参数仍须另行说明。';
+  }
+  function refresh() {
+    if (!alive) return;
+    const previous = source.value, previousArchive = JSON.stringify(selected()?.archive);
+    const session = readRunArchive(context.store);
+    options = session ? [{ id: 'session', label: '本会话冻结检验（可追溯历史，不代表当前有效）', archive: session }] : [];
+    let failure = '';
+    try {
+      const library = createLibrary(window.localStorage).load();
+      if (!library.ok) failure = library.error;
+      else for (const item of library.bundle.runs) options.push({ id: 'saved:' + item.id, label: '已保存的冻结记录：' + item.name, archive: item.archive });
+    } catch (error) { failure = error.message; }
+    source.replaceChildren(el('option', { value: '' }, '不关联CIB结果（独立工程测试）'), ...options.map(row => el('option', { value: row.id }, row.label)));
+    source.value = options.some(row => row.id === previous) ? previous : '';
+    if (JSON.stringify(selected()?.archive) !== previousArchive) { scenario.value = ''; factor.value = ''; }
+    inventory.textContent = failure ? '历史库未采用：' + failure : options.length ? '可选择冻结结果；多解时须显式选一个完整组合。' : '尚无冻结结果；可以先到检验页运行，也可继续独立参数测试。';
+    populate(); changed();
+  }
+  const offStore = context.store.subscribe(refresh), offRun = subscribeRunSummary(refresh);
+  window.addEventListener(LIBRARY_EVENT, refresh);
+  refresh();
+  return {
+    root,
+    isLinked: () => source.value !== '',
+    getDraft() {
+      if (source.value === '') return null;
+      const archive = selected()?.archive;
+      const index = scenario.value === '' ? -1 : Number(scenario.value);
+      if (!archive || !Number.isInteger(index) || !archive.RunResult?.scenarios[index]) throw new Error('请选择要关联的完整自洽组合。');
+      return { archive: structuredClone(archive), configuration: structuredClone(archive.RunResult.scenarios[index]), descriptorId: factor.value, assumptionText: assumption.value, regionNote: regionNote.value };
+    },
+    dispose() { alive = false; offStore(); offRun(); window.removeEventListener(LIBRARY_EVENT, refresh); root.remove(); }
+  };
+}
+
+function steelCibReopenPanel() {
+  const root = el('details', { class: 'steel-cib-reopen', 'data-steel-cib-reopen': '' });
+  const status = el('p', { role: 'status', 'aria-live': 'polite', 'data-steel-cib-reopen-status': '' }, '选择先前下载的关联留档，在本机核验并取回XML。');
+  let token = 0, alive = true, verified = null;
+  const download = el('button', { class: 'button', type: 'button', disabled: true, onclick: () => {
+    if (!verified) return;
+    const url = URL.createObjectURL(new Blob([verified.parameter.xml], { type: 'application/xml' }));
+    el('a', { href: url, download: 'steel-overlay.linked.engineering.xml' }).click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } }, '取回留档中的XML');
+  const file = el('input', { type: 'file', accept: '.json,application/json', 'aria-label': '核验钢铁CIB关联留档', onchange: async () => {
+    const version = ++token; verified = null; download.disabled = true; status.textContent = '正在核验关联留档…';
+    try {
+      const picked = file.files[0];
+      if (!picked || picked.size > 8 * 1024 * 1024) throw new Error('文件缺失或超过8 MiB。');
+      const candidate = await verifySteelCibBundle(JSON.parse(await picked.text()));
+      if (!alive || token !== version) return;
+      verified = candidate; download.disabled = false;
+      status.textContent = `留档核验通过：${candidate.cib.year}年，${candidate.cib.factor.descriptorLabel}=${candidate.cib.factor.stateLabel}，系数写入${candidate.parameter.audit.writtenCoefficient}。已复核所选冻结组合；原模型源文件未重新读取，参数假设仍未经审定。`;
+    } catch (error) { if (alive && token === version) status.textContent = '留档未采用：' + error.message; }
+  } });
+  root.append(el('summary', {}, '核验已下载的CIB关联留档'), file, status, download);
+  return { root, dispose() { alive = false; token++; verified = null; root.remove(); } };
+}
+
+Object.assign(__exports, { steelCibPanel, steelCibReopenPanel });
 },
 "src/modules/analysis/index.mjs": (__require, __exports) => {
 // 结果可视化：全部从冻结的 RunInput / RunResult 读，不碰当前正在编辑的项目。

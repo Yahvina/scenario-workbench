@@ -4,6 +4,7 @@ import hashlib
 import json
 import math
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -11,6 +12,52 @@ import tempfile
 import xml.etree.ElementTree as ET
 
 YEARS = [1975, 1990, 2005, 2010, 2015, 2021, 2025, 2030, 2035]
+
+
+def inspect_native_run(return_code, console, run_directory):
+    """Reject known failures even when the native process prints completion."""
+    sources = [('console', console.decode('utf-8', errors='replace'))]
+    unread = []
+    logs = Path(run_directory) / 'logs'
+    paths = sorted(p for p in logs.glob('*') if p.is_file()) if logs.is_dir() else []
+    if not paths:
+        unread.append('No native log files found')
+    for p in paths[:64]:
+        try:
+            with p.open('rb') as stream:
+                data = stream.read(8 * 1024 * 1024 + 1)
+            if len(data) > 8 * 1024 * 1024:
+                unread.append(p.name + ': log exceeds 8 MiB review limit')
+            sources.append(('logs/' + p.name, data[:8 * 1024 * 1024].decode('utf-8', errors='replace')))
+        except OSError as error:
+            unread.append(p.name + ': ' + str(error))
+    if len(paths) > 64:
+        unread.append('More than 64 log files require review')
+    patterns = [
+        r'could\s+not\s+parse\s+filter\s+string',
+        r'\b(?:failed|unable)\s+to\s+(?:parse|load|open|read)\b',
+        r'\b(?:error|fatal|severe)\s*[:\]]',
+        r'^\s*\[(?:error|fatal|severe)\]',
+        r'\b(?:not\s+all|no)\s+model\s+periods\s+(?:were\s+)?solved',
+        r'\bunsolved\s+(?:periods|markets)\s*[:=]\s*[1-9]',
+    ]
+    critical, warnings = [], []
+    completed = False
+    for source, text in sources:
+        for number, line in enumerate(text.splitlines(), 1):
+            if line.strip() == 'All model periods solved correctly.':
+                completed = True
+            item = {'source': source, 'line': number, 'text': line[:1000]}
+            if any(re.search(pattern, line, re.IGNORECASE) for pattern in patterns):
+                critical.append(item)
+            elif re.search(r'\bwarning\b', line, re.IGNORECASE):
+                warnings.append(item)
+    status = 'failed' if return_code != 0 or not completed or critical else 'needs-review' if warnings or unread else 'passed'
+    return {'status': status, 'passed': status == 'passed', 'returnCode': return_code,
+            'completionMessageSeen': completed, 'criticalFindings': critical,
+            'warnings': warnings, 'unreadOrMissingLogs': unread,
+            'sourcesChecked': [name for name, _ in sources],
+            'scope': 'Known log diagnostics only; output checks still required. Not full-model calibration certification.'}
 
 
 def need(value, message):
@@ -234,12 +281,23 @@ def run_experiment(exe, java_home, destination, work_root, case_file=None, contr
                     (run / 'model.xml').write_bytes(model_xml(target, baseline, control, family))
                     overlay = variant_xml if variant == 'changed' and variant_xml is not None else overlay_xml(target, changed if variant == 'changed' else baseline)
                     (run / 'overlay.xml').write_bytes(overlay)
-                    p = subprocess.run([str(exe), '-C', 'configuration.xml'], cwd=run, env=env, capture_output=True, timeout=35, creationflags=0x08000000 if os.name == 'nt' else 0)
+                    try:
+                        p = subprocess.run([str(exe), '-C', 'configuration.xml'], cwd=run, env=env, capture_output=True, timeout=35, creationflags=0x08000000 if os.name == 'nt' else 0)
+                    except subprocess.TimeoutExpired as error:
+                        console = (error.stdout or b'') + (error.stderr or b'')
+                        (run / 'console.log').write_bytes(console)
+                        diagnostics = inspect_native_run(-1, console, run); diagnostics['timedOut'] = True
+                        (run / 'native-run-diagnostics.json').write_text(json.dumps(diagnostics, ensure_ascii=False, indent=2), encoding='utf-8')
+                        report['runs'].append({'family': family, 'variant': variant, 'region': region, 'exitCode': None, 'workDirectory': str(run), 'timedOut': True})
+                        shutil.copytree(run, destination / 'runs' / (family + '-' + variant + '-' + ('target' if region == target['region'] else 'control')), dirs_exist_ok=True)
+                        raise
                     (run / 'console.log').write_bytes(p.stdout + p.stderr)
+                    diagnostics = inspect_native_run(p.returncode, p.stdout + p.stderr, run)
+                    (run / 'native-run-diagnostics.json').write_text(json.dumps(diagnostics, ensure_ascii=False, indent=2), encoding='utf-8')
                     row = {'family': family, 'variant': variant, 'region': region, 'exitCode': p.returncode, 'workDirectory': str(run), 'overlaySHA256': hashlib.sha256(overlay).hexdigest()}; report['runs'].append(row)
-                    need(p.returncode == 0 and b'All model periods solved correctly' in p.stdout + p.stderr, 'Native run failed: ' + name)
-                    observed = read_debug(run / 'debug.xml', target, region); observations[(family, variant, region)] = observed; row['snapshots'] = observed
                     shutil.copytree(run, destination / 'runs' / (family + '-' + variant + '-' + ('target' if region == target['region'] else 'control')), dirs_exist_ok=True)
+                    need(diagnostics['passed'], 'Native run requires attention: ' + name + ' (' + diagnostics['status'] + ')')
+                    observed = read_debug(run / 'debug.xml', target, region); observations[(family, variant, region)] = observed; row['snapshots'] = observed
         report['summaries'] = compare(observations, baseline, changed, target['region'], control); report['status'] = 'passed'; report['nativeRuns'] = len(report['runs'])
         capsule = result_bundle(report, frozen_case)
     except Exception as error:

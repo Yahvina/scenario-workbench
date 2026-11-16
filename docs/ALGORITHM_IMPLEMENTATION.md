@@ -28,7 +28,7 @@
 
 本轮官方软件页链接文字标5.32，直接下载PDF封面为5.33，故将两者分别记录，不推断安装包实际版本。官方软件页也已提供离线与网页版本。未安装运行该软件；文档未确认的功能不能记为不存在。[官方软件页](https://www.cross-impact.org/english/CIB_e_ScW.htm)
 
-当前PyCIB自述文件覆盖不确定性、扰动稳健性及多期模拟；JuCIB/CrossImpactBalances.jl有精确求解与后继入口；Prophesy自述文件包括扰动、路径与跨模型敏感性。本轮这些仓库按文档范围核查，没有新做运行或性能比较，不据他方README的速度描述宣布性能胜负。[PyCIB](https://github.com/ag-ross/PyCIB)、[JuCIB](https://github.com/IainDM/CrossImpactBalances)、[Prophesy](https://github.com/nmkearney/prophesy-cib)
+PyCIB作者说明覆盖不确定性、扰动稳健性及多期模拟。本次已实际执行其固定提交b3c3eece6d747819afb8041c3fd5df1ba861e2f0的确定性精确入口：17次选例及两因素有限空间59049次求解与参考集合一致。普通锁定使用AllowedStates；给定免检由明确适配层将指向给定因素的评分中和后再加约束，不称外部原生有同名接口。外部省略评分默认0与本项目null未判分开，适配层拒绝相关缺分。JuCIB/CrossImpactBalances.jl及Prophesy仍仅按文档核查；未作性能排名，也未验证PyCIB全部动态或概率功能。[PyCIB](https://github.com/ag-ross/PyCIB)、[JuCIB](https://github.com/IainDM/CrossImpactBalances)、[Prophesy](https://github.com/nmkearney/prophesy-cib)
 
 CRISPA使用逻辑依赖，本文CIB使用促进/抑制评分，二者不能机械共用同一评分表；争议评分重算和替代矩阵已有明确讨论。[CRISPA原文](https://doi.org/10.1186/s40309-026-00277-9)
 

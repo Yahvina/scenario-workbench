@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 import xml.etree.ElementTree as ET
 
 SCRIPT = Path(__file__).resolve().parents[1] / 'scripts/gcam_positive_output_smoke.py'
@@ -49,6 +50,78 @@ def debug_xml(snapshots):
 
 
 class PositiveOutputTests(unittest.TestCase):
+    def test_native_completion_cannot_hide_filter_errors_in_a_log(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = Path(tmp); (run / 'logs').mkdir()
+            (run / 'logs/main_log.txt').write_text('Could not parse filter string: solvable &amp;&amp; unsolved\nAll model periods solved correctly.\n', encoding='utf-8')
+            result = module.inspect_native_run(0, b'All model periods solved correctly.\n', run)
+            self.assertEqual(result['status'], 'failed')
+            self.assertTrue(result['completionMessageSeen'])
+            self.assertEqual(result['criticalFindings'][0]['source'], 'logs/main_log.txt')
+
+    def test_native_exit_completion_and_logs_are_all_required(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = Path(tmp); (run / 'logs').mkdir()
+            (run / 'logs/main_log.txt').write_text('All model periods solved correctly.\n0 errors\n', encoding='utf-8')
+            self.assertTrue(module.inspect_native_run(0, b'', run)['passed'])
+            self.assertFalse(module.inspect_native_run(1, b'', run)['passed'])
+            (run / 'logs/main_log.txt').write_text('Beginning model run\n', encoding='utf-8')
+            self.assertEqual(module.inspect_native_run(0, b'', run)['status'], 'failed')
+
+    def test_native_warning_or_missing_log_requires_review(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = Path(tmp)
+            self.assertEqual(module.inspect_native_run(0, b'All model periods solved correctly.\n', run)['status'], 'needs-review')
+            (run / 'logs').mkdir()
+            (run / 'logs/main_log.txt').write_text('WARNING: calibration needs attention\n', encoding='utf-8')
+            self.assertEqual(module.inspect_native_run(0, b'All model periods solved correctly.\n', run)['status'], 'needs-review')
+
+    def test_native_console_failure_and_oversized_log_cannot_pass(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = Path(tmp); (run / 'logs').mkdir()
+            (run / 'logs/main_log.txt').write_text('normal\n', encoding='utf-8')
+            for message in [b'ERROR: failed initialization', b'Unsolved markets: 3', b'Unable to open model.xml']:
+                self.assertEqual(module.inspect_native_run(0, b'All model periods solved correctly.\n' + message, run)['status'], 'failed')
+            with (run / 'logs/main_log.txt').open('wb') as stream:
+                stream.seek(8 * 1024 * 1024); stream.write(b'x')
+            self.assertEqual(module.inspect_native_run(0, b'All model periods solved correctly.\n', run)['status'], 'needs-review')
+
+    def test_zero_exit_filter_error_fails_experiment_and_preserves_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp); exe = base / 'gcam.exe'; exe.write_bytes(b'test executable placeholder')
+            java = base / 'java'; java.mkdir(); output = base / 'result'
+            def native(args, **kwargs):
+                if '--version' in args:
+                    return module.subprocess.CompletedProcess(args, 0, b'version 8.2 gcam-v8.2', b'')
+                run = Path(kwargs['cwd'])
+                (run / 'logs/main_log.txt').write_text('Could not parse filter string: example\n', encoding='utf-8')
+                return module.subprocess.CompletedProcess(args, 0, b'All model periods solved correctly.\n', b'')
+            with patch.object(module.subprocess, 'run', side_effect=native), self.assertRaises(ValueError):
+                module.run_experiment(exe, java, output, base)
+            report = json.loads((output / 'results.json').read_text(encoding='utf-8'))
+            self.assertEqual(report['status'], 'failed')
+            diagnostics = json.loads((output / 'runs/replacement-baseline-target/native-run-diagnostics.json').read_text(encoding='utf-8'))
+            self.assertFalse(diagnostics['passed'])
+            self.assertTrue((output / 'runs/replacement-baseline-target/logs/main_log.txt').is_file())
+            self.assertFalse((output / 'result-bundle.json').exists())
+
+    def test_timeout_preserves_partial_console_and_native_logs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp); exe = base / 'gcam.exe'; exe.write_bytes(b'fixture')
+            java = base / 'java'; java.mkdir(); output = base / 'result'
+            def native(args, **kwargs):
+                if '--version' in args:
+                    return module.subprocess.CompletedProcess(args, 0, b'version 8.2 gcam-v8.2', b'')
+                (Path(kwargs['cwd']) / 'logs/main_log.txt').write_text('Partial solve diagnostics', encoding='utf-8')
+                raise module.subprocess.TimeoutExpired(args, 35, output=b'Partial console', stderr=b'Partial stderr')
+            with patch.object(module.subprocess, 'run', side_effect=native), self.assertRaises(module.subprocess.TimeoutExpired):
+                module.run_experiment(exe, java, output, base)
+            saved = output / 'runs/replacement-baseline-target'
+            self.assertEqual((saved / 'console.log').read_bytes(), b'Partial consolePartial stderr')
+            self.assertTrue(json.loads((saved / 'native-run-diagnostics.json').read_text(encoding='utf-8'))['timedOut'])
+            self.assertEqual(json.loads((output / 'results.json').read_text(encoding='utf-8'))['status'], 'failed')
+            self.assertFalse((output / 'result-bundle.json').exists())
+
     def test_fixtures_are_explicitly_synthetic_with_different_lifetimes_and_demands(self):
         for family, lifetime, service in [('replacement', 5, '1'), ('coexistence', 20, '2')]:
             root = ET.fromstring(module.model_xml(TARGET, 2, 'CONTROL', family))

@@ -1,0 +1,12 @@
+{
+  "name": "cib-core",
+  "version": "0.1.1",
+  "private": true,
+  "type": "module",
+  "main": "./index.mjs",
+  "exports": { ".": "./index.mjs" },
+  "bin": { "cib-core": "./cli.mjs" },
+  "files": ["index.mjs", "cli.mjs", "README.md"],
+  "engines": { "node": ">=22" },
+  "license": "UNLICENSED"
+}

@@ -54,7 +54,7 @@ export function mount(container, context) {
   const tree = el('div', { class: 'elements-tree' });
   const summary = el('div', { class: 'elements-summary', 'aria-live': 'polite' });
   const message = el('p', { role: 'status' });
-  const catalog = el('div', { class: 'elements-catalog' });
+  const catalog = el('details', { class: 'elements-catalog is-major', 'data-framework-catalog': '', open: !context.store.read().selection.descriptorIds.length });
   const zoneBar=el('div',{class:'zone-bar','aria-label':'业务分区'});
   const frameworkBar=el('div',{class:'framework-bar','aria-label':'描述符框架'});
   const treeInfo = el('p', { class: 'elements-tree-info muted' });
@@ -256,7 +256,7 @@ export function mount(container, context) {
     search.placeholder = expert ? '搜索分类名称或稳定 ID' : '搜索你关注的因素';
     const selected = new Set(p.selection.nodeIds);
     const empty = !p.data.taxonomy.length;
-    catalog.replaceChildren();
+    catalog.replaceChildren(el('summary', {}, '更多起点：已有框架与示例项目'));
     renderZones(p);renderFrameworks(p);renderRegionStrip(p);
     root.querySelector('.demo-default-scope')?.remove();
     if(p.scope.regionId!=='京津冀'||JSON.stringify(p.scope.years)!=='[2030,2035]'){
@@ -273,8 +273,8 @@ export function mount(container, context) {
     summary.replaceChildren(el('h3', {}, '所选分类（' + selected.size + '）'));
     if (!p.data.taxonomy.length) tree.append(
       el('div', { class: 'tree-empty' },
-        el('p', {}, '当前项目还没有描述符目录（自动载入没有成功）。'),
-        el('button', { class: 'button primary-action', type: 'button', 'data-join-baseline': '', onclick: joinBaselineNow }, '重新加入 46 项描述符目录（10 个领域）'),
+        el('p', {}, p.data.descriptors.length ? '当前项目使用自定义因素，可直接编辑右侧已选因素；需要扩展时再加入参考目录。' : '当前项目还没有因素目录，可以从参考目录开始。'),
+        el('button', { class: 'button secondary', type: 'button', 'data-join-baseline': '', onclick: joinBaselineNow }, '加入 46 项参考描述符目录（10 个领域）'),
         el('p', { class: 'v5-hint' }, '分类已确认；状态为平台参考设定，阈值与依据未核定。')));
     const zoneView=p.data.taxonomy.length?taxonomyForZone(p,zoneFilter):[];
     const rows = visibleRows(zoneView, expanded, query);

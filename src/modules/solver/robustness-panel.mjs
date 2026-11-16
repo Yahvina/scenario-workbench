@@ -11,6 +11,7 @@ export function mount(container, context) {
   const root = el('section', { class: 'robustness-module' });
   container.append(root);
   let batchController = null;
+  const expanded = { saved: false, batch: false };
 
   function render() {
     batchController?.abort();
@@ -153,16 +154,19 @@ export function mount(container, context) {
     const otherChoice = el('select', { 'aria-label': '并排比较另一方案' });
     const savedStatus = el('p', { role: 'status', 'data-joint-saved-status': '' });
     const comparison = el('div', { 'data-joint-saved-comparison': '' });
+    const savedSummary = el('summary');
     let savedRecords = [];
     function renderSaved() {
       comparison.replaceChildren();
+      let readFailed = false;
       try {
         savedRecords = readJointPlans(localStorage).sort((a,b) => Number(sameBaseline(b.input,input))-Number(sameBaseline(a.input,input)));
         const options = () => savedRecords.map(r => el('option', { value: r.id }, r.name + (sameBaseline(r.input,input) ? '' : '（其他基线）')));
         savedChoice.replaceChildren(...options()); otherChoice.replaceChildren(...options());
         if (savedRecords.length > 1) otherChoice.value = savedRecords[1].id;
         savedStatus.textContent = '本机保存 ' + savedRecords.length + ' 份联合方案；仅完全相同的冻结基线可载入或比较。刷新后先重新检验同一基线。';
-      } catch (error) { savedRecords = []; savedStatus.textContent = error.message; }
+      } catch (error) { savedRecords = []; readFailed = true; savedStatus.textContent = error.message; }
+      savedSummary.textContent = '保存与比较联合方案 · ' + (readFailed ? '读取失败，查看详情' : '本机 ' + savedRecords.length + ' 份');
     }
     const attempt = action => () => {
       try { action(); } catch (error) { savedStatus.textContent = '未完成：' + error.message; }
@@ -187,8 +191,9 @@ export function mount(container, context) {
       finally { backupFile.value = ''; }
     });
     renderSaved();
-    root.append(el('div', { class: 'v5-card', 'data-joint-saved': '' },
-      el('div', { class: 'hd' }, el('h2', {}, '保存与比较联合方案')),
+    root.append(el('details', { class: 'v5-card is-major', 'data-joint-saved': '', open: expanded.saved,
+      ontoggle: e => { if (e.target.isConnected) expanded.saved = e.target.open; } },
+      savedSummary,
       el('div', { class: 'bd' }, el('label', { class: 'robust-field' }, '名称', savedName), saveJointButton,
         el('label', { class: 'robust-field' }, '已保存方案', savedChoice),
         el('div', { class: 'robust-actions' },
@@ -271,9 +276,16 @@ export function mount(container, context) {
         if (batchController === controller) batchController = null;
       }
     }
-    root.append(el('div', { class: 'v5-card' }, el('div', { class: 'hd' }, el('h2', {}, '哪些评分值得优先核验')),
+    root.append(el('details', { class: 'v5-card is-major', 'data-batch-scan': '', open: expanded.batch,
+      ontoggle: e => { if (e.target.isConnected) expanded.batch = e.target.open; } },
+      el('summary', {}, '进阶：哪些评分值得优先核验（批量扫描）'),
       el('div', { class: 'bd' }, el('p', {}, '逐一将每格评分减1或加1，保持在 −3…+3 内，比较完整解集。不会修改原项目。锁定状态仍接受原有自洽判定。'),
-        el('div', { class: 'robust-actions' }, start, cancel), batchStatus, batchOutput)));
+        batchPlan ? el('p', {}, '将执行 ' + batchPlan.trials.length + ' 次重算；每次从同一基线出发。') : null,
+        el('div', { class: 'robust-actions' }, start), batchOutput)));
+    const batchProgress=el('div', { 'data-batch-progress': '', hidden: true }, batchStatus, cancel);
+    start.addEventListener('click', () => { batchProgress.hidden = false; });
+    root.append(batchProgress);
+    if(start.disabled)batchProgress.hidden=false;
   }
   const off = context.store.subscribe(render);
   render();

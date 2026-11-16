@@ -108,6 +108,7 @@ const {fixture}=require('./solver-browser-fixtures.cjs');
     await one.page.screenshot({path:process.env.CONDITION_DOC_SHOT,fullPage:true,clip:{x:r.x,y:r.y+await one.page.evaluate(()=>scrollY),width:r.width,height:650}});
   }
   await one.page.locator('nav [data-route=robustness]').first().click();
+  await one.page.locator('[data-batch-scan] > summary').click();
   await one.page.getByRole('button',{name:'扫描全部评分格',exact:true}).click();
   await one.page.waitForFunction(()=>document.querySelector('[data-batch-status]')?.textContent.startsWith('扫描完成'));
   const scan=await download(one.page,'导出扫描记录');

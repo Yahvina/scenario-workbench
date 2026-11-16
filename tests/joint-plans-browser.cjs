@@ -14,6 +14,7 @@ const home=require('./home-controls.cjs');
    await page.locator('.solver-fullspace button').filter({hasText:/^(开始检验|重新检验)$/}).click();
    await page.waitForFunction(()=>document.querySelector('[data-solver-summary]')?.textContent.includes('共找到 4 种自洽组合'));
    await page.locator('nav [data-route=robustness]').first().click();
+   await page.locator('[data-joint-saved] > summary').click();
   }
   await page.goto(pathToFileURL(path.resolve('dist/scenario-workbench.html')).href);await openBaseline();
   const before=await page.evaluate(()=>JSON.parse(localStorage.getItem('scenario-workbench.project.v1')).data);

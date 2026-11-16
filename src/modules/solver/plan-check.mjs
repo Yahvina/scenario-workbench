@@ -78,7 +78,7 @@ export function planCheckSection({ project, prepared, session, context, lastArch
         onRender();
       } catch (error) { message.textContent = '无法检验这个方案：' + error.message; }
     } }, '开始检验这份方案'),
-    el('span', { class: 'hint' }, canCheck ? '只算这一份配置，不改变枚举范围；全空间结论仍由下面的基线检算给出。' : blocks.length ? '还不能检验：' + blocks.slice(0, 2).map(item => item.message).join('；') + '。处理入口在下面第 2 项里。' : '矩阵还有阻断项，先解决下面的输入问题。'));
+    el('span', { class: 'hint' }, canCheck ? '只检验这一份方案；查找全部自洽组合请使用“找出所有自洽情景”。' : blocks.length ? '还不能检验：' + blocks.slice(0, 2).map(item => item.message).join('；') + '。请查看“找出所有自洽情景”中的处理入口。' : '矩阵还有阻断项，请查看输入诊断。'));
   section.append(check);
   if (!canCheck && blocks.length) {
     section.append(el('ul', { class: 'plan-check-blocks' }, ...blocks.slice(0, 5).map(d => el('li', {}, d.message))));

@@ -58,8 +58,8 @@ export function mount(container,context){
    planBlock.append(el('span',{class:'cap'},'我的方案 · '+planYear+' 年'));
    if(!plan.complete){
     const missing=plan.missing||[];
-    planBlock.append(el('p',{class:'bad'},missing.length
-      ?'状态未选齐：还差 '+missing.length+' 个因素（'+missing.map(d=>name(d)).join('、')+'）。缺的状态不替你默认选第一档。'
+    planBlock.append(el('p',{},missing.length
+      ?'如需单独检验自己的方案，还差 '+missing.length+' 个因素的年度状态；不影响查找全部自洽组合。'
       :'状态未选齐'),
      el('div',{class:'solver-summary-actions'},
       el('button',{class:'button text',onclick:()=>context.navigate('elements')},'去补选状态')));
@@ -80,7 +80,7 @@ export function mount(container,context){
     planBlock.append(el('p',{},states),
      el('p',{class:cls},label),
      el('div',{class:'solver-summary-actions'},
-      el('button',{class:'button text',onclick:()=>{const target=root.querySelector('.plan-check');if(target){target.scrollIntoView({block:'center'});target.querySelector('[data-plan-check-run]')?.focus();}}},'查看原因'),
+      el('button',{class:'button text',onclick:()=>{const target=root.querySelector('.plan-check');if(target){session.planOpen=true;target.closest('details').open=true;target.scrollIntoView({block:'center'});target.querySelector('[data-plan-check-run]')?.focus();}}},'查看原因'),
       el('button',{class:'button text',onclick:()=>{const basis=root.querySelector('.solver-basis');if(basis){basis.open=true;basis.scrollIntoView({block:'center'});}}},'查看这次结果的计算依据'),
       el('button',{class:'button text',onclick:()=>context.navigate('exports')},'保存这次结果')));
    }
@@ -278,6 +278,8 @@ export function mount(container,context){
  }
 
  function render(){if(disposed)return;
+  const previousPlan=root.querySelector('.solver-plan-options');
+  if(previousPlan)session.planOpen=previousPlan.open;
   const p=context.store.read();root.replaceChildren();
   const year=el('select',{'aria-label':'检算年份',disabled:!!job,onchange:e=>{session.year=e.target.value;render();}},el('option',{value:''},'请先选年份'),...p.scope.years.map(y=>el('option',{value:y},y)));year.value=session.year;
   const yearRow=el('div',{class:'solver-yearbar'},el('span',{class:'cap'},'检验年份'),year);
@@ -307,8 +309,9 @@ export function mount(container,context){
   // 1 · 检验我的方案（读取因素页该年状态；缺状态就地补选）
   const pre=prepareRun(p,{year:session.year===''?null:Number(session.year),selectedJudgmentIds:session.selected,conditionedStateIds:conditionIds(session),assumptionAcknowledgements:{currentAssumptions:session.assumptions,unknownStateScope:session.unknown}});
   const planEl=planCheckSection({project:p,prepared:pre,session,context,lastArchive:last,onRender:render});
-  planEl.classList.add('solver-task');
-  planEl.insertBefore(el('div',{class:'solver-task-hd'},el('span',{class:'no'},'2'),el('h3',{},'检验我的方案'),),planEl.firstChild);
+  const plan=planAtYear(p,Number(session.year));
+  const planDetails=el('details',{class:'solver-plan-options is-major',open:session.planOpen??plan.complete,ontoggle:e=>{if(e.target.isConnected)session.planOpen=e.target.open;}},
+    el('summary',{},'单独检验我的年度方案（可选） · '+(plan.complete?'状态已选齐':'还有 '+plan.missing.length+' 个因素待选状态')),planEl);
 
   // 2 · 寻找所有自洽组合
   const fullSpace=el('section',{class:'solver-fullspace solver-task'},
@@ -350,22 +353,20 @@ export function mount(container,context){
   if(job)fullSpace.append(button('取消检算',()=>{job.cancel();}),
     el('p',{'data-solver-progress':''},'已检查 '+(progress?.result.checked||0)+(pre.space?' / '+pre.space.constrained:'')+' 种组合，正在计算……未完成前不给自洽总数。'));
   fullSpace.append(start,diagDetails);
-  // 顺序：自洽情景在前，我的方案在后；最后才是重新检验与计算详情。
+  // 结果下载紧随摘要；计算入口和进度始终可见。
+  if(last)root.append(sessionResultCard(p,last));
   const scenarios=last?scenariosCard(p,last):null;
   if(last){
     root.append(fullSpace);
     if(scenarios)root.append(scenarios);
-    root.append(planEl);
+    root.append(planDetails);
   }else{
-    root.append(fullSpace,planEl);
+    root.append(fullSpace,planDetails);
   }
 
   // 折叠：完整输入、逐项贡献与公式
   if(last)root.append(basisDetails(p,last));
   if(last?.RunInput)root.append(evidencePanel(last));
-
-  // 本次检验结果 vs 历史检验记录
-  root.append(sessionResultCard(p,last));
 
   // 高级：年份与逐方向评分选用
   const settings=el('details',{class:'solver-settings','data-solver-settings':'',open:session.settingsOpen??false,ontoggle:e=>{if(e.target.isConnected)session.settingsOpen=e.target.open;}},el('summary',{},'高级：逐方向选用评分'));

@@ -4647,8 +4647,8 @@ function mount(container,context){
    planBlock.append(el('span',{class:'cap'},'我的方案 · '+planYear+' 年'));
    if(!plan.complete){
     const missing=plan.missing||[];
-    planBlock.append(el('p',{class:'bad'},missing.length
-      ?'状态未选齐：还差 '+missing.length+' 个因素（'+missing.map(d=>name(d)).join('、')+'）。缺的状态不替你默认选第一档。'
+    planBlock.append(el('p',{},missing.length
+      ?'如需单独检验自己的方案，还差 '+missing.length+' 个因素的年度状态；不影响查找全部自洽组合。'
       :'状态未选齐'),
      el('div',{class:'solver-summary-actions'},
       el('button',{class:'button text',onclick:()=>context.navigate('elements')},'去补选状态')));
@@ -4669,7 +4669,7 @@ function mount(container,context){
     planBlock.append(el('p',{},states),
      el('p',{class:cls},label),
      el('div',{class:'solver-summary-actions'},
-      el('button',{class:'button text',onclick:()=>{const target=root.querySelector('.plan-check');if(target){target.scrollIntoView({block:'center'});target.querySelector('[data-plan-check-run]')?.focus();}}},'查看原因'),
+      el('button',{class:'button text',onclick:()=>{const target=root.querySelector('.plan-check');if(target){session.planOpen=true;target.closest('details').open=true;target.scrollIntoView({block:'center'});target.querySelector('[data-plan-check-run]')?.focus();}}},'查看原因'),
       el('button',{class:'button text',onclick:()=>{const basis=root.querySelector('.solver-basis');if(basis){basis.open=true;basis.scrollIntoView({block:'center'});}}},'查看这次结果的计算依据'),
       el('button',{class:'button text',onclick:()=>context.navigate('exports')},'保存这次结果')));
    }
@@ -4867,6 +4867,8 @@ function mount(container,context){
  }
 
  function render(){if(disposed)return;
+  const previousPlan=root.querySelector('.solver-plan-options');
+  if(previousPlan)session.planOpen=previousPlan.open;
   const p=context.store.read();root.replaceChildren();
   const year=el('select',{'aria-label':'检算年份',disabled:!!job,onchange:e=>{session.year=e.target.value;render();}},el('option',{value:''},'请先选年份'),...p.scope.years.map(y=>el('option',{value:y},y)));year.value=session.year;
   const yearRow=el('div',{class:'solver-yearbar'},el('span',{class:'cap'},'检验年份'),year);
@@ -4896,8 +4898,9 @@ function mount(container,context){
   // 1 · 检验我的方案（读取因素页该年状态；缺状态就地补选）
   const pre=prepareRun(p,{year:session.year===''?null:Number(session.year),selectedJudgmentIds:session.selected,conditionedStateIds:conditionIds(session),assumptionAcknowledgements:{currentAssumptions:session.assumptions,unknownStateScope:session.unknown}});
   const planEl=planCheckSection({project:p,prepared:pre,session,context,lastArchive:last,onRender:render});
-  planEl.classList.add('solver-task');
-  planEl.insertBefore(el('div',{class:'solver-task-hd'},el('span',{class:'no'},'2'),el('h3',{},'检验我的方案'),),planEl.firstChild);
+  const plan=planAtYear(p,Number(session.year));
+  const planDetails=el('details',{class:'solver-plan-options is-major',open:session.planOpen??plan.complete,ontoggle:e=>{if(e.target.isConnected)session.planOpen=e.target.open;}},
+    el('summary',{},'单独检验我的年度方案（可选） · '+(plan.complete?'状态已选齐':'还有 '+plan.missing.length+' 个因素待选状态')),planEl);
 
   // 2 · 寻找所有自洽组合
   const fullSpace=el('section',{class:'solver-fullspace solver-task'},
@@ -4939,22 +4942,20 @@ function mount(container,context){
   if(job)fullSpace.append(button('取消检算',()=>{job.cancel();}),
     el('p',{'data-solver-progress':''},'已检查 '+(progress?.result.checked||0)+(pre.space?' / '+pre.space.constrained:'')+' 种组合，正在计算……未完成前不给自洽总数。'));
   fullSpace.append(start,diagDetails);
-  // 顺序：自洽情景在前，我的方案在后；最后才是重新检验与计算详情。
+  // 结果下载紧随摘要；计算入口和进度始终可见。
+  if(last)root.append(sessionResultCard(p,last));
   const scenarios=last?scenariosCard(p,last):null;
   if(last){
     root.append(fullSpace);
     if(scenarios)root.append(scenarios);
-    root.append(planEl);
+    root.append(planDetails);
   }else{
-    root.append(fullSpace,planEl);
+    root.append(fullSpace,planDetails);
   }
 
   // 折叠：完整输入、逐项贡献与公式
   if(last)root.append(basisDetails(p,last));
   if(last?.RunInput)root.append(evidencePanel(last));
-
-  // 本次检验结果 vs 历史检验记录
-  root.append(sessionResultCard(p,last));
 
   // 高级：年份与逐方向评分选用
   const settings=el('details',{class:'solver-settings','data-solver-settings':'',open:session.settingsOpen??false,ontoggle:e=>{if(e.target.isConnected)session.settingsOpen=e.target.open;}},el('summary',{},'高级：逐方向选用评分'));
@@ -5187,7 +5188,7 @@ function planCheckSection({ project, prepared, session, context, lastArchive, on
         onRender();
       } catch (error) { message.textContent = '无法检验这个方案：' + error.message; }
     } }, '开始检验这份方案'),
-    el('span', { class: 'hint' }, canCheck ? '只算这一份配置，不改变枚举范围；全空间结论仍由下面的基线检算给出。' : blocks.length ? '还不能检验：' + blocks.slice(0, 2).map(item => item.message).join('；') + '。处理入口在下面第 2 项里。' : '矩阵还有阻断项，先解决下面的输入问题。'));
+    el('span', { class: 'hint' }, canCheck ? '只检验这一份方案；查找全部自洽组合请使用“找出所有自洽情景”。' : blocks.length ? '还不能检验：' + blocks.slice(0, 2).map(item => item.message).join('；') + '。请查看“找出所有自洽情景”中的处理入口。' : '矩阵还有阻断项，请查看输入诊断。'));
   section.append(check);
   if (!canCheck && blocks.length) {
     section.append(el('ul', { class: 'plan-check-blocks' }, ...blocks.slice(0, 5).map(d => el('li', {}, d.message))));
@@ -7368,7 +7369,7 @@ function mount(container, context) {
   const tree = el('div', { class: 'elements-tree' });
   const summary = el('div', { class: 'elements-summary', 'aria-live': 'polite' });
   const message = el('p', { role: 'status' });
-  const catalog = el('div', { class: 'elements-catalog' });
+  const catalog = el('details', { class: 'elements-catalog is-major', 'data-framework-catalog': '', open: !context.store.read().selection.descriptorIds.length });
   const zoneBar=el('div',{class:'zone-bar','aria-label':'业务分区'});
   const frameworkBar=el('div',{class:'framework-bar','aria-label':'描述符框架'});
   const treeInfo = el('p', { class: 'elements-tree-info muted' });
@@ -7570,7 +7571,7 @@ function mount(container, context) {
     search.placeholder = expert ? '搜索分类名称或稳定 ID' : '搜索你关注的因素';
     const selected = new Set(p.selection.nodeIds);
     const empty = !p.data.taxonomy.length;
-    catalog.replaceChildren();
+    catalog.replaceChildren(el('summary', {}, '更多起点：已有框架与示例项目'));
     renderZones(p);renderFrameworks(p);renderRegionStrip(p);
     root.querySelector('.demo-default-scope')?.remove();
     if(p.scope.regionId!=='京津冀'||JSON.stringify(p.scope.years)!=='[2030,2035]'){
@@ -7587,8 +7588,8 @@ function mount(container, context) {
     summary.replaceChildren(el('h3', {}, '所选分类（' + selected.size + '）'));
     if (!p.data.taxonomy.length) tree.append(
       el('div', { class: 'tree-empty' },
-        el('p', {}, '当前项目还没有描述符目录（自动载入没有成功）。'),
-        el('button', { class: 'button primary-action', type: 'button', 'data-join-baseline': '', onclick: joinBaselineNow }, '重新加入 46 项描述符目录（10 个领域）'),
+        el('p', {}, p.data.descriptors.length ? '当前项目使用自定义因素，可直接编辑右侧已选因素；需要扩展时再加入参考目录。' : '当前项目还没有因素目录，可以从参考目录开始。'),
+        el('button', { class: 'button secondary', type: 'button', 'data-join-baseline': '', onclick: joinBaselineNow }, '加入 46 项参考描述符目录（10 个领域）'),
         el('p', { class: 'v5-hint' }, '分类已确认；状态为平台参考设定，阈值与依据未核定。')));
     const zoneView=p.data.taxonomy.length?taxonomyForZone(p,zoneFilter):[];
     const rows = visibleRows(zoneView, expanded, query);
@@ -16580,6 +16581,7 @@ function mount(container, context) {
   const root = el('section', { class: 'robustness-module' });
   container.append(root);
   let batchController = null;
+  const expanded = { saved: false, batch: false };
 
   function render() {
     batchController?.abort();
@@ -16722,16 +16724,19 @@ function mount(container, context) {
     const otherChoice = el('select', { 'aria-label': '并排比较另一方案' });
     const savedStatus = el('p', { role: 'status', 'data-joint-saved-status': '' });
     const comparison = el('div', { 'data-joint-saved-comparison': '' });
+    const savedSummary = el('summary');
     let savedRecords = [];
     function renderSaved() {
       comparison.replaceChildren();
+      let readFailed = false;
       try {
         savedRecords = readJointPlans(localStorage).sort((a,b) => Number(sameBaseline(b.input,input))-Number(sameBaseline(a.input,input)));
         const options = () => savedRecords.map(r => el('option', { value: r.id }, r.name + (sameBaseline(r.input,input) ? '' : '（其他基线）')));
         savedChoice.replaceChildren(...options()); otherChoice.replaceChildren(...options());
         if (savedRecords.length > 1) otherChoice.value = savedRecords[1].id;
         savedStatus.textContent = '本机保存 ' + savedRecords.length + ' 份联合方案；仅完全相同的冻结基线可载入或比较。刷新后先重新检验同一基线。';
-      } catch (error) { savedRecords = []; savedStatus.textContent = error.message; }
+      } catch (error) { savedRecords = []; readFailed = true; savedStatus.textContent = error.message; }
+      savedSummary.textContent = '保存与比较联合方案 · ' + (readFailed ? '读取失败，查看详情' : '本机 ' + savedRecords.length + ' 份');
     }
     const attempt = action => () => {
       try { action(); } catch (error) { savedStatus.textContent = '未完成：' + error.message; }
@@ -16756,8 +16761,9 @@ function mount(container, context) {
       finally { backupFile.value = ''; }
     });
     renderSaved();
-    root.append(el('div', { class: 'v5-card', 'data-joint-saved': '' },
-      el('div', { class: 'hd' }, el('h2', {}, '保存与比较联合方案')),
+    root.append(el('details', { class: 'v5-card is-major', 'data-joint-saved': '', open: expanded.saved,
+      ontoggle: e => { if (e.target.isConnected) expanded.saved = e.target.open; } },
+      savedSummary,
       el('div', { class: 'bd' }, el('label', { class: 'robust-field' }, '名称', savedName), saveJointButton,
         el('label', { class: 'robust-field' }, '已保存方案', savedChoice),
         el('div', { class: 'robust-actions' },
@@ -16840,9 +16846,16 @@ function mount(container, context) {
         if (batchController === controller) batchController = null;
       }
     }
-    root.append(el('div', { class: 'v5-card' }, el('div', { class: 'hd' }, el('h2', {}, '哪些评分值得优先核验')),
+    root.append(el('details', { class: 'v5-card is-major', 'data-batch-scan': '', open: expanded.batch,
+      ontoggle: e => { if (e.target.isConnected) expanded.batch = e.target.open; } },
+      el('summary', {}, '进阶：哪些评分值得优先核验（批量扫描）'),
       el('div', { class: 'bd' }, el('p', {}, '逐一将每格评分减1或加1，保持在 −3…+3 内，比较完整解集。不会修改原项目。锁定状态仍接受原有自洽判定。'),
-        el('div', { class: 'robust-actions' }, start, cancel), batchStatus, batchOutput)));
+        batchPlan ? el('p', {}, '将执行 ' + batchPlan.trials.length + ' 次重算；每次从同一基线出发。') : null,
+        el('div', { class: 'robust-actions' }, start), batchOutput)));
+    const batchProgress=el('div', { 'data-batch-progress': '', hidden: true }, batchStatus, cancel);
+    start.addEventListener('click', () => { batchProgress.hidden = false; });
+    root.append(batchProgress);
+    if(start.disabled)batchProgress.hidden=false;
   }
   const off = context.store.subscribe(render);
   render();

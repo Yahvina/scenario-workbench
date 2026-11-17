@@ -298,8 +298,7 @@ function appendFlowBar(route, context) {
     const info = progressText(route, p, { runSummary: readRunSummary(store), library: context.libraryCounts() });
     const factors = p.selection.descriptorIds.length;
     let action = null;
-    if (route === 'workspace') action = { label: '继续：选择因素', run: () => navigate('elements') };
-    else if (route === 'elements') action = factors >= 2
+    if (route === 'elements') action = factors >= 2
       ? { label: '继续：判断关系', run: () => navigate('relationships') }
       : { label: '去选择因素', run: () => { const input = content.querySelector('#elements-search'); input?.focus(); input?.scrollIntoView({ block: 'center' }); } };
     else if (route === 'timeline') action = { label: '继续：判断关系', run: () => navigate('relationships') };
@@ -312,7 +311,7 @@ function appendFlowBar(route, context) {
       el('div', { class: 'flow-progress-info' },
         el('span', { class: 'flow-progress-text' }, info.text),
         info.hint ? el('span', { class: 'flow-progress-hint' }, info.hint) : null),
-      action ? el('button', { class: 'button primary-action', onclick: action.run }, action.label) : null);
+      ...(action ? [el('button', { class: 'button primary-action', onclick: action.run }, action.label)] : []));
   };
   paint();
   content.append(bar);

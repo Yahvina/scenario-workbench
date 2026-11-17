@@ -1843,8 +1843,7 @@ function appendFlowBar(route, context) {
     const info = progressText(route, p, { runSummary: readRunSummary(store), library: context.libraryCounts() });
     const factors = p.selection.descriptorIds.length;
     let action = null;
-    if (route === 'workspace') action = { label: '继续：选择因素', run: () => navigate('elements') };
-    else if (route === 'elements') action = factors >= 2
+    if (route === 'elements') action = factors >= 2
       ? { label: '继续：判断关系', run: () => navigate('relationships') }
       : { label: '去选择因素', run: () => { const input = content.querySelector('#elements-search'); input?.focus(); input?.scrollIntoView({ block: 'center' }); } };
     else if (route === 'timeline') action = { label: '继续：判断关系', run: () => navigate('relationships') };
@@ -1857,7 +1856,7 @@ function appendFlowBar(route, context) {
       el('div', { class: 'flow-progress-info' },
         el('span', { class: 'flow-progress-text' }, info.text),
         info.hint ? el('span', { class: 'flow-progress-hint' }, info.hint) : null),
-      action ? el('button', { class: 'button primary-action', onclick: action.run }, action.label) : null);
+      ...(action ? [el('button', { class: 'button primary-action', onclick: action.run }, action.label)] : []));
   };
   paint();
   content.append(bar);
@@ -4816,52 +4815,31 @@ function mount(container,context){
   table.append(tbody);
 
   // 自洽组合状态画像：与首页地理地图无关；同一份真实结果，两种视图切换，不重复堆两份内容。
-  const order=id=>p.data.descriptors.find(d=>d.id===id)?.stateIds||[];
   const view=session.portraitView||(limit<=4?'cards':'matrix');
-  const toggleBar=el('div',{class:'portrait-toggle'},
-    el('button',{class:'button text'+(view==='cards'?' is-current':''),onclick:()=>{session.portraitView='cards';render();}},'方案卡'),
-    el('button',{class:'button text'+(view==='matrix'?' is-current':''),onclick:()=>{session.portraitView='matrix';render();}},'矩阵'),
+  const toggleBar=el('div',{class:'portrait-toggle','aria-label':'自洽组合展示方式'},
+    el('button',{class:'button text'+(view==='cards'?' is-current':''),'aria-pressed':String(view==='cards'),onclick:()=>{session.portraitView='cards';render();}},'方案卡'),
+    el('button',{class:'button text'+(view==='matrix'?' is-current':''),'aria-pressed':String(view==='matrix'),onclick:()=>{session.portraitView='matrix';render();}},'对照表'),
     el('span',{class:'note'},'前 '+limit+' 个自洽组合'+(r.truncated?'（完整计数 '+r.count+'，列表截断）':'')));
   const portrait=el('div',{class:'solver-portrait'},
-   el('div',{class:'hd'},el('h4',{},'自洽组合状态画像'),toggleBar),
-   el('p',{class:'v5-hint'},'来自这次冻结结果。颜色只表示状态在因素里的第几档，不是概率、绩效或促进抑制评分。点方案卡或表格行可展开逐因素解释。'));
+    el('div',{class:'hd'},el('h4',{},'浏览自洽组合'),toggleBar),
+    el('p',{class:'v5-hint'},view==='cards'?'点击组合查看解释、比较或保存为新方案。':'同一份结果的逐因素对照；解释与保存入口在每行末尾。'));
   if(view==='cards'){
-   // 少量组合：每个组合一张卡，状态名直接可读；点卡切到表格并展开那一行的解释。
    const cards=el('div',{class:'portrait-cards'});
    for(let i=0;i<limit;i++){
     const config=r.scenarios[i];
     const card=el('button',{class:'portrait-card',type:'button','aria-label':'组合 '+(i+1)+'，展开解释'},
       el('b',{},'组合 '+(i+1)),
-      ...ids.map(id=>{
-        const st=p.data.states.find(x=>x.id===config[id]);
-        return el('span',{},el('em',{},name(id)),stateName(config[id]));
-      }));
-    card.addEventListener('click',()=>{session.portraitExpand=i;session.portraitView='matrix';render();
-      const row=body.querySelector('.solver-scenario-detail:not([hidden])')||body.querySelector('.solver-scenarios tbody tr td button');
-      row?.scrollIntoView({block:'center'});});
+      ...ids.map(id=>el('span',{},el('em',{},name(id)),stateName(config[id]))));
+    card.addEventListener('click',()=>{
+      session.portraitView='matrix';render();
+      const toggle=root.querySelectorAll('.solver-scenario-table tbody > tr:not(.solver-scenario-detail)')[i]?.querySelector('button');
+      toggle?.click();toggle?.focus();toggle?.scrollIntoView({block:'center'});
+    });
     cards.append(card);
    }
    portrait.append(cards);
-  }else{
-   // 组合较多：矩阵；格子里直接写状态名（不是只写 1/2/3），列名完整可换行。
-   const expand=session.portraitExpand;
-   const head=el('tr',{},el('th',{},'组合'),...ids.map(id=>el('th',{},name(id))));
-   const rows=[];
-   for(let i=0;i<limit;i++){
-    const config=r.scenarios[i];
-    const row=el('tr',{class:expand===i?'is-open':'',tabindex:'0','aria-label':'组合 '+(i+1)+'，展开解释'},el('th',{},String(i+1)),...ids.map(id=>{
-      const idx=order(id).indexOf(config[id]);
-      const label=stateName(config[id]);
-      return el('td',{class:'lv'+(idx+1),title:name(id)+'：'+label,'aria-label':name(id)+'：'+label},label);
-    }));
-    row.addEventListener('click',()=>{const btn=body.querySelectorAll('.solver-scenario-table .solver-scenario-detail')[i]?.previousElementSibling?.querySelector('button')||body.querySelectorAll('.solver-scenario-table tbody > tr')[i*2]?.querySelector('td:last-child button');btn?.click();});
-    row.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();row.click();}});
-    rows.push(row);
-   }
-   portrait.append(el('div',{class:'portrait-scroll'},el('table',{class:'portrait-table','aria-label':'自洽组合状态画像'},el('thead',{},head),el('tbody',{},...rows))));
-  }
-  session.portraitExpand=undefined;
-  section.append(portrait,el('div',{class:'v5-scroll'},table));
+  }else portrait.append(el('div',{class:'v5-scroll'},table));
+  section.append(portrait);
   if(r.scenarios.length>limit)section.append(button('显示更多（还有 '+(r.scenarios.length-limit)+' 个）',()=>{session.scenarioLimit=(session.scenarioLimit||12)+24;render();}));
   return section;
  }

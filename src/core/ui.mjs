@@ -17,23 +17,41 @@ export function openDrawer(trigger, title, buildContent) {
   activeDrawerClose?.();
   const previousOverflow = document.body.style.overflow;
   const back = trigger || document.activeElement;
+  const background = [...document.body.children].map(node => [node, node.inert]);
+  const focusable = () => [...panel.querySelectorAll('button, a[href], input, select, textarea, summary, [tabindex], [contenteditable="true"]')]
+    .filter(node => node.tabIndex >= 0 && !node.matches(':disabled') && !node.closest('[inert]') && node.getClientRects().length);
+  const focusFirst = () => (focusable()[0] || panel).focus();
+  const keepFocus = event => { if (!panel.contains(event.target)) focusFirst(); };
   const close = () => {
     if (activeDrawerClose !== close) return;
     activeDrawerClose = null;
-    overlay.remove(); panel.remove(); document.body.style.overflow = previousOverflow; back?.focus?.();
+    document.removeEventListener('focusin', keepFocus);
+    overlay.remove(); panel.remove();
+    for (const [node, inert] of background) node.inert = inert;
+    document.body.style.overflow = previousOverflow;
+    if (back?.isConnected) back.focus?.();
   };
   const overlay = el('div', { class: 'app-drawer-overlay', 'aria-hidden': 'true' });
   overlay.addEventListener('click', close);
   const heading = el('h3', { id: 'app-drawer-title' }, title);
   const body = el('div', { class: 'app-drawer-body' });
-  const panel = el('aside', { class: 'app-drawer', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'app-drawer-title' },
+  const panel = el('aside', { class: 'app-drawer', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'app-drawer-title', tabindex: '-1' },
     el('div', { class: 'app-drawer-hd' }, heading, el('button', { type: 'button', class: 'button text', onclick: close }, '关闭')), body);
-  panel.addEventListener('keydown', event => { if (event.key === 'Escape') { event.stopPropagation(); close(); } });
+  panel.addEventListener('keydown', event => {
+    if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(); }
+    if (event.key !== 'Tab') return;
+    const nodes = focusable(), first = nodes[0], last = nodes.at(-1);
+    if (!first || !nodes.includes(document.activeElement)) { event.preventDefault(); focusFirst(); }
+    else if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  });
   document.body.append(overlay, panel);
   document.body.style.overflow = 'hidden';
   activeDrawerClose = close;
+  for (const [node] of background) node.inert = true;
+  document.addEventListener('focusin', keepFocus);
   try { buildContent(body, close); } catch { close(); return; }
-  panel.querySelector('button')?.focus();
+  if (activeDrawerClose === close) focusFirst();
   return close;
 }
 

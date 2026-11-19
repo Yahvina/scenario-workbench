@@ -46,7 +46,7 @@ const offline = require('node:url').pathToFileURL(path.join(repo, 'dist/scenario
       assert.equal(await page.locator('.app-drawer, .app-drawer-overlay').count(), 0, mode + ': Esc 关闭无残留');
 
       // 4) 抽屉开着切页：自动关闭，body overflow 还原（回归：切页残留）。
-      // 抽屉未做焦点陷阱，键盘 Tab 可达背景并用 Enter 激活导航——用 JS 点击模拟这一路径。
+      // 程序触发路由仍应清理抽屉；正常键盘操作限制在面板内。
       await openBtn().click();
       await page.evaluate(() => document.querySelector('nav button[data-route="relationships"]')?.click());
       assert.equal(await page.locator('.app-drawer, .app-drawer-overlay').count(), 0, mode + ': 切页后抽屉自动关闭');

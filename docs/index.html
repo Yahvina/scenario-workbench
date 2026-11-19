@@ -16573,13 +16573,16 @@ const { explain } = __require("src/modules/solver/engine.mjs");
 const { downloadJson } = __require("src/modules/exports/download.mjs");
 const { planAtYear } = __require("src/modules/elements/state-plan.mjs");
 const { readJointPlans, saveJointPlan, deleteJointPlan, loadJointPlan, compareJointPlans, sameBaseline, exportJointPlans, importJointPlans } = __require("src/modules/solver/joint-plans.mjs");
+const { mountResearchPanel } = __require("src/modules/solver/research-panel.mjs");
 function mount(container, context) {
   const root = el('section', { class: 'robustness-module' });
   container.append(root);
   let batchController = null;
+  let researchPanel = null;
   const expanded = { saved: false, batch: false };
 
   function render() {
+    researchPanel?.dispose();researchPanel=null;
     batchController?.abort();
     batchController = null;
     root.replaceChildren(el('div', { class: 'v5-head' },
@@ -16587,6 +16590,7 @@ function mount(container, context) {
       el('h1', {}, '稳健性检验', infoTip('在冻结输入副本上改变一项或多项评分，再完整枚举。比较全部自洽组合的新增、移出与保留。', '怎么算'))));
     const project = context.store.read();
     const archive = readRunArchive(context.store);
+    if(project.view.perspective==='expert')researchPanel=mountResearchPanel(root,archive);
     if (!archive?.RunInput || archive.RunResult?.status !== 'completed') {
       root.append(el('div', { class: 'v5-empty' }, el('b', {}, '还没有可用的基线'),
         el('button', { class: 'button', onclick: () => context.navigate('solver') }, '去检验与结果')));
@@ -16855,7 +16859,7 @@ function mount(container, context) {
   }
   const off = context.store.subscribe(render);
   render();
-  return () => { batchController?.abort(); off(); root.remove(); };
+  return () => { batchController?.abort(); researchPanel?.dispose(); off(); root.remove(); };
 }
 
 
@@ -17060,6 +17064,393 @@ function importJointPlans(storage, raw) {
 }
 
 Object.assign(__exports, { jointPlanKey, sameBaseline, readJointPlans, saveJointPlan, deleteJointPlan, loadJointPlan, compareJointPlans, exportJointPlans, importJointPlans });
+},
+"src/modules/solver/research-panel.mjs": (__require, __exports) => {
+const { el } = __require("src/core/ui.mjs");
+const { downloadJson } = __require("src/modules/exports/download.mjs");
+const { inspectResearchCase, researchExample, searchResearchCase } = __require("src/modules/solver/research-search.mjs");
+const { inspectInput } = __require("src/modules/solver/engine.mjs");
+const { replayHandoffCase } = __require("src/modules/solver/case-replay.mjs");
+function caseIssueLabel(path,input){
+  const names={'scope.baselineYear':'基期年份','definitions.supportPeriod':'支持统计期间','definitions.supportThresholds':'支持程度分档','definitions.energyThresholds':'能耗变化分档',
+    'definitionEvidence.baselineYear':'基期依据','definitionEvidence.supportPeriod':'统计期间依据','definitionEvidence.supportThresholds':'支持分档依据','definitionEvidence.energyThresholds':'能耗分档依据',sources:'来源列表'};
+  if(names[path])return names[path];
+  const match=/^cells\.(\d+)\.(score|evidence)/.exec(path);
+  if(match){const c=input.cells?.[Number(match[1])];return (c?c.sourceState+' → '+c.targetState:'第'+(Number(match[1])+1)+'个评分格')+(match[2]==='score'?'／评分':'／依据');}
+  return '交接信息';
+}
+
+function researchCaseFromRun(input) {
+  inspectInput(input);
+  const ids=input.activeDescriptorIds,states=ids.map(id=>input.stateDefinitions.filter(s=>s.descriptorId===id).map(s=>s.id));
+  const fixed={},locked=input.lockedStateIds||[],given=input.conditionedStateIds||[];
+  if(locked.length&&given.length)throw Error('本研究入口暂不支持同一次检验同时含普通锁定和外生给定；请分别导出研究副本。');
+  for(const state of [...locked,...given]){const i=states.findIndex(list=>list.includes(state));fixed[i]=states[i].indexOf(state);}
+  const cells=input.matrix.entries.map(e=>{const i=states.findIndex(list=>list.includes(e.sourceStateId)),j=states.findIndex(list=>list.includes(e.targetStateId));return [i,states[i].indexOf(e.sourceStateId),j,states[j].indexOf(e.targetStateId),e.score];});
+  const c={sizes:states.map(list=>list.length),cells,uncertain:[],fixed,mode:given.length?'conditioned':locked.length?'locked':'ordinary',
+    labels:ids.map((id,i)=>[id,states[i]]),provenance:{projectId:input.projectId,revision:input.revision,year:input.year,source:'frozen-platform-run'}};
+  inspectResearchCase(c);return c;
+}
+function mountResearchPanel(container,archive) {
+  let value=null,result=null,controller=null,disposed=false,version=0;
+  const notice=el('p',{role:'status','data-research-status':''},'先导入研究矩阵，或载入合成示例。');
+  const content=el('div'),output=el('div',{'aria-live':'polite'}),progress=el('p',{'data-research-progress':'',role:'status'});
+  const save=el('button',{class:'button',disabled:true,onclick:()=>result&&downloadJson('有限范围研究结果.json',result)},'下载研究结果');
+  const stop=el('button',{class:'button secondary',disabled:true,onclick:()=>controller?.abort()},'停止研究计算');
+  const run=el('button',{class:'button',disabled:true,onclick:async()=>{
+    if(!value||controller)return;const current=version,c=new AbortController();controller=c;run.disabled=true;stop.disabled=false;save.disabled=true;output.replaceChildren();
+    notice.textContent='计算中；只使用研究副本。';
+    try{
+      const r=await searchResearchCase(value,{signal:c.signal,onProgress:p=>{if(!disposed&&current===version)progress.textContent='已检查 '+p.visitedMatrices+' 个取值组合，完成 '+p.evaluations+' 次配置检验。';}});
+      if(disposed||current!==version)return;result=r;save.disabled=false;
+      const label=r.status==='optimal'?'已证明最小合法改动':r.status==='invariant'?'在声明的有限范围内集合不变':r.status==='cancelled'?'已停止；未完成最小性判断':'达到计算限制；未完成最小性判断';
+      notice.textContent=label;
+      output.append(el('p',{},r.cost?(r.minimumProved?'最小代价':'目前找到的候选代价')+'：'+r.cost[0]+' 格，共改 '+r.cost[1]+' 分；新增 '+r.added.length+' 个，移出 '+r.removed.length+' 个。':'没有返回改变集合的评分见证。'),
+        el('p',{},'基线 '+(r.baseline?.length??'未计算')+' 个自洽组合；只适用于导入的矩阵、约束和允许取值。'));
+      if(!value.uncertain?.length)output.append(el('p',{},'未设置可改评分，范围只有原矩阵；这不证明其他改分下稳定。'));
+    }catch(error){if(!disposed&&current===version)notice.textContent='研究未完成：'+error.message;}
+    finally{if(controller===c){controller=null;if(!disposed){run.disabled=!value;stop.disabled=true;}}}
+  }},'计算最小合法改动');
+  const invalidate=()=>{version++;controller?.abort();result=null;save.disabled=true;output.replaceChildren();progress.textContent='';};
+  const accept=c=>{inspectResearchCase(c);invalidate();value=structuredClone(c);notice.textContent='研究副本已载入；'+c.sizes.length+' 个因素，'+(c.uncertain?.length||0)+' 个可改格。';render();run.disabled=!!controller;};
+  const input=el('input',{type:'file',accept:'.json,application/json','aria-label':'导入研究矩阵JSON',onchange:async event=>{
+    const file=event.target.files?.[0];if(!file)return;const token=++version;controller?.abort();value=null;result=null;run.disabled=true;save.disabled=true;content.replaceChildren();output.replaceChildren();progress.textContent='';
+    try{if(file.size>2*1024*1024)throw Error('文件超过2 MiB。');const c=JSON.parse(await file.text());if(!disposed&&token===version){
+      if(c.format==='cib-case-handoff'){
+        const replay=replayHandoffCase(c);result=replay;save.disabled=false;
+        notice.textContent=replay.status==='completed'?'案例给定状态复算完成；证据内容尚未独立核验。':'案例资料未齐，未运行实证计算。';
+        const lines=replay.status==='completed'?replay.comparisons.map(x=>'给定 '+x.givenState+'：'+x.count+' 个能耗状态自洽。'):
+          [...replay.audit.issues.map(x=>caseIssueLabel(x.path,c)+'：'+x.message),...(replay.audit.pendingModelReview||[]).map(x=>'模型确认未完成：'+({baselineConfirmed:'基期选择',stateCoverageConfirmed:'状态覆盖范围',evidenceReviewed:'评分依据复核'}[x]||'模型信息'))];
+        output.append(el('p',{},'本入口仅核对交接字段和引用，不把政策文本当作关系评分依据，不补0，不写回当前项目。'),el('ul',{},...lines.map(t=>el('li',{},t))));
+      }else accept(c);
+    }}
+    catch(error){if(!disposed&&token===version){value=null;run.disabled=true;content.replaceChildren();notice.textContent='未载入：'+error.message;}}
+    finally{event.target.value='';}
+  }});
+  function render(){
+    content.replaceChildren();if(!value)return;
+    const cells=el('select',{'aria-label':'研究可改评分格'},...value.cells.map((r,i)=>el('option',{value:i},'因素'+(r[0]+1)+'状态'+(r[1]+1)+' → 因素'+(r[2]+1)+'状态'+(r[3]+1)+'（原分'+r[4]+'）')));
+    const add=el('button',{class:'button secondary',onclick:()=>{const r=value.cells[Number(cells.value)],k=r.slice(0,4);invalidate();value.uncertain||=[];value.uncertain=value.uncertain.filter(d=>JSON.stringify(d.cell)!==JSON.stringify(k));value.uncertain.push({cell:k,values:[...new Set([Math.max(-3,r[4]-1),r[4],Math.min(3,r[4]+1)])]});render();notice.textContent='可改范围已更新，重新计算才有结论。';}},'加入原分±1范围');
+    const constraint=el('select',{'aria-label':'研究联动方式'},el('option',{value:'file'},'保留当前约束'),el('option',{value:'independent'},'全部可改格独立变化'),el('option',{value:'equal'},'全部可改格同幅变化'),el('option',{value:'sum'},'全部可改格的改变量和为0'));
+    constraint.addEventListener('change',()=>{if(constraint.value==='file')return;const group=(value.uncertain||[]).map(d=>d.cell);if(constraint.value!=='independent'&&group.length<2){notice.textContent='联动需要至少两个可改格。';constraint.value='file';return;}invalidate();delete value.equal_delta_groups;delete value.sum_preserving_groups;if(constraint.value==='equal')value.equal_delta_groups=[group];if(constraint.value==='sum')value.sum_preserving_groups=[group];notice.textContent='联动约束已更新，请重新计算。';});
+    content.append(el('p',{},'已设置 '+(value.uncertain?.length||0)+' 个可改格；等幅约束 '+(value.equal_delta_groups?.length||0)+' 项，保持和约束 '+(value.sum_preserving_groups?.length||0)+' 项。'),
+      el('label',{},'选择可改评分格',cells),add,el('label',{},'选择联动方式',constraint),
+      el('button',{class:'button text',onclick:()=>downloadJson('研究矩阵与允许范围.json',value)},'下载研究输入'));
+  }
+  const box=el('details',{class:'v5-card is-major','data-research-panel':''},el('summary',{},'研究工具：有限范围内的最小联合改分'),
+    el('div',{class:'bd'},el('p',{},'检查完整情景集合是否会改变。也可导入河北案例交接JSON：资料不齐时只列缺项，齐备后复算给定支持状态。研究副本不会写回项目，结果不代表现实概率或政策效果。'),input,
+      el('button',{class:'button secondary',onclick:()=>accept(researchExample())},'载入联合改分示例'),
+      archive?.RunInput?el('button',{class:'button secondary',onclick:()=>{try{accept(researchCaseFromRun(archive.RunInput));}catch(error){notice.textContent=error.message;}}},'使用本次检验的冻结矩阵'):null,
+      content,el('p',{},'最多10000种配置/矩阵、10000个取值组合和200000次配置检验；可停止。范围过大应转独立研究脚本。'),run,stop,notice,progress,output,save));
+  container.append(box);
+  return {dispose(){disposed=true;version++;controller?.abort();box.remove();}};
+}
+
+Object.assign(__exports, { researchCaseFromRun, mountResearchPanel });
+},
+"src/modules/solver/research-search.mjs": (__require, __exports) => {
+const { runCib } = __require("src/standalone-cib/index.mjs");
+const key = cell => cell.join(',');
+const need = (ok, message) => { if (!ok) throw new Error(message); };
+const object = value => value && typeof value === 'object' && !Array.isArray(value);
+function researchExample() {
+  return { sizes:[2,2], cells:[[0,0,1,0,0],[0,0,1,1,0],[0,1,1,0,0],[0,1,1,1,1],
+    [1,0,0,0,1],[1,0,0,1,0],[1,1,0,0,0],[1,1,0,1,1]],
+    uncertain:[{cell:[0,0,1,0],values:[-1,0]},{cell:[0,0,1,1],values:[0,1]}],
+    sum_preserving_groups:[[[0,0,1,0],[0,0,1,1]]], mode:'ordinary' };
+}
+function inspectResearchCase(value) {
+  need(object(value),'研究输入须为JSON对象。');
+  need(Object.keys(value).every(k=>['sizes','cells','uncertain','equal_delta_groups','sum_preserving_groups','fixed','mode','name','expected','labels','source','locator','provenance'].includes(k)),'包含未支持字段；请勿把其他格式的约束直接当作本研究输入。');
+  const c=structuredClone(value),sizes=c.sizes;
+  need(Array.isArray(sizes)&&sizes.length>=2&&sizes.length<=20&&sizes.every(n=>Number.isInteger(n)&&n>0&&n<=12),'需要2至20个因素，每个因素1至12个状态。');
+  need(Array.isArray(c.cells)&&Array.isArray(c.uncertain||[]),'缺少评分表或可改范围格式无效。');
+  const cells=new Map();
+  for(const r of c.cells){
+    need(Array.isArray(r)&&r.length===5&&r.every(Number.isInteger),'评分格须为五个整数；缺分不能补0。');
+    const [i,a,j,b,v]=r,k=key(r.slice(0,4));
+    need(i!==j&&i>=0&&j>=0&&i<sizes.length&&j<sizes.length&&a>=0&&b>=0&&a<sizes[i]&&b<sizes[j]&&Math.abs(v)<=3&&!cells.has(k),'评分格重复、越界或分数不在−3至+3。');
+    cells.set(k,v);
+  }
+  need(cells.size===sizes.reduce((n,s,i)=>n+sizes.reduce((m,t,j)=>m+(i===j?0:s*t),0),0),'需要完整有向评分矩阵；未判断不能按0计算。');
+  const domains=new Map();
+  for(const d of c.uncertain||[]){
+    need(object(d)&&Array.isArray(d.cell)&&d.cell.length===4&&d.cell.every(Number.isInteger),'可改格坐标无效。');
+    const k=key(d.cell),vs=d.values;
+    need(cells.has(k)&&!domains.has(k)&&Array.isArray(vs)&&vs.length&&vs.every(v=>Number.isInteger(v)&&Math.abs(v)<=3)&&new Set(vs).size===vs.length&&vs.includes(cells.get(k)),'可改范围必须唯一、包含原评分，且均为−3至+3整数。');domains.set(k,vs);
+  }
+  for(const field of ['equal_delta_groups','sum_preserving_groups']){
+    need(c[field]===undefined||Array.isArray(c[field]),'联动约束须为列表。');
+    for(const g of c[field]||[])need(Array.isArray(g)&&g.length>=2&&g.every(k=>Array.isArray(k)&&k.length===4&&k.every(Number.isInteger)&&domains.has(key(k)))&&new Set(g.map(key)).size===g.length,'每项联动约束须引用至少两个不同的可改格。');
+  }
+  const mode=c.mode||'ordinary',fixed=c.fixed||{};
+  need(['ordinary','locked','conditioned'].includes(mode)&&object(fixed),'固定条件格式或模式无效。');
+  need(Object.entries(fixed).every(([i,v])=>/^(0|[1-9]\d*)$/.test(i)&&Number(i)<sizes.length&&Number.isInteger(v)&&v>=0&&v<sizes[Number(i)]),'固定状态越界。');
+  need(mode!=='ordinary'||!Object.keys(fixed).length,'设置固定状态时须明确locked或conditioned模式。');
+  need(mode!=='conditioned'||Object.keys(fixed).length<sizes.length,'至少保留一个接受检验的因素。');
+  const space=sizes.reduce((n,s,i)=>n*BigInt(Object.hasOwn(fixed,String(i))?1:s),1n);
+  need(space<=10000n,'本研究入口每张矩阵最多检查10000种配置；请缩小问题或在独立脚本中明确分片。');
+  const descriptors=sizes.map((n,i)=>({id:String(i),states:Array.from({length:n},(_,s)=>String(s))}));
+  const blocks=[];
+  for(let i=0;i<sizes.length;i++)for(let j=0;j<sizes.length;j++)if(i!==j)blocks.push([String(i),String(j),Array.from({length:sizes[i]},(_,a)=>Array.from({length:sizes[j]},(_,b)=>cells.get(key([i,a,j,b]))))]);
+  return {c,cells,domains,space:Number(space),input:{descriptors,blocks},options:{mode:mode==='ordinary'?'locked':mode,fixed:Object.fromEntries(Object.entries(fixed).map(([i,v])=>[i,String(v)]))}};
+}
+async function searchResearchCase(value,{signal,onProgress=()=>{},yieldControl=()=>new Promise(resolve=>setTimeout(resolve,0)),maxEvaluations=200000,maxMatrices=10000}={}){
+  need(Number.isSafeInteger(maxEvaluations)&&maxEvaluations>=0&&maxEvaluations<=2000000&&Number.isSafeInteger(maxMatrices)&&maxMatrices>=0&&maxMatrices<=100000,'计算预算无效。');
+  const p=inspectResearchCase(value),keys=[...p.domains.keys()],positions=keys.map(()=>0);
+  const out={format:'scenario-workbench.finite-research-result',version:1,status:'running',input:p.c,
+    limits:{maxEvaluations,maxMatrices,configurationsPerMatrix:p.space},evaluations:0,visitedMatrices:0,legalMatrices:0,
+    baseline:null,variant:null,cost:null,added:[],removed:[],minimumProved:false,completeDomainEnumeration:false,
+    scope:'仅对输入声明的有限范围有效；不代表概率或现实政策效果。'};
+  const memberKey=z=>JSON.stringify(z),members=result=>result.scenarios.map(s=>p.input.descriptors.map(d=>Number(s.configuration[d.id])));
+  if(signal?.aborted)return {...out,status:'cancelled'};
+  if(p.space>maxEvaluations||maxMatrices===0)return {...out,status:'limit'};
+  const baseline=runCib(p.input,p.options);need(baseline.status==='completed','基线未完成。');
+  out.baseline=members(baseline);out.evaluations=p.space;const before=new Set(out.baseline.map(memberKey));
+  const legal=changes=>(p.c.equal_delta_groups||[]).every(g=>new Set(g.map(k=>changes.get(key(k))-p.cells.get(key(k)))).size===1)&&
+    (p.c.sum_preserving_groups||[]).every(g=>g.reduce((n,k)=>n+changes.get(key(k))-p.cells.get(key(k)),0)===0);
+  const finish=status=>({...out,status,minimumProved:status==='optimal'});
+  let more=true;
+  while(more){
+    await yieldControl();
+    if(signal?.aborted)return finish('cancelled');
+    if(out.visitedMatrices>=maxMatrices)return finish('limit');
+    const changes=new Map(keys.map((k,i)=>[k,p.domains.get(k)[positions[i]]]));out.visitedMatrices++;
+    if(legal(changes)){
+      out.legalMatrices++;
+      const modified=[...changes].filter(([k,v])=>v!==p.cells.get(k));
+      if(modified.length){
+        if(out.evaluations+p.space>maxEvaluations)return finish('limit');
+        const input=structuredClone(p.input);
+        for(const [k,v]of modified){const [i,a,j,b]=k.split(',').map(Number);input.blocks.find(block=>block[0]===String(i)&&block[1]===String(j))[2][a][b]=v;}
+        const trial=runCib(input,p.options);need(trial.status==='completed','候选未完成。');out.evaluations+=p.space;
+        const after=members(trial),afterSet=new Set(after.map(memberKey));
+        const added=after.filter(z=>!before.has(memberKey(z))),removed=out.baseline.filter(z=>!afterSet.has(memberKey(z)));
+        if(added.length||removed.length){
+          const d=[modified.length,modified.reduce((n,[k,v])=>n+Math.abs(v-p.cells.get(k)),0)];
+          if(!out.cost||d[0]<out.cost[0]||d[0]===out.cost[0]&&d[1]<out.cost[1])Object.assign(out,{cost:d,changes:modified.map(([k,v])=>({cell:k.split(',').map(Number),score:v})),variant:after,added,removed});
+          if(out.cost[0]===1&&out.cost[1]===1){out.proof='integer-universal-lower-bound';return finish('optimal');}
+        }
+      }
+    }
+    onProgress({visitedMatrices:out.visitedMatrices,evaluations:out.evaluations,legalMatrices:out.legalMatrices,bestKnownCost:out.cost});
+    let i=positions.length-1;
+    while(i>=0&&++positions[i]===p.domains.get(keys[i]).length)positions[i--]=0;
+    more=i>=0;
+  }
+  out.completeDomainEnumeration=true;out.proof='finite-domain-exhaustion';return finish(out.cost?'optimal':'invariant');
+}
+
+Object.assign(__exports, { researchExample, inspectResearchCase, searchResearchCase });
+},
+"src/standalone-cib/index.mjs": (__require, __exports) => {
+const isRecord = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+const names = values => Array.isArray(values) && values.length > 0 &&
+  Array.from(values).every(value => typeof value === 'string' && value.trim()) && new Set(values).size === values.length;
+const blockKey = (source, target) => JSON.stringify([source, target]);
+
+function requireInput(condition, message) {
+  if (!condition) throw new TypeError(message);
+}
+
+function runCib({ descriptors, blocks }, { mode = 'conditioned', fixed = {}, limit = 100000 } = {}) {
+  requireInput(Array.isArray(descriptors) && descriptors.length >= 2 &&
+    descriptors.every(d => isRecord(d) && names(d.states)) && names(descriptors.map(d => d.id)),
+  '需要至少两个描述符，每个描述符需有唯一名称和状态。');
+  requireInput(Array.isArray(blocks), '需要有向评分矩阵。');
+  requireInput(mode === 'locked' || mode === 'conditioned', '模式须为 locked 或 conditioned。');
+  requireInput(isRecord(fixed) && Object.entries(fixed).every(([id, state]) =>
+    descriptors.find(d => d.id === id)?.states.includes(state)), '给定状态必须属于对应描述符。');
+  requireInput(Number.isInteger(limit) && limit > 0 && limit <= 100000, '枚举上限须在 1 至 100000 之间。');
+
+  const checkedDescriptors = descriptors.filter(d => mode === 'locked' || !Object.hasOwn(fixed, d.id));
+  requireInput(checkedDescriptors.length > 0, '至少需要一个接受自洽判定的描述符。');
+  const choices = descriptors.map(d => Object.hasOwn(fixed, d.id) ? [fixed[d.id]] : d.states);
+  const candidateCount = choices.reduce((count, states) => count * BigInt(states.length), 1n);
+  const blocksByDirection = new Map();
+  for (const block of blocks) {
+    requireInput(Array.isArray(block) && block.length === 3, '每个方向需要来源、目标和评分表。');
+    const [source, target, scores] = block;
+    const from = descriptors.find(d => d.id === source);
+    const to = descriptors.find(d => d.id === target);
+    const key = blockKey(source, target);
+    requireInput(from && to && source !== target && !blocksByDirection.has(key), '评分方向重复、未知或指向自身。');
+    requireInput(Array.isArray(scores) && scores.length === from.states.length &&
+      Array.from(scores).every(row => Array.isArray(row) && row.length === to.states.length &&
+        Array.from(row).every(score => score === null || (Number.isInteger(score) && Math.abs(score) <= 3))),
+    '评分表尺寸须与状态数一致，评分须为 −3 至 +3 的整数或空值。');
+    blocksByDirection.set(key, scores);
+  }
+
+  const missing = [];
+  const contributionsByTarget = new Map();
+  for (const target of checkedDescriptors) {
+    const sources = [];
+    for (const [index, source] of descriptors.entries()) {
+      if (source.id === target.id) continue;
+      const scores = blocksByDirection.get(blockKey(source.id, target.id));
+      const rows = new Map();
+      for (const state of choices[index]) {
+        const row = scores?.[source.states.indexOf(state)];
+        target.states.forEach((candidate, j) => {
+          if (row?.[j] == null) missing.push({ source: source.id, state, target: target.id, candidate });
+        });
+        rows.set(state, row);
+      }
+      sources.push({ id: source.id, rows });
+    }
+    contributionsByTarget.set(target.id, sources);
+  }
+
+  const base = { mode, fixed, candidateCount: candidateCount.toString() };
+  if (missing.length) return { ...base, status: 'missing-scores', checked: 0, count: null, scenarios: [], missing };
+  if (candidateCount > BigInt(limit)) return { ...base, status: 'space-limit', checked: 0, count: null, scenarios: [], limit };
+
+  const positions = choices.map(() => 0);
+  const scenarios = [];
+  let firstRejected = null;
+  for (let checked = 0; checked < Number(candidateCount); checked++) {
+    const configuration = Object.fromEntries(descriptors.map((d, i) => [d.id, choices[i][positions[i]]]));
+    const balances = checkedDescriptors.map(target => {
+      const candidates = target.states.map((state, j) => {
+        const contributions = contributionsByTarget.get(target.id).map(source => ({
+          descriptor: source.id, state: configuration[source.id], score: source.rows.get(configuration[source.id])[j]
+        }));
+        return { state, support: contributions.reduce((sum, entry) => sum + entry.score, 0), contributions };
+      });
+      const chosen = candidates.find(candidate => candidate.state === configuration[target.id]);
+      const gap = candidates.reduce((max, candidate) => Math.max(max, candidate.support), -Infinity) - chosen.support;
+      return { descriptor: target.id, chosen: chosen.state, gap, candidates };
+    });
+    const explanation = { configuration, balances };
+    if (balances.every(balance => balance.gap === 0)) scenarios.push(explanation);
+    else firstRejected ??= explanation;
+
+    let i = positions.length - 1;
+    while (i >= 0 && ++positions[i] === choices[i].length) positions[i--] = 0;
+  }
+  return { ...base, status: 'completed', checked: Number(candidateCount), count: scenarios.length, scenarios, firstRejected };
+}
+
+function compareCib(input, change, options = {}) {
+  const baseline = runCib(input, options);
+  if (baseline.status !== 'completed') return { status: baseline.status, baseline };
+
+  const { source, sourceState, target, targetState, score } = change;
+  const from = input.descriptors.find(d => d.id === source);
+  const to = input.descriptors.find(d => d.id === target);
+  const row = from?.states.indexOf(sourceState);
+  const column = to?.states.indexOf(targetState);
+  const block = input.blocks.findIndex(([a, b]) => a === source && b === target);
+  requireInput(block >= 0 && row >= 0 && column >= 0, '找不到要重算的评分格。');
+  const { fixed, mode } = baseline;
+  requireInput((!Object.hasOwn(fixed, source) || fixed[source] === sourceState) &&
+    (mode !== 'conditioned' || !Object.hasOwn(fixed, target)), '该评分格未参与本次检验。');
+  const previousScore = input.blocks[block][2][row][column];
+  requireInput(Number.isInteger(previousScore) && Number.isInteger(score) &&
+    Math.abs(score) <= 3 && score !== previousScore, '请选择与原分数不同的 −3 至 +3 整数。');
+
+  const adjusted = structuredClone(input);
+  adjusted.blocks[block][2][row][column] = score;
+  const perturbed = runCib(adjusted, options);
+  const before = new Map(baseline.scenarios.map(scenario => [JSON.stringify(scenario.configuration), scenario.configuration]));
+  const after = new Map(perturbed.scenarios.map(scenario => [JSON.stringify(scenario.configuration), scenario.configuration]));
+  return {
+    status: 'completed',
+    change: { source, sourceState, target, targetState, previousScore, score },
+    baseline,
+    perturbed,
+    kept: [...before].filter(([key]) => after.has(key)).map(([, configuration]) => configuration),
+    added: [...after].filter(([key]) => !before.has(key)).map(([, configuration]) => configuration),
+    removed: [...before].filter(([key]) => !after.has(key)).map(([, configuration]) => configuration)
+  };
+}
+
+
+Object.assign(__exports, { runCib, compareCib });
+},
+"src/modules/solver/case-replay.mjs": (__require, __exports) => {
+const { auditHandoff } = __require("src/modules/solver/case-handoff.mjs");
+const { runCib } = __require("src/standalone-cib/index.mjs");
+function replayHandoffCase(raw) {
+  const input=structuredClone(raw),audit=auditHandoff(input);
+  if(audit.status!=='structurally-ready-for-review')return {format:'scenario-workbench.case-replay',version:1,status:'not-ready',audit,input,comparisons:[],scientificValidity:'not-assessed'};
+  const [support,energy]=input.descriptors;
+  const block=support.states.map(a=>energy.states.map(b=>input.cells.find(c=>c.sourceState===a&&c.targetState===b).score));
+  const core={descriptors:input.descriptors.map(d=>({id:d.id,states:d.states})),blocks:[[support.id,energy.id,block]]};
+  const comparisons=support.states.map(state=>{
+    const result=runCib(core,{mode:'conditioned',fixed:{[support.id]:state}});
+    if(result.status!=='completed')throw Error('案例给定状态未完成计算。');
+    return {givenState:state,mode:'conditioned',count:result.count,configurations:result.scenarios.map(s=>s.configuration),explanations:result.scenarios.map(s=>s.balances)};
+  });
+  return {format:'scenario-workbench.case-replay',version:1,status:'completed',audit,input,comparisons,scientificValidity:'not-assessed',
+    meaning:'仅在外生给定支持状态下检查能耗状态的支持分；未补反向评分，不是实际政策效果或真实能耗预测。'};
+}
+
+Object.assign(__exports, { replayHandoffCase });
+},
+"src/modules/solver/case-handoff.mjs": (__require, __exports) => {
+function auditHandoff(input) {
+  const issues=[];
+  const add=(path,message)=>issues.push({path,message});
+  const object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
+  const text=v=>typeof v==='string'&&v.trim().length>0;
+  if(!object(input)||input.format!=='cib-case-handoff'||input.version!==1)return {status:'invalid-format',issues:[{path:'format/version',message:'不是本交接模板或版本不支持'}],scientificValidity:'not-assessed'};
+  const sources=Array.isArray(input.sources)?input.sources:[];
+  if(!Array.isArray(input.sources))add('sources','缺少来源列表');
+  const map=new Map();
+  for(const [i,s] of sources.entries()){
+    if(!object(s)||!text(s.id)||!['paper','historical-data','policy','expert','assumption'].includes(s.kind)||!text(s.title)||!text(s.location)){add('sources.'+i,'来源需有唯一id、kind、title和可定位的location');continue;}
+    if(map.has(s.id))add('sources.'+i,'来源标识重复');else map.set(s.id,s);
+  }
+  const evidence=(refs,path,roles=false)=>{
+    if(!Array.isArray(refs)||!refs.length){add(path,'未提供证据定位');return false;}
+    let valid=true;const covered=new Set();
+    for(const [i,r] of refs.entries()){
+      const p=path+'.'+i,source=object(r)?map.get(r.sourceId):null;
+      if(!source||!text(r?.locator)){add(p,'证据需引用有效来源并填写页/表/字段定位');valid=false;continue;}
+      if(roles){
+        if(!['direction','strength'].includes(r.role)||!text(r.finding)){add(p,'需分别标记方向/强度，说明依据中的发现');valid=false;}
+        else covered.add(r.role);
+        if(!['paper','historical-data'].includes(source.kind)){add(p,'本案例规律评分需论文或历史数据支持；当前来源仅可作待核假设');valid=false;}
+        if(r.role==='strength'&&!text(r.scoreRationale)){add(p,'强度证据需说明为何编码成该分数');valid=false;}
+      }
+    }
+    if(roles&&(!covered.has('direction')||!covered.has('strength'))){add(path,'需同时交接方向与强度依据');valid=false;}
+    return valid;
+  };
+  const target=input.scope?.targetYear,baseline=input.scope?.baselineYear;
+  if(!Number.isInteger(target)||target<1900||target>2300)add('scope.targetYear','目标年份无效');
+  if(!Number.isInteger(baseline)||baseline<1900||baseline>=target)add('scope.baselineYear','基期尚未确定或不是有效的早于目标年的年份');
+  const fields=[['baselineYear',baseline],['supportPeriod',input.definitions?.support?.period],['supportThresholds',input.definitions?.support?.thresholds],['energyThresholds',input.definitions?.energy?.thresholds]];
+  for(const [key,value] of fields){
+    if(key!=='baselineYear'&&!(text(value)||object(value)&&Object.keys(value).length))add('definitions.'+key,'尚未填写口径/分档说明');
+    evidence(input.definitionEvidence?.[key],'definitionEvidence.'+key);
+  }
+  const ds=input.descriptors;
+  const validDescriptors=Array.isArray(ds)&&ds.length===2&&ds.every(d=>object(d)&&text(d.id)&&Array.isArray(d.states)&&d.states.length===3&&d.states.every(text)&&new Set(d.states).size===3)&&new Set(ds.map(d=>d.id)).size===2;
+  if(!validDescriptors)add('descriptors','当前接入版本要求两因素各三状态，状态需唯一；结构改变须先审定并更新接口');
+  const cells=Array.isArray(input.cells)?input.cells:[];if(cells.length!==9)add('cells','当前完整比较需9个不同的来源状态—目标状态评分格');
+  const seen=new Set();let judged=0,traceable=0;
+  const rowCounts=validDescriptors?Object.fromEntries(ds[0].states.map(s=>[s,{validScores:0,traceableEvidence:0}])):{};
+  for(const [i,cell] of cells.entries()){
+    const p='cells.'+i;
+    if(!object(cell)){add(p,'评分格格式无效');continue;}
+    const k=JSON.stringify([cell.sourceState,cell.targetState]);
+    const known=validDescriptors&&ds[0].states.includes(cell.sourceState)&&ds[1].states.includes(cell.targetState);
+    const unique=!seen.has(k);if(!unique)add(p,'评分格重复');seen.add(k);
+    if(!known)add(p,'评分状态不属于当前定义');
+    const scoreValid=Number.isInteger(cell.score)&&Math.abs(cell.score)<=3;
+    if(!scoreValid)add(p+'.score',cell.score===null?'评分未判断；不会补0':'评分必须是−3…+3整数或未判断null');
+    const located=evidence(cell.evidence,p+'.evidence',true);
+    if(scoreValid&&known&&unique){judged++;rowCounts[cell.sourceState].validScores++;}
+    if(scoreValid&&located&&known&&unique){traceable++;rowCounts[cell.sourceState].traceableEvidence++;}
+  }
+  const reviews=['baselineConfirmed','stateCoverageConfirmed','evidenceReviewed'].filter(k=>input.modelReview?.[k]!==true);
+  return {format:'cib-case-handoff-audit',version:1,status:issues.length?'incomplete':reviews.length?'awaiting-model-review':'structurally-ready-for-review',caseId:input.caseId??null,scientificValidity:'not-assessed',meaning:'仅检查字段、引用和评分格式；已填写审核标记不代替独立资料核验。不会改动输入或运行模型。',candidateBaselineYear:input.scope?.candidateBaselineYear??null,confirmedBaselineYear:Number.isInteger(baseline)?baseline:null,totalCells:cells.length,validScores:judged,traceableScores:traceable,pendingModelReview:reviews,conditionalRows:Object.entries(rowCounts).map(([state,r])=>({state,...r,scoreComputable:r.validScores===3,evidenceLocated:r.traceableEvidence===3})),issues};
+}
+
+Object.assign(__exports, { auditHandoff });
 }
 };
 const __cache = {};

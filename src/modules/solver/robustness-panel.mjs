@@ -6,14 +6,17 @@ import { explain } from './engine.mjs';
 import { downloadJson } from '../exports/download.mjs';
 import { planAtYear } from '../elements/state-plan.mjs';
 import { readJointPlans, saveJointPlan, deleteJointPlan, loadJointPlan, compareJointPlans, sameBaseline, exportJointPlans, importJointPlans } from './joint-plans.mjs';
+import { mountResearchPanel } from './research-panel.mjs';
 
 export function mount(container, context) {
   const root = el('section', { class: 'robustness-module' });
   container.append(root);
   let batchController = null;
+  let researchPanel = null;
   const expanded = { saved: false, batch: false };
 
   function render() {
+    researchPanel?.dispose();researchPanel=null;
     batchController?.abort();
     batchController = null;
     root.replaceChildren(el('div', { class: 'v5-head' },
@@ -21,6 +24,7 @@ export function mount(container, context) {
       el('h1', {}, '稳健性检验', infoTip('在冻结输入副本上改变一项或多项评分，再完整枚举。比较全部自洽组合的新增、移出与保留。', '怎么算'))));
     const project = context.store.read();
     const archive = readRunArchive(context.store);
+    if(project.view.perspective==='expert')researchPanel=mountResearchPanel(root,archive);
     if (!archive?.RunInput || archive.RunResult?.status !== 'completed') {
       root.append(el('div', { class: 'v5-empty' }, el('b', {}, '还没有可用的基线'),
         el('button', { class: 'button', onclick: () => context.navigate('solver') }, '去检验与结果')));
@@ -289,6 +293,6 @@ export function mount(container, context) {
   }
   const off = context.store.subscribe(render);
   render();
-  return () => { batchController?.abort(); off(); root.remove(); };
+  return () => { batchController?.abort(); researchPanel?.dispose(); off(); root.remove(); };
 }
 
